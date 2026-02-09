@@ -11,11 +11,12 @@ use Vatly\Exceptions\InvalidWebhookSignatureException;
 use Vatly\Exceptions\VatlyException;
 
 describe('VatlyException', function () {
-    test('it is an exception', function () {
-        $exception = new VatlyException('Test error');
+    test('it is the base exception class', function () {
+        // VatlyException is abstract, so we test via a concrete subclass
+        $exception = InvalidWebhookSignatureException::missingSignature();
 
-        expect($exception)->toBeInstanceOf(Exception::class)
-            ->and($exception->getMessage())->toBe('Test error');
+        expect($exception)->toBeInstanceOf(VatlyException::class)
+            ->and($exception)->toBeInstanceOf(Exception::class);
     });
 });
 
@@ -66,7 +67,7 @@ describe('CustomerAlreadyCreatedException', function () {
         $exception = CustomerAlreadyCreatedException::exists($billable);
 
         expect($exception->getMessage())->toContain('vat_456')
-            ->and($exception->getMessage())->toContain('MockBillable');
+            ->and($exception->getMessage())->toContain('is already a Vatly customer');
     });
 });
 
@@ -80,7 +81,7 @@ function createMockBillable(string $vatlyId): BillableInterface
         {
         }
 
-        public function getVatlyId(): ?string
+        public function getVatlyId(): string
         {
             return $this->vatlyId;
         }

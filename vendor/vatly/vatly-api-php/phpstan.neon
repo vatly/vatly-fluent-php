@@ -1,0 +1,10 @@
+parameters:
+    level: 5
+    paths:
+        - %currentWorkingDirectory%/src
+        - %currentWorkingDirectory%/tests
+    excludePaths:
+        - %currentWorkingDirectory%/vendor
+    ignoreErrors: []
+    treatPhpDocTypesAsCertain: true
+includes: []

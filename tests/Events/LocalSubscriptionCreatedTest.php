@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Vatly\Contracts\BillableInterface;
 use Vatly\Contracts\SubscriptionInterface;
 use Vatly\Events\LocalSubscriptionCreated;
 
@@ -29,7 +30,7 @@ test('it provides access to subscription properties', function () {
 function createMockSubscription(): SubscriptionInterface
 {
     return new class implements SubscriptionInterface {
-        public function getVatlyId(): ?string
+        public function getVatlyId(): string
         {
             return 'sub_test_123';
         }
@@ -39,14 +40,14 @@ function createMockSubscription(): SubscriptionInterface
             return 'default';
         }
 
-        public function getPlanId(): ?string
+        public function getPlanId(): string
         {
             return 'plan_abc';
         }
 
-        public function getStatus(): string
+        public function getName(): string
         {
-            return 'active';
+            return 'Test Subscription';
         }
 
         public function getQuantity(): int
@@ -64,7 +65,7 @@ function createMockSubscription(): SubscriptionInterface
             return true;
         }
 
-        public function isCanceled(): bool
+        public function isCancelled(): bool
         {
             return false;
         }
@@ -74,9 +75,18 @@ function createMockSubscription(): SubscriptionInterface
             return false;
         }
 
-        public function markAsCanceled(?\DateTimeInterface $endsAt = null): void
+        public function getOwner(): BillableInterface
         {
-            // Mock implementation
+            return new class implements BillableInterface {
+                public function getVatlyId(): ?string { return 'cus_123'; }
+                public function setVatlyId(string $id): void {}
+                public function hasVatlyId(): bool { return true; }
+                public function getVatlyEmail(): ?string { return 'test@example.com'; }
+                public function getVatlyName(): ?string { return 'Test User'; }
+                public function getKey(): string|int { return 1; }
+                public function getMorphClass(): string { return 'User'; }
+                public function save(): void {}
+            };
         }
     };
 }

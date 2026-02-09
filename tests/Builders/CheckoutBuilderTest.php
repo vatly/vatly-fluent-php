@@ -146,7 +146,7 @@ function createTestBillable(string $vatlyId): BillableInterface
         {
         }
 
-        public function getVatlyId(): ?string
+        public function getVatlyId(): string
         {
             return $this->vatlyId;
         }
@@ -199,7 +199,7 @@ function createMockCreateCheckout(): CreateCheckout
             // Don't call parent constructor - we don't need the API client for tests
         }
 
-        public function execute(array $payload): CreateCheckoutResponse
+        public function execute(array $payload, array $filters = []): CreateCheckoutResponse
         {
             return new CreateCheckoutResponse(
                 id: 'chk_test_123',
