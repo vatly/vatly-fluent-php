@@ -8,6 +8,7 @@ use Vatly\Actions\CancelSubscription;
 use Vatly\Actions\CreateCheckout;
 use Vatly\Actions\CreateCustomer;
 use Vatly\Actions\GetCustomer;
+use Vatly\Actions\GetPaymentMethodUpdateUrl;
 use Vatly\Actions\GetSubscription;
 use Vatly\Actions\SwapSubscriptionPlan;
 use Vatly\API\VatlyApiClient;
@@ -33,6 +34,7 @@ class Vatly
     private ?GetSubscription $getSubscription = null;
     private ?CancelSubscription $cancelSubscription = null;
     private ?SwapSubscriptionPlan $swapSubscriptionPlan = null;
+    private ?GetPaymentMethodUpdateUrl $getPaymentMethodUpdateUrl = null;
 
     public function __construct(
         string $apiKey,
@@ -98,5 +100,10 @@ class Vatly
     public function swapSubscriptionPlan(): SwapSubscriptionPlan
     {
         return $this->swapSubscriptionPlan ??= new SwapSubscriptionPlan($this->apiClient);
+    }
+
+    public function getPaymentMethodUpdateUrl(): GetPaymentMethodUpdateUrl
+    {
+        return $this->getPaymentMethodUpdateUrl ??= new GetPaymentMethodUpdateUrl($this->apiClient);
     }
 }
