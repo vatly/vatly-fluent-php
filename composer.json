@@ -19,7 +19,7 @@
     "repositories": [
         {
             "type": "vcs",
-            "url": "https://github.com/sandervanhooft/vatly-api-php.git"
+            "url": "https://github.com/Vatly/vatly-api-php.git"
         }
     ],
     "autoload": {
