@@ -14,12 +14,12 @@
         "vatly/vatly-api-php": "dev-main"
     },
     "require-dev": {
-        "pestphp/pest": "^2.0"
+        "pestphp/pest": "^3.0"
     },
     "repositories": [
         {
             "type": "vcs",
-            "url": "git@github.com:sandervanhooft/vatly-api-php.git"
+            "url": "https://github.com/sandervanhooft/vatly-api-php.git"
         }
     ],
     "autoload": {
