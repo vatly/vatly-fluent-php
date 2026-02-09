@@ -1,0 +1,43 @@
+{
+    "name": "vatly/vatly-fluent-php",
+    "description": "Framework-agnostic fluent PHP SDK for Vatly billing",
+    "keywords": ["vatly", "billing", "subscriptions", "payments"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Sander van Hooft",
+            "email": "sander@vanhooft.com"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "vatly/vatly-api-php": "dev-main"
+    },
+    "require-dev": {
+        "pestphp/pest": "^2.0"
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "git@github.com:sandervanhooft/vatly-api-php.git"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Vatly\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Vatly\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
