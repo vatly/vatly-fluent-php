@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Vatly\Webhooks;
+namespace Vatly\Fluent\Webhooks;
 
-use Vatly\Events\SubscriptionCanceledImmediately;
-use Vatly\Events\SubscriptionCanceledWithGracePeriod;
-use Vatly\Events\SubscriptionStarted;
-use Vatly\Events\UnsupportedWebhookReceived;
-use Vatly\Events\WebhookReceived;
+use Vatly\Fluent\Events\SubscriptionCanceledImmediately;
+use Vatly\Fluent\Events\SubscriptionCanceledWithGracePeriod;
+use Vatly\Fluent\Events\SubscriptionStarted;
+use Vatly\Fluent\Events\UnsupportedWebhookReceived;
+use Vatly\Fluent\Events\WebhookReceived;
 
 class WebhookEventFactory
 {

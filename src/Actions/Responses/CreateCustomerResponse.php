@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Vatly\Actions\Responses;
+namespace Vatly\Fluent\Actions\Responses;
 
 /**
  * Response from creating a customer.

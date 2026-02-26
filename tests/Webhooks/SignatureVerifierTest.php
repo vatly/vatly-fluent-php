@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Vatly\Exceptions\InvalidWebhookSignatureException;
-use Vatly\Webhooks\SignatureVerifier;
+use Vatly\Fluent\Exceptions\InvalidWebhookSignatureException;
+use Vatly\Fluent\Webhooks\SignatureVerifier;
 
 beforeEach(function () {
     $this->verifier = new SignatureVerifier();

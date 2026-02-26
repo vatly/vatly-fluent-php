@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Vatly\Builders;
+namespace Vatly\Fluent\Builders;
 
-use Vatly\Actions\Responses\CreateCheckoutResponse;
-use Vatly\Builders\Concerns\ManagesTestmode;
-use Vatly\Contracts\BillableInterface;
-use Vatly\Contracts\ConfigurationInterface;
+use Vatly\Fluent\Actions\Responses\CreateCheckoutResponse;
+use Vatly\Fluent\Builders\Concerns\ManagesTestmode;
+use Vatly\Fluent\Contracts\BillableInterface;
+use Vatly\Fluent\Contracts\ConfigurationInterface;
 
 class SubscriptionBuilder
 {

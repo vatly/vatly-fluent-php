@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Vatly\Events;
+namespace Vatly\Fluent\Events;
 
 /**
  * Event representing an unsupported/unknown webhook event from Vatly.

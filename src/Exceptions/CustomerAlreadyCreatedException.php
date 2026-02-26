@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Vatly\Exceptions;
+namespace Vatly\Fluent\Exceptions;
 
-use Vatly\Contracts\BillableInterface;
+use Vatly\Fluent\Contracts\BillableInterface;
 
 class CustomerAlreadyCreatedException extends VatlyException
 {

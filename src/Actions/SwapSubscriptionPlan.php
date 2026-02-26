@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Vatly\Actions;
+namespace Vatly\Fluent\Actions;
 
-use Vatly\Actions\Responses\SwapSubscriptionPlanResponse;
+use Vatly\Fluent\Actions\Responses\SwapSubscriptionPlanResponse;
 
 class SwapSubscriptionPlan extends BaseAction
 {

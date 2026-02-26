@@ -19,12 +19,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Vatly\\": "src/"
+            "Vatly\\Fluent\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Vatly\\Tests\\": "tests/"
+            "Vatly\\Fluent\\Tests\\": "tests/"
         }
     },
     "config": {

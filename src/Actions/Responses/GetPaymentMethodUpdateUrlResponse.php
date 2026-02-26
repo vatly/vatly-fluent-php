@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Vatly\Actions\Responses;
+namespace Vatly\Fluent\Actions\Responses;
 
 /**
  * Response containing the URL for updating payment method.

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Vatly\Events;
+namespace Vatly\Fluent\Events;
 
-use Vatly\Contracts\SubscriptionInterface;
+use Vatly\Fluent\Contracts\SubscriptionInterface;
 
 /**
  * Event dispatched when a local subscription record is created.

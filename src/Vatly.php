@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Vatly;
+namespace Vatly\Fluent;
 
-use Vatly\Actions\CancelSubscription;
-use Vatly\Actions\CreateCheckout;
-use Vatly\Actions\CreateCustomer;
-use Vatly\Actions\GetCustomer;
-use Vatly\Actions\GetPaymentMethodUpdateUrl;
-use Vatly\Actions\GetSubscription;
-use Vatly\Actions\SwapSubscriptionPlan;
+use Vatly\Fluent\Actions\CancelSubscription;
+use Vatly\Fluent\Actions\CreateCheckout;
+use Vatly\Fluent\Actions\CreateCustomer;
+use Vatly\Fluent\Actions\GetCustomer;
+use Vatly\Fluent\Actions\GetPaymentMethodUpdateUrl;
+use Vatly\Fluent\Actions\GetSubscription;
+use Vatly\Fluent\Actions\SwapSubscriptionPlan;
 use Vatly\API\VatlyApiClient;
-use Vatly\Webhooks\SignatureVerifier;
-use Vatly\Webhooks\WebhookEventFactory;
+use Vatly\Fluent\Webhooks\SignatureVerifier;
+use Vatly\Fluent\Webhooks\WebhookEventFactory;
 
 /**
  * Main entry point for the Vatly SDK.

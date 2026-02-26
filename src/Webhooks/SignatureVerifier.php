@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Vatly\Webhooks;
+namespace Vatly\Fluent\Webhooks;
 
-use Vatly\Exceptions\InvalidWebhookSignatureException;
+use Vatly\Fluent\Exceptions\InvalidWebhookSignatureException;
 
 class SignatureVerifier
 {

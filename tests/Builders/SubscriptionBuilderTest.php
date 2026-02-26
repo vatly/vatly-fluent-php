@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use Vatly\Actions\CreateCheckout;
-use Vatly\Actions\Responses\CreateCheckoutResponse;
-use Vatly\Builders\CheckoutBuilder;
-use Vatly\Builders\SubscriptionBuilder;
-use Vatly\Contracts\BillableInterface;
-use Vatly\Contracts\ConfigurationInterface;
+use Vatly\Fluent\Actions\CreateCheckout;
+use Vatly\Fluent\Actions\Responses\CreateCheckoutResponse;
+use Vatly\Fluent\Builders\CheckoutBuilder;
+use Vatly\Fluent\Builders\SubscriptionBuilder;
+use Vatly\Fluent\Contracts\BillableInterface;
+use Vatly\Fluent\Contracts\ConfigurationInterface;
 
 beforeEach(function () {
     $this->config = createTestConfig();

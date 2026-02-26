@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Vatly\Actions\GetPaymentMethodUpdateUrl;
-use Vatly\Actions\Responses\GetPaymentMethodUpdateUrlResponse;
+use Vatly\Fluent\Actions\GetPaymentMethodUpdateUrl;
+use Vatly\Fluent\Actions\Responses\GetPaymentMethodUpdateUrlResponse;
 use Vatly\API\Endpoints\SubscriptionEndpoint;
 use Vatly\API\Types\Link;
 use Vatly\API\VatlyApiClient;

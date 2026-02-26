@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Vatly\Contracts;
+namespace Vatly\Fluent\Contracts;
 
 /**
  * Interface for entities that can be billed (customers).

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Vatly\Contracts\BillableInterface;
-use Vatly\Contracts\SubscriptionInterface;
-use Vatly\Events\LocalSubscriptionCreated;
+use Vatly\Fluent\Contracts\BillableInterface;
+use Vatly\Fluent\Contracts\SubscriptionInterface;
+use Vatly\Fluent\Events\LocalSubscriptionCreated;
 
 test('it can be instantiated with subscription', function () {
     $subscription = createMockSubscription();

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Vatly\Actions;
+namespace Vatly\Fluent\Actions;
 
-use Vatly\Actions\Responses\CreateCheckoutResponse;
+use Vatly\Fluent\Actions\Responses\CreateCheckoutResponse;
 
 class CreateCheckout extends BaseAction
 {

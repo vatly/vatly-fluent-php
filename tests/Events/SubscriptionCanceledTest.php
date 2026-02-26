@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Vatly\Events\SubscriptionCanceledImmediately;
-use Vatly\Events\SubscriptionCanceledWithGracePeriod;
-use Vatly\Events\WebhookReceived;
+use Vatly\Fluent\Events\SubscriptionCanceledImmediately;
+use Vatly\Fluent\Events\SubscriptionCanceledWithGracePeriod;
+use Vatly\Fluent\Events\WebhookReceived;
 
 describe('SubscriptionCanceledImmediately', function () {
     test('it has correct vatly event name constant', function () {

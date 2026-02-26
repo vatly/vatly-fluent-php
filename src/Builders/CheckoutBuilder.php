@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Vatly\Builders;
+namespace Vatly\Fluent\Builders;
 
-use Vatly\Actions\CreateCheckout;
-use Vatly\Actions\Responses\CreateCheckoutResponse;
-use Vatly\Builders\Concerns\ManagesTestmode;
-use Vatly\Contracts\BillableInterface;
-use Vatly\Exceptions\IncompleteInformationException;
+use Vatly\Fluent\Actions\CreateCheckout;
+use Vatly\Fluent\Actions\Responses\CreateCheckoutResponse;
+use Vatly\Fluent\Builders\Concerns\ManagesTestmode;
+use Vatly\Fluent\Contracts\BillableInterface;
+use Vatly\Fluent\Exceptions\IncompleteInformationException;
 
 class CheckoutBuilder
 {

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use Vatly\Actions\CreateCheckout;
-use Vatly\Actions\Responses\CreateCheckoutResponse;
-use Vatly\Builders\CheckoutBuilder;
-use Vatly\Contracts\BillableInterface;
-use Vatly\Exceptions\IncompleteInformationException;
+use Vatly\Fluent\Actions\CreateCheckout;
+use Vatly\Fluent\Actions\Responses\CreateCheckoutResponse;
+use Vatly\Fluent\Builders\CheckoutBuilder;
+use Vatly\Fluent\Contracts\BillableInterface;
+use Vatly\Fluent\Exceptions\IncompleteInformationException;
 
 beforeEach(function () {
     $this->owner = createTestBillable('vat_owner_123');

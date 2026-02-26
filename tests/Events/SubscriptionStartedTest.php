@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Vatly\Events\SubscriptionStarted;
-use Vatly\Events\WebhookReceived;
+use Vatly\Fluent\Events\SubscriptionStarted;
+use Vatly\Fluent\Events\WebhookReceived;
 
 test('it has correct vatly event name constant', function () {
     expect(SubscriptionStarted::VATLY_EVENT_NAME)->toBe('subscription.started');

@@ -36,7 +36,8 @@ class ComposerStaticInit031008422d816d085fc4700624f7886c
         ),
         'V' =>
         array (
-            'Vatly\\Tests\\' => 12,
+            'Vatly\\Fluent\\Tests\\' => 19,
+            'Vatly\\Fluent\\' => 13,
             'Vatly\\' => 6,
         ),
         'T' =>
@@ -111,14 +112,17 @@ class ComposerStaticInit031008422d816d085fc4700624f7886c
         array (
             0 => __DIR__ . '/..' . '/webmozart/assert/src',
         ),
-        'Vatly\\Tests\\' =>
+        'Vatly\\Fluent\\Tests\\' =>
         array (
             0 => __DIR__ . '/../..' . '/tests',
         ),
-        'Vatly\\' =>
+        'Vatly\\Fluent\\' =>
         array (
             0 => __DIR__ . '/../..' . '/src',
-            1 => __DIR__ . '/..' . '/vatly/vatly-api-php/src',
+        ),
+        'Vatly\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/vatly/vatly-api-php/src',
         ),
         'Termwind\\' =>
         array (

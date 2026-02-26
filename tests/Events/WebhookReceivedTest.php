@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Vatly\Events\WebhookReceived;
+use Vatly\Fluent\Events\WebhookReceived;
 
 test('it can be instantiated with all properties', function () {
     $event = new WebhookReceived(

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Vatly\Builders\Concerns;
+namespace Vatly\Fluent\Builders\Concerns;
 
 trait ManagesTestmode
 {

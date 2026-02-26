@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Vatly\Actions;
+namespace Vatly\Fluent\Actions;
 
-use Vatly\Actions\Responses\GetPaymentMethodUpdateUrlResponse;
+use Vatly\Fluent\Actions\Responses\GetPaymentMethodUpdateUrlResponse;
 
 class GetPaymentMethodUpdateUrl extends BaseAction
 {

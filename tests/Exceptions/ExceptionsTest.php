@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-use Vatly\Contracts\BillableInterface;
-use Vatly\Exceptions\CustomerAlreadyCreatedException;
-use Vatly\Exceptions\FeatureUnavailableException;
-use Vatly\Exceptions\IncompleteInformationException;
-use Vatly\Exceptions\InvalidCustomerException;
-use Vatly\Exceptions\InvalidWebhookSignatureException;
-use Vatly\Exceptions\VatlyException;
+use Vatly\Fluent\Contracts\BillableInterface;
+use Vatly\Fluent\Exceptions\CustomerAlreadyCreatedException;
+use Vatly\Fluent\Exceptions\FeatureUnavailableException;
+use Vatly\Fluent\Exceptions\IncompleteInformationException;
+use Vatly\Fluent\Exceptions\InvalidCustomerException;
+use Vatly\Fluent\Exceptions\InvalidWebhookSignatureException;
+use Vatly\Fluent\Exceptions\VatlyException;
 
 describe('VatlyException', function () {
     test('it is the base exception class', function () {

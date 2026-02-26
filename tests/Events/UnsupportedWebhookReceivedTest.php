@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Vatly\Events\UnsupportedWebhookReceived;
-use Vatly\Events\WebhookReceived;
+use Vatly\Fluent\Events\UnsupportedWebhookReceived;
+use Vatly\Fluent\Events\WebhookReceived;
 
 test('it can be instantiated with all properties', function () {
     $event = new UnsupportedWebhookReceived(

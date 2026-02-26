@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Vatly\Contracts;
+namespace Vatly\Fluent\Contracts;
 
 /**
  * Interface for customer/billable persistence and lookup.

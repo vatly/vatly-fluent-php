@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Vatly\Exceptions;
+namespace Vatly\Fluent\Exceptions;
 
 class FeatureUnavailableException extends VatlyException
 {
