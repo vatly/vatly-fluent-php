@@ -1,5 +1,9 @@
 # Vatly Fluent PHP
 
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/vatly/vatly-fluent-php.svg?style=flat-square)](https://packagist.org/packages/vatly/vatly-fluent-php)
+[![Tests](https://github.com/Vatly/vatly-fluent-php/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Vatly/vatly-fluent-php/actions/workflows/tests.yml)
+[![Total Downloads](https://img.shields.io/packagist/dt/vatly/vatly-fluent-php.svg?style=flat-square)](https://packagist.org/packages/vatly/vatly-fluent-php)
+
 > **Alpha release -- under active development. Expect breaking changes.**
 
 Framework-agnostic fluent PHP SDK for [Vatly](https://vatly.com) billing. Wraps the [vatly-api-php](https://github.com/Vatly/vatly-api-php) client with expressive, action-based methods for managing subscriptions, checkouts, customers, and webhooks.
