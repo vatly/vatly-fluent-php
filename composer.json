@@ -11,18 +11,12 @@
     ],
     "require": {
         "php": "^8.2",
-        "vatly/vatly-api-php": "dev-main"
+        "vatly/vatly-api-php": "^0.1.0-alpha.1"
     },
     "require-dev": {
         "mockery/mockery": "^1.6",
         "pestphp/pest": "^3.0"
     },
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/Vatly/vatly-api-php.git"
-        }
-    ],
     "autoload": {
         "psr-4": {
             "Vatly\\": "src/"
