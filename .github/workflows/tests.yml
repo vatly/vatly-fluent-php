@@ -28,10 +28,6 @@ jobs:
           extensions: dom, curl, libxml, mbstring, zip
           coverage: none
 
-      - name: Configure private repositories
-        run: |
-          composer config github-oauth.github.com ${{ secrets.COMPOSER_AUTH_TOKEN }}
-
       - name: Install dependencies
         run: composer update --prefer-dist --no-interaction
 
