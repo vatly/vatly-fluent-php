@@ -13,7 +13,10 @@ class SwapSubscriptionPlan extends BaseAction
         string $newPlanId,
         array $parameters = [],
     ): SwapSubscriptionPlanResponse {
-        $apiResponse = $this->vatlyApiClient->subscriptions->swap($subscriptionId, $newPlanId, $parameters);
+        $apiResponse = $this->vatlyApiClient->subscriptions->update($subscriptionId, array_merge(
+            ['subscriptionPlanId' => $newPlanId],
+            $parameters,
+        ));
 
         return SwapSubscriptionPlanResponse::fromApiResponse($apiResponse);
     }
