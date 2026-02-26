@@ -66,9 +66,7 @@ class Subscription extends BaseResource
 
     public ?string $nextRenewalAt;
 
-    public ?string $trialEndAt;
-
-    public ?int $trialDays;
+    public ?string $trialUntil;
 
     public SubscriptionLinks $links;
 

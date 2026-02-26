@@ -43,11 +43,6 @@ interface BillableInterface
     public function getKey(): string|int;
 
     /**
-     * Get the morph class name for polymorphic relationships.
-     */
-    public function getMorphClass(): string;
-
-    /**
      * Persist the billable entity.
      */
     public function save(): void;

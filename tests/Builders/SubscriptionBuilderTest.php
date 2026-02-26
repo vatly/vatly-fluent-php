@@ -207,10 +207,6 @@ function createTestOwner(string $vatlyId): BillableInterface
             return 1;
         }
 
-        public function getMorphClass(): string
-        {
-            return 'TestOwner';
-        }
 
         public function save(): void
         {

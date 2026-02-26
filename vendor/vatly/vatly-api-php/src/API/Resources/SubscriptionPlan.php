@@ -4,6 +4,7 @@ namespace Vatly\API\Resources;
 
 use Vatly\API\Resources\Links\SubscriptionPlanLinks;
 use Vatly\API\Types\Money;
+use Vatly\API\Types\ProductStatus;
 
 class SubscriptionPlan extends BaseResource
 {
@@ -30,5 +31,27 @@ class SubscriptionPlan extends BaseResource
      */
     public Money $basePrice;
 
+    public bool $testmode;
+
+    /** @see ProductStatus */
+    public string $status;
+
+    public string $createdAt;
+
     public SubscriptionPlanLinks $links;
+
+    public function isApproved(): bool
+    {
+        return $this->status === ProductStatus::APPROVED;
+    }
+
+    public function isDraft(): bool
+    {
+        return $this->status === ProductStatus::DRAFT;
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->status === ProductStatus::ARCHIVED;
+    }
 }

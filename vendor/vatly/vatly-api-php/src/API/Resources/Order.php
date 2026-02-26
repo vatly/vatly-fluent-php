@@ -48,14 +48,12 @@ class Order extends BaseResource
     /**
      * @example creditcard
      */
-    public string $paymentMethod;
+    public ?string $paymentMethod = null;
 
     public ?string $invoiceNumber = null;
 
     /** @see OrderStatus */
     public string $status;
-
-    public bool $cancelled = false;
 
     public OrderLinks $links;
 
@@ -68,6 +66,10 @@ class Order extends BaseResource
      */
     public array $lines;
 
+    /**
+     * @var array|object|null
+     */
+    public $metadata = null;
 
     /**
      * Get the line value objects
@@ -86,14 +88,6 @@ class Order extends BaseResource
     }
 
     /**
-     * Is this order created?
-     */
-    public function isCreated(): bool
-    {
-        return $this->status === OrderStatus::STATUS_CREATED;
-    }
-
-    /**
      * Is this order paid for?
      */
     public function isPaid(): bool
@@ -102,35 +96,19 @@ class Order extends BaseResource
     }
 
     /**
-     * Is this order canceled?
-     */
-    public function isCanceled(): bool
-    {
-        return $this->status === OrderStatus::STATUS_CANCELED;
-    }
-
-    /**
-     * Is this order completed?
-     */
-    public function isCompleted(): bool
-    {
-        return $this->status === OrderStatus::STATUS_COMPLETED;
-    }
-
-    /**
-     * Is this order expired?
-     */
-    public function isExpired(): bool
-    {
-        return $this->status === OrderStatus::STATUS_EXPIRED;
-    }
-
-    /**
-     * Is this order completed?
+     * Is this order pending?
      */
     public function isPending(): bool
     {
         return $this->status === OrderStatus::STATUS_PENDING;
+    }
+
+    /**
+     * Is this order failed?
+     */
+    public function isFailed(): bool
+    {
+        return $this->status === OrderStatus::STATUS_FAILED;
     }
 
     /**

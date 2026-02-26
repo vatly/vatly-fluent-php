@@ -176,10 +176,6 @@ function createTestBillable(string $vatlyId): BillableInterface
             return 1;
         }
 
-        public function getMorphClass(): string
-        {
-            return 'TestBillable';
-        }
 
         public function save(): void
         {

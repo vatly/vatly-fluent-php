@@ -54,6 +54,8 @@ class Checkout extends BaseResource
 
     public ?string $createdAt = null;
 
+    public ?string $expiresAt = null;
+
     /**
      * Is this created?
      */
@@ -79,11 +81,11 @@ class Checkout extends BaseResource
     }
 
     /**
-     * Is this completed?
+     * Is this failed?
      */
-    public function isCompleted(): bool
+    public function isFailed(): bool
     {
-        return $this->status === CheckoutStatus::STATUS_COMPLETED;
+        return $this->status === CheckoutStatus::STATUS_FAILED;
     }
 
     /**
@@ -92,13 +94,5 @@ class Checkout extends BaseResource
     public function isExpired(): bool
     {
         return $this->status === CheckoutStatus::STATUS_EXPIRED;
-    }
-
-    /**
-     * Is this completed?
-     */
-    public function isPending(): bool
-    {
-        return $this->status === CheckoutStatus::STATUS_PENDING;
     }
 }

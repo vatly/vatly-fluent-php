@@ -14,24 +14,18 @@ class CheckoutStatus
      */
     public const STATUS_PAID = "paid";
 
-
     /**
      * The checkout has been canceled.
      */
     public const STATUS_CANCELED = "canceled";
 
     /**
-     * The checkout is completed.
+     * The checkout payment failed.
      */
-    public const STATUS_COMPLETED = "completed";
+    public const STATUS_FAILED = "failed";
 
     /**
      * The checkout is expired.
      */
     public const STATUS_EXPIRED = "expired";
-
-    /**
-     * The checkout is pending.
-     */
-    public const STATUS_PENDING = "pending";
 }
