@@ -9,6 +9,7 @@ use Vatly\Fluent\Events\UnsupportedWebhookReceived;
 use Vatly\Fluent\Exceptions\InvalidWebhookSignatureException;
 use Vatly\Fluent\Webhooks\SignatureVerifier;
 use Vatly\Fluent\Webhooks\WebhookEventFactory;
+use Vatly\Fluent\Contracts\WebhookReactionInterface;
 use Vatly\Fluent\Webhooks\WebhookProcessor;
 
 beforeEach(function () {
@@ -78,6 +79,50 @@ test('it processes a valid webhook end to end', function () {
         });
 
     $this->processor->handle($payload, $signature);
+});
+
+test('it runs matching reactions before dispatching', function () {
+    $payload = json_encode([
+        'eventName' => 'subscription.started',
+        'resourceId' => 'sub_123',
+        'resourceName' => 'subscription',
+        'object' => [
+            'data' => [
+                'customerId' => 'cus_456',
+                'subscriptionPlanId' => 'plan_789',
+                'name' => 'Premium Plan',
+                'quantity' => 1,
+            ],
+        ],
+        'raisedAt' => '2024-01-15T10:00:00Z',
+        'testmode' => false,
+    ]);
+
+    $signature = hash_hmac('sha256', $payload, $this->secret);
+
+    $this->repository->shouldReceive('record')->once();
+    $this->dispatcher->shouldReceive('dispatch')->once();
+
+    $matchingReaction = Mockery::mock(WebhookReactionInterface::class);
+    $matchingReaction->shouldReceive('supports')->once()->andReturn(true);
+    $matchingReaction->shouldReceive('handle')->once()->withArgs(function ($event) {
+        return $event instanceof SubscriptionStarted;
+    });
+
+    $nonMatchingReaction = Mockery::mock(WebhookReactionInterface::class);
+    $nonMatchingReaction->shouldReceive('supports')->once()->andReturn(false);
+    $nonMatchingReaction->shouldNotReceive('handle');
+
+    $processor = new WebhookProcessor(
+        $this->signatureVerifier,
+        $this->eventFactory,
+        $this->repository,
+        $this->dispatcher,
+        $this->secret,
+        reactions: [$matchingReaction, $nonMatchingReaction],
+    );
+
+    $processor->handle($payload, $signature);
 });
 
 test('it throws exception for invalid signature', function () {
