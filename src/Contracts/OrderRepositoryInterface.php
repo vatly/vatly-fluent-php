@@ -23,11 +23,15 @@ interface OrderRepositoryInterface
 
     /**
      * Create a new order.
+     *
+     * @param array<string, mixed> $attributes
      */
     public function create(array $attributes): OrderInterface;
 
     /**
      * Update an order.
+     *
+     * @param array<string, mixed> $attributes
      */
     public function update(OrderInterface $order, array $attributes): OrderInterface;
 }

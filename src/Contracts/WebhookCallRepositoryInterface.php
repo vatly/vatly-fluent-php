@@ -13,6 +13,8 @@ interface WebhookCallRepositoryInterface
 {
     /**
      * Record a webhook call.
+     *
+     * @param array<string, mixed> $payload
      */
     public function record(
         string $eventName,

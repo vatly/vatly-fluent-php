@@ -18,6 +18,7 @@ class CheckoutBuilder
 
     protected string $redirectUrlCanceled = '';
 
+    /** @var array<string, mixed>|null */
     protected ?array $metadata = null;
 
     /** @var array<int, array<string, mixed>> */

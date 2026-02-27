@@ -84,7 +84,7 @@ function createMockSubscription(): SubscriptionInterface
                 public function getVatlyEmail(): ?string { return 'test@example.com'; }
                 public function getVatlyName(): ?string { return 'Test User'; }
                 public function getKey(): string|int { return 1; }
-                public function save(): void {}
+                public function save(): mixed { return true; }
             };
         }
     };

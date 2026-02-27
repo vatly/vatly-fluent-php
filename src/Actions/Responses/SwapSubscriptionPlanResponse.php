@@ -9,7 +9,7 @@ use Vatly\API\Resources\Subscription;
 /**
  * Response from swapping a subscription plan.
  */
-class SwapSubscriptionPlanResponse
+final class SwapSubscriptionPlanResponse
 {
     public function __construct(
         public readonly string $subscriptionId,

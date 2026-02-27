@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Actions;
 
+use Vatly\API\Resources\Subscription;
 use Vatly\Fluent\Actions\Responses\SwapSubscriptionPlanResponse;
 
 class SwapSubscriptionPlan extends BaseAction
 {
+    /**
+     * @param array<string, mixed> $parameters
+     */
     public function execute(
         string $subscriptionId,
         string $newPlanId,
@@ -17,6 +21,8 @@ class SwapSubscriptionPlan extends BaseAction
             ['subscriptionPlanId' => $newPlanId],
             $parameters,
         ));
+
+        assert($apiResponse instanceof Subscription);
 
         return SwapSubscriptionPlanResponse::fromApiResponse($apiResponse);
     }

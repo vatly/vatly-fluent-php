@@ -9,7 +9,7 @@ use Vatly\API\Resources\Checkout;
 /**
  * Response from getting a checkout session.
  */
-class GetCheckoutResponse
+final class GetCheckoutResponse
 {
     public function __construct(
         public readonly string $checkoutId,

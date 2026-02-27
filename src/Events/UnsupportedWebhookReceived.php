@@ -9,6 +9,9 @@ namespace Vatly\Fluent\Events;
  */
 class UnsupportedWebhookReceived
 {
+    /**
+     * @param array<string, mixed> $object
+     */
     public function __construct(
         public readonly string $eventName,
         public readonly string $resourceId,

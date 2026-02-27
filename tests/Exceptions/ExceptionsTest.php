@@ -112,9 +112,9 @@ function createMockBillable(string $vatlyId): BillableInterface
         }
 
 
-        public function save(): void
+        public function save(): mixed
         {
-            // Mock save
+            return true;
         }
     };
 }

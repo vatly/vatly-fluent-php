@@ -9,7 +9,7 @@ use Vatly\API\Resources\Customer;
 /**
  * Base response for customer operations.
  */
-class CustomerResponse
+abstract class CustomerResponse
 {
     public function __construct(
         public readonly string $customerId,
@@ -17,10 +17,5 @@ class CustomerResponse
         //
     }
 
-    public static function fromApiResponse(Customer $response): static
-    {
-        return new static(
-            customerId: $response->id,
-        );
-    }
+    abstract public static function fromApiResponse(Customer $response): static;
 }

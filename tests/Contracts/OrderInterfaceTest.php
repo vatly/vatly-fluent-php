@@ -81,7 +81,7 @@ function createMockOrder(): OrderInterface
                     return 1;
                 }
 
-                public function save(): void {}
+                public function save(): mixed { return true; }
             };
         }
 
