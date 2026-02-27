@@ -2,26 +2,35 @@
 
 declare(strict_types=1);
 
+namespace Vatly\Fluent\Tests\Events;
+
+use DateTimeImmutable;
+use DateTimeInterface;
 use Vatly\Fluent\Events\SubscriptionCanceledImmediately;
 use Vatly\Fluent\Events\SubscriptionCanceledWithGracePeriod;
 use Vatly\Fluent\Events\WebhookReceived;
+use Vatly\Fluent\Tests\TestCase;
 
-describe('SubscriptionCanceledImmediately', function () {
-    test('it has correct vatly event name constant', function () {
-        expect(SubscriptionCanceledImmediately::VATLY_EVENT_NAME)->toBe('subscription.canceled_immediately');
-    });
+class SubscriptionCanceledTest extends TestCase
+{
+    public function test_immediately_has_correct_vatly_event_name_constant(): void
+    {
+        $this->assertSame('subscription.canceled_immediately', SubscriptionCanceledImmediately::VATLY_EVENT_NAME);
+    }
 
-    test('it can be instantiated with properties', function () {
+    public function test_immediately_can_be_instantiated_with_properties(): void
+    {
         $event = new SubscriptionCanceledImmediately(
             customerId: 'cus_123',
             subscriptionId: 'sub_456',
         );
 
-        expect($event->customerId)->toBe('cus_123')
-            ->and($event->subscriptionId)->toBe('sub_456');
-    });
+        $this->assertSame('cus_123', $event->customerId);
+        $this->assertSame('sub_456', $event->subscriptionId);
+    }
 
-    test('it creates from webhook', function () {
+    public function test_immediately_creates_from_webhook(): void
+    {
         $webhook = new WebhookReceived(
             eventName: 'subscription.canceled_immediately',
             resourceId: 'sub_123',
@@ -33,17 +42,17 @@ describe('SubscriptionCanceledImmediately', function () {
 
         $event = SubscriptionCanceledImmediately::fromWebhook($webhook);
 
-        expect($event->customerId)->toBe('cus_456')
-            ->and($event->subscriptionId)->toBe('sub_123');
-    });
-});
+        $this->assertSame('cus_456', $event->customerId);
+        $this->assertSame('sub_123', $event->subscriptionId);
+    }
 
-describe('SubscriptionCanceledWithGracePeriod', function () {
-    test('it has correct vatly event name constant', function () {
-        expect(SubscriptionCanceledWithGracePeriod::VATLY_EVENT_NAME)->toBe('subscription.canceled_with_grace_period');
-    });
+    public function test_with_grace_period_has_correct_vatly_event_name_constant(): void
+    {
+        $this->assertSame('subscription.canceled_with_grace_period', SubscriptionCanceledWithGracePeriod::VATLY_EVENT_NAME);
+    }
 
-    test('it can be instantiated with properties', function () {
+    public function test_with_grace_period_can_be_instantiated_with_properties(): void
+    {
         $endsAt = new DateTimeImmutable('2024-02-15T10:00:00Z');
 
         $event = new SubscriptionCanceledWithGracePeriod(
@@ -52,12 +61,13 @@ describe('SubscriptionCanceledWithGracePeriod', function () {
             endsAt: $endsAt,
         );
 
-        expect($event->customerId)->toBe('cus_123')
-            ->and($event->subscriptionId)->toBe('sub_456')
-            ->and($event->endsAt)->toBe($endsAt);
-    });
+        $this->assertSame('cus_123', $event->customerId);
+        $this->assertSame('sub_456', $event->subscriptionId);
+        $this->assertSame($endsAt, $event->endsAt);
+    }
 
-    test('it creates from webhook with parsed date', function () {
+    public function test_with_grace_period_creates_from_webhook_with_parsed_date(): void
+    {
         $webhook = new WebhookReceived(
             eventName: 'subscription.canceled_with_grace_period',
             resourceId: 'sub_123',
@@ -74,9 +84,9 @@ describe('SubscriptionCanceledWithGracePeriod', function () {
 
         $event = SubscriptionCanceledWithGracePeriod::fromWebhook($webhook);
 
-        expect($event->customerId)->toBe('cus_456')
-            ->and($event->subscriptionId)->toBe('sub_123')
-            ->and($event->endsAt)->toBeInstanceOf(DateTimeInterface::class)
-            ->and($event->endsAt->format('Y-m-d'))->toBe('2024-02-15');
-    });
-});
+        $this->assertSame('cus_456', $event->customerId);
+        $this->assertSame('sub_123', $event->subscriptionId);
+        $this->assertInstanceOf(DateTimeInterface::class, $event->endsAt);
+        $this->assertSame('2024-02-15', $event->endsAt->format('Y-m-d'));
+    }
+}

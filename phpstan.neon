@@ -1,0 +1,11 @@
+parameters:
+    level: 6
+    paths:
+        - src
+    excludePaths:
+        - vendor
+    reportUnmatchedIgnoredErrors: false
+    ignoreErrors:
+        # Intentionally untyped for Laravel Model compatibility
+        - '#Method Vatly\\Fluent\\Contracts\\BillableInterface::getKey\(\) has no return type specified#'
+        - '#Method Vatly\\Fluent\\Contracts\\BillableInterface::save\(\) has no return type specified#'

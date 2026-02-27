@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Actions;
 
-use Vatly\Fluent\Actions\Responses\GetCustomerResponse;
+use Vatly\API\Resources\Customer;
 
 class GetCustomer extends BaseAction
 {
-    public function execute(string $customerId, array $parameters = []): GetCustomerResponse
+    /**
+     * @param array<string, mixed> $parameters
+     */
+    public function execute(string $customerId, array $parameters = []): Customer
     {
-        $apiResponse = $this->vatlyApiClient->customers->get($customerId, $parameters);
+        $customer = $this->vatlyApiClient->customers->get($customerId, $parameters);
 
-        return GetCustomerResponse::fromApiResponse($apiResponse);
+        assert($customer instanceof Customer);
+
+        return $customer;
     }
 }

@@ -29,6 +29,7 @@ class CancelSubscriptionOnCanceled implements WebhookReactionInterface
         $subscriptionId = match (true) {
             $event instanceof SubscriptionCanceledImmediately => $event->subscriptionId,
             $event instanceof SubscriptionCanceledWithGracePeriod => $event->subscriptionId,
+            default => throw new \InvalidArgumentException('Unsupported event type'),
         };
 
         $subscription = $this->subscriptions->findByVatlyId($subscriptionId);
@@ -40,6 +41,7 @@ class CancelSubscriptionOnCanceled implements WebhookReactionInterface
         $endsAt = match (true) {
             $event instanceof SubscriptionCanceledImmediately => new DateTimeImmutable(),
             $event instanceof SubscriptionCanceledWithGracePeriod => $event->endsAt,
+            default => throw new \InvalidArgumentException('Unsupported event type'),
         };
 
         $this->subscriptions->update($subscription, [

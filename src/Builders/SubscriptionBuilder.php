@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Builders;
 
-use Vatly\Fluent\Actions\Responses\CreateCheckoutResponse;
+use Vatly\API\Resources\Checkout;
 use Vatly\Fluent\Builders\Concerns\ManagesTestmode;
 use Vatly\Fluent\Contracts\BillableInterface;
 use Vatly\Fluent\Contracts\ConfigurationInterface;
@@ -63,7 +63,7 @@ class SubscriptionBuilder
      *
      * @param array<string, mixed> $checkoutOptions
      */
-    public function create(array $checkoutOptions = []): CreateCheckoutResponse
+    public function create(array $checkoutOptions = []): Checkout
     {
         return $this
             ->checkoutBuilder

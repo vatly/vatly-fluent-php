@@ -15,7 +15,8 @@
     },
     "require-dev": {
         "mockery/mockery": "^1.6",
-        "pestphp/pest": "^3.0"
+        "phpstan/phpstan": "^2.1",
+        "phpunit/phpunit": "^11.0"
     },
     "autoload": {
         "psr-4": {
@@ -28,13 +29,12 @@
         }
     },
     "config": {
-        "sort-packages": true,
-        "allow-plugins": {
-            "pestphp/pest-plugin": true
-        }
+        "sort-packages": true
     },
     "scripts": {
-        "test": "vendor/bin/pest"
+        "test": "vendor/bin/phpunit",
+        "analyse": "vendor/bin/phpstan analyse --memory-limit=512M",
+        "analyze": "@analyse"
     },
     "minimum-stability": "dev",
     "prefer-stable": true

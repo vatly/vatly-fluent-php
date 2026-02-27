@@ -39,11 +39,15 @@ interface BillableInterface
 
     /**
      * Get the primary key of this billable entity.
+     *
+     * @return mixed
      */
-    public function getKey(): mixed;
+    public function getKey();
 
     /**
      * Persist the billable entity.
+     *
+     * @return mixed
      */
-    public function save(): void;
+    public function save();
 }

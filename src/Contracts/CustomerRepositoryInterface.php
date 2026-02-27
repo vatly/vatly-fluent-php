@@ -17,7 +17,7 @@ interface CustomerRepositoryInterface
     /**
      * Find a billable by its Vatly customer ID or fail.
      *
-     * @throws \Vatly\Exceptions\InvalidCustomer
+     * @throws \Vatly\Fluent\Exceptions\InvalidCustomerException
      */
     public function findByVatlyIdOrFail(string $vatlyId): BillableInterface;
 

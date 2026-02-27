@@ -2,58 +2,68 @@
 
 declare(strict_types=1);
 
+namespace Vatly\Fluent\Tests\Events;
+
 use Vatly\Fluent\Events\SubscriptionStarted;
 use Vatly\Fluent\Events\WebhookReceived;
+use Vatly\Fluent\Tests\TestCase;
 
-test('it has correct vatly event name constant', function () {
-    expect(SubscriptionStarted::VATLY_EVENT_NAME)->toBe('subscription.started');
-});
+class SubscriptionStartedTest extends TestCase
+{
+    public function test_it_has_correct_vatly_event_name_constant(): void
+    {
+        $this->assertSame('subscription.started', SubscriptionStarted::VATLY_EVENT_NAME);
+    }
 
-test('it has default type constant', function () {
-    expect(SubscriptionStarted::DEFAULT_TYPE)->toBe('default');
-});
+    public function test_it_has_default_type_constant(): void
+    {
+        $this->assertSame('default', SubscriptionStarted::DEFAULT_TYPE);
+    }
 
-test('it can be instantiated with all properties', function () {
-    $event = new SubscriptionStarted(
-        customerId: 'cus_123',
-        subscriptionId: 'sub_456',
-        planId: 'plan_789',
-        type: 'premium',
-        name: 'Premium Plan',
-        quantity: 2,
-    );
+    public function test_it_can_be_instantiated_with_all_properties(): void
+    {
+        $event = new SubscriptionStarted(
+            customerId: 'cus_123',
+            subscriptionId: 'sub_456',
+            planId: 'plan_789',
+            type: 'premium',
+            name: 'Premium Plan',
+            quantity: 2,
+        );
 
-    expect($event->customerId)->toBe('cus_123')
-        ->and($event->subscriptionId)->toBe('sub_456')
-        ->and($event->planId)->toBe('plan_789')
-        ->and($event->type)->toBe('premium')
-        ->and($event->name)->toBe('Premium Plan')
-        ->and($event->quantity)->toBe(2);
-});
+        $this->assertSame('cus_123', $event->customerId);
+        $this->assertSame('sub_456', $event->subscriptionId);
+        $this->assertSame('plan_789', $event->planId);
+        $this->assertSame('premium', $event->type);
+        $this->assertSame('Premium Plan', $event->name);
+        $this->assertSame(2, $event->quantity);
+    }
 
-test('it creates from webhook', function () {
-    $webhook = new WebhookReceived(
-        eventName: 'subscription.started',
-        resourceId: 'sub_123',
-        resourceName: 'subscription',
-        object: [
-            'data' => [
-                'customerId' => 'cus_456',
-                'subscriptionPlanId' => 'plan_789',
-                'name' => 'Basic Plan',
-                'quantity' => 1,
+    public function test_it_creates_from_webhook(): void
+    {
+        $webhook = new WebhookReceived(
+            eventName: 'subscription.started',
+            resourceId: 'sub_123',
+            resourceName: 'subscription',
+            object: [
+                'data' => [
+                    'customerId' => 'cus_456',
+                    'subscriptionPlanId' => 'plan_789',
+                    'name' => 'Basic Plan',
+                    'quantity' => 1,
+                ],
             ],
-        ],
-        raisedAt: '2024-01-15T10:00:00Z',
-        testmode: false,
-    );
+            raisedAt: '2024-01-15T10:00:00Z',
+            testmode: false,
+        );
 
-    $event = SubscriptionStarted::fromWebhook($webhook);
+        $event = SubscriptionStarted::fromWebhook($webhook);
 
-    expect($event->customerId)->toBe('cus_456')
-        ->and($event->subscriptionId)->toBe('sub_123')
-        ->and($event->planId)->toBe('plan_789')
-        ->and($event->type)->toBe('default')
-        ->and($event->name)->toBe('Basic Plan')
-        ->and($event->quantity)->toBe(1);
-});
+        $this->assertSame('cus_456', $event->customerId);
+        $this->assertSame('sub_123', $event->subscriptionId);
+        $this->assertSame('plan_789', $event->planId);
+        $this->assertSame('default', $event->type);
+        $this->assertSame('Basic Plan', $event->name);
+        $this->assertSame(1, $event->quantity);
+    }
+}

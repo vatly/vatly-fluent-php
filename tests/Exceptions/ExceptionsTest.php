@@ -2,119 +2,117 @@
 
 declare(strict_types=1);
 
+namespace Vatly\Fluent\Tests\Exceptions;
+
+use Exception;
 use Vatly\Fluent\Contracts\BillableInterface;
 use Vatly\Fluent\Exceptions\CustomerAlreadyCreatedException;
-use Vatly\Fluent\Exceptions\FeatureUnavailableException;
 use Vatly\Fluent\Exceptions\IncompleteInformationException;
-use Vatly\Fluent\Exceptions\InvalidCustomerException;
 use Vatly\Fluent\Exceptions\InvalidWebhookSignatureException;
 use Vatly\Fluent\Exceptions\VatlyException;
+use Vatly\Fluent\Tests\TestCase;
 
-describe('VatlyException', function () {
-    test('it is the base exception class', function () {
-        // VatlyException is abstract, so we test via a concrete subclass
+class ExceptionsTest extends TestCase
+{
+    public function test_vatly_exception_is_the_base_exception_class(): void
+    {
         $exception = InvalidWebhookSignatureException::missingSignature();
 
-        expect($exception)->toBeInstanceOf(VatlyException::class)
-            ->and($exception)->toBeInstanceOf(Exception::class);
-    });
-});
+        $this->assertInstanceOf(VatlyException::class, $exception);
+        $this->assertInstanceOf(Exception::class, $exception);
+    }
 
-describe('InvalidWebhookSignatureException', function () {
-    test('it extends VatlyException', function () {
+    public function test_invalid_webhook_signature_exception_extends_vatly_exception(): void
+    {
         $exception = InvalidWebhookSignatureException::missingSignature();
 
-        expect($exception)->toBeInstanceOf(VatlyException::class);
-    });
+        $this->assertInstanceOf(VatlyException::class, $exception);
+    }
 
-    test('missingSignature creates exception with correct message', function () {
+    public function test_missing_signature_creates_exception_with_correct_message(): void
+    {
         $exception = InvalidWebhookSignatureException::missingSignature();
 
-        expect($exception->getMessage())->toBe('Missing Vatly webhook signature.');
-    });
+        $this->assertSame('Missing Vatly webhook signature.', $exception->getMessage());
+    }
 
-    test('invalidSignature creates exception with correct message', function () {
+    public function test_invalid_signature_creates_exception_with_correct_message(): void
+    {
         $exception = InvalidWebhookSignatureException::invalidSignature();
 
-        expect($exception->getMessage())->toBe('Invalid Vatly webhook signature.');
-    });
-});
+        $this->assertSame('Invalid Vatly webhook signature.', $exception->getMessage());
+    }
 
-describe('IncompleteInformationException', function () {
-    test('it extends VatlyException', function () {
+    public function test_incomplete_information_exception_extends_vatly_exception(): void
+    {
         $exception = IncompleteInformationException::noCheckoutItems();
 
-        expect($exception)->toBeInstanceOf(VatlyException::class);
-    });
+        $this->assertInstanceOf(VatlyException::class, $exception);
+    }
 
-    test('noCheckoutItems creates exception with correct message', function () {
+    public function test_no_checkout_items_creates_exception_with_correct_message(): void
+    {
         $exception = IncompleteInformationException::noCheckoutItems();
 
-        expect($exception->getMessage())->toBe('No checkout items provided. At least one item should be set when creating a checkout.');
-    });
-});
+        $this->assertSame('No checkout items provided. At least one item should be set when creating a checkout.', $exception->getMessage());
+    }
 
-describe('CustomerAlreadyCreatedException', function () {
-    test('it extends VatlyException', function () {
-        $billable = createMockBillable('vat_123');
+    public function test_customer_already_created_exception_extends_vatly_exception(): void
+    {
+        $billable = $this->createMockBillable('vat_123');
         $exception = CustomerAlreadyCreatedException::exists($billable);
 
-        expect($exception)->toBeInstanceOf(VatlyException::class);
-    });
+        $this->assertInstanceOf(VatlyException::class, $exception);
+    }
 
-    test('exists creates exception with billable class and vatly ID', function () {
-        $billable = createMockBillable('vat_456');
+    public function test_exists_creates_exception_with_billable_class_and_vatly_id(): void
+    {
+        $billable = $this->createMockBillable('vat_456');
         $exception = CustomerAlreadyCreatedException::exists($billable);
 
-        expect($exception->getMessage())->toContain('vat_456')
-            ->and($exception->getMessage())->toContain('is already a Vatly customer');
-    });
-});
+        $this->assertStringContainsString('vat_456', $exception->getMessage());
+        $this->assertStringContainsString('is already a Vatly customer', $exception->getMessage());
+    }
 
-/**
- * Helper to create a mock billable.
- */
-function createMockBillable(string $vatlyId): BillableInterface
-{
-    return new class($vatlyId) implements BillableInterface {
-        public function __construct(private string $vatlyId)
-        {
-        }
+    private function createMockBillable(string $vatlyId): BillableInterface
+    {
+        return new class($vatlyId) implements BillableInterface {
+            public function __construct(private string $vatlyId) {}
 
-        public function getVatlyId(): string
-        {
-            return $this->vatlyId;
-        }
+            public function getVatlyId(): string
+            {
+                return $this->vatlyId;
+            }
 
-        public function setVatlyId(string $id): void
-        {
-            $this->vatlyId = $id;
-        }
+            public function setVatlyId(string $id): void
+            {
+                $this->vatlyId = $id;
+            }
 
-        public function hasVatlyId(): bool
-        {
-            return $this->vatlyId !== '';
-        }
+            public function hasVatlyId(): bool
+            {
+                return $this->vatlyId !== '';
+            }
 
-        public function getVatlyEmail(): ?string
-        {
-            return 'test@example.com';
-        }
+            public function getVatlyEmail(): ?string
+            {
+                return 'test@example.com';
+            }
 
-        public function getVatlyName(): ?string
-        {
-            return 'Test User';
-        }
+            public function getVatlyName(): ?string
+            {
+                return 'Test User';
+            }
 
-        public function getKey(): string|int
-        {
-            return 1;
-        }
+            public function getKey(): string|int
+            {
+                return 1;
+            }
 
-
-        public function save(): void
-        {
-            // Mock save
-        }
-    };
+            public function save(): mixed
+            {
+                return true;
+            }
+        };
+    }
 }

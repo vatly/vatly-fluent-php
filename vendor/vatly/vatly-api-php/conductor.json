@@ -1,6 +1,0 @@
-{
-    "scripts": {
-        "setup": "composer install",
-        "run": "composer test"
-    }
-}

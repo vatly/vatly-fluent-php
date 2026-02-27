@@ -4,17 +4,23 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Actions;
 
-use Vatly\Fluent\Actions\Responses\CreateCheckoutResponse;
+use Vatly\API\Resources\Checkout;
 
 class CreateCheckout extends BaseAction
 {
-    public function execute(array $payload, array $filters = []): CreateCheckoutResponse
+    /**
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $filters
+     */
+    public function execute(array $payload, array $filters = []): Checkout
     {
-        $apiResponse = $this->vatlyApiClient->checkouts->create(
+        $checkout = $this->vatlyApiClient->checkouts->create(
             payload: $payload,
             filters: $filters,
         );
 
-        return CreateCheckoutResponse::fromApiResponse($apiResponse);
+        assert($checkout instanceof Checkout);
+
+        return $checkout;
     }
 }

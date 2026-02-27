@@ -33,11 +33,15 @@ interface SubscriptionRepositoryInterface
 
     /**
      * Create a new subscription.
+     *
+     * @param array<string, mixed> $attributes
      */
     public function create(array $attributes): SubscriptionInterface;
 
     /**
      * Update a subscription.
+     *
+     * @param array<string, mixed> $attributes
      */
     public function update(SubscriptionInterface $subscription, array $attributes): SubscriptionInterface;
 }

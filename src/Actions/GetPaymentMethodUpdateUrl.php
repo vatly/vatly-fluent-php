@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Actions;
 
-use Vatly\Fluent\Actions\Responses\GetPaymentMethodUpdateUrlResponse;
+use Vatly\API\Types\Link;
 
 class GetPaymentMethodUpdateUrl extends BaseAction
 {
@@ -12,18 +12,13 @@ class GetPaymentMethodUpdateUrl extends BaseAction
      * Get the URL where a customer can update their payment method for a subscription.
      *
      * @param string $subscriptionId The subscription ID (e.g., subscription_xxx)
-     * @param array $prefillData Optional data to prefill the form (billing address, etc.)
+     * @param array<string, mixed> $prefillData Optional data to prefill the form (billing address, etc.)
      */
-    public function execute(string $subscriptionId, array $prefillData = []): GetPaymentMethodUpdateUrlResponse
+    public function execute(string $subscriptionId, array $prefillData = []): Link
     {
-        $link = $this->vatlyApiClient->subscriptions->requestLinkForBillingDetailsUpdate(
+        return $this->vatlyApiClient->subscriptions->requestLinkForBillingDetailsUpdate(
             $subscriptionId,
             $prefillData
-        );
-
-        return new GetPaymentMethodUpdateUrlResponse(
-            url: $link->href,
-            type: $link->type,
         );
     }
 }

@@ -38,10 +38,9 @@ class Vatly
 
     public function __construct(
         string $apiKey,
-        string $apiUrl = 'https://api.vatly.com',
-        string $apiVersion = 'v1',
     ) {
-        $this->apiClient = new VatlyApiClient($apiKey, $apiUrl, $apiVersion);
+        $this->apiClient = new VatlyApiClient();
+        $this->apiClient->setApiKey($apiKey);
         $this->signatureVerifier = new SignatureVerifier();
         $this->webhookEventFactory = new WebhookEventFactory();
     }
