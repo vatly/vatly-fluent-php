@@ -12,9 +12,9 @@ class CreateCustomer extends BaseAction
     /**
      * @param array<string, mixed> $payload
      * @param array<string, mixed> $filters
-     * @param bool $returnExistingOnDuplicate If true, returns existing customer when email already exists
+     * @param bool $returnExistingOnDuplicate Returns existing customer when email already exists (default: true)
      */
-    public function execute(array $payload, array $filters = [], bool $returnExistingOnDuplicate = false): Customer
+    public function execute(array $payload, array $filters = [], bool $returnExistingOnDuplicate = true): Customer
     {
         try {
             $customer = $this->vatlyApiClient->customers->create(
