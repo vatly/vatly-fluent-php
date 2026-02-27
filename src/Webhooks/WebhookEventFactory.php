@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Webhooks;
 
+use Vatly\Fluent\Events\OrderPaid;
 use Vatly\Fluent\Events\SubscriptionCanceledImmediately;
 use Vatly\Fluent\Events\SubscriptionCanceledWithGracePeriod;
 use Vatly\Fluent\Events\SubscriptionStarted;
@@ -15,7 +16,7 @@ class WebhookEventFactory
     /**
      * Create a typed event from a raw webhook.
      *
-     * @return SubscriptionStarted|SubscriptionCanceledImmediately|SubscriptionCanceledWithGracePeriod|UnsupportedWebhookReceived
+     * @return SubscriptionStarted|SubscriptionCanceledImmediately|SubscriptionCanceledWithGracePeriod|OrderPaid|UnsupportedWebhookReceived
      */
     public function createFromWebhook(WebhookReceived $webhook): object
     {
@@ -23,6 +24,7 @@ class WebhookEventFactory
             SubscriptionStarted::VATLY_EVENT_NAME => SubscriptionStarted::fromWebhook($webhook),
             SubscriptionCanceledImmediately::VATLY_EVENT_NAME => SubscriptionCanceledImmediately::fromWebhook($webhook),
             SubscriptionCanceledWithGracePeriod::VATLY_EVENT_NAME => SubscriptionCanceledWithGracePeriod::fromWebhook($webhook),
+            OrderPaid::VATLY_EVENT_NAME => OrderPaid::fromWebhook($webhook),
             default => UnsupportedWebhookReceived::fromWebhook($webhook),
         };
     }
@@ -55,6 +57,7 @@ class WebhookEventFactory
             SubscriptionStarted::VATLY_EVENT_NAME,
             SubscriptionCanceledImmediately::VATLY_EVENT_NAME,
             SubscriptionCanceledWithGracePeriod::VATLY_EVENT_NAME,
+            OrderPaid::VATLY_EVENT_NAME,
         ];
     }
 
