@@ -40,7 +40,7 @@ interface BillableInterface
     /**
      * Get the primary key of this billable entity.
      */
-    public function getKey(): string|int;
+    public function getKey(): mixed;
 
     /**
      * Persist the billable entity.
