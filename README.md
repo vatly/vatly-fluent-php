@@ -34,7 +34,7 @@ Pin to an exact version. This is an alpha release and the API will change.
 
 ```php
 use Vatly\API\VatlyApiClient;
-use Vatly\Actions\CreateCheckout;
+use Vatly\Fluent\Actions\CreateCheckout;
 
 $client = new VatlyApiClient();
 $client->setApiKey('test_xxxxxxxxxxxx');
