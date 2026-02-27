@@ -2,165 +2,185 @@
 
 declare(strict_types=1);
 
+namespace Vatly\Fluent\Tests\Webhooks;
+
+use DateTimeInterface;
 use Vatly\Fluent\Events\OrderPaid;
 use Vatly\Fluent\Events\SubscriptionCanceledImmediately;
 use Vatly\Fluent\Events\SubscriptionCanceledWithGracePeriod;
 use Vatly\Fluent\Events\SubscriptionStarted;
 use Vatly\Fluent\Events\UnsupportedWebhookReceived;
 use Vatly\Fluent\Events\WebhookReceived;
+use Vatly\Fluent\Tests\TestCase;
 use Vatly\Fluent\Webhooks\WebhookEventFactory;
 
-beforeEach(function () {
-    $this->factory = new WebhookEventFactory();
-});
+class WebhookEventFactoryTest extends TestCase
+{
+    private WebhookEventFactory $factory;
 
-test('it parses webhook payload into WebhookReceived event', function () {
-    $payload = [
-        'eventName' => 'subscription.started',
-        'resourceId' => 'sub_123',
-        'resourceName' => 'subscription',
-        'object' => ['data' => ['customerId' => 'cus_456']],
-        'raisedAt' => '2024-01-15T10:00:00Z',
-        'testmode' => true,
-    ];
+    protected function setUp(): void
+    {
+        parent::setUp();
 
-    $event = $this->factory->parsePayload($payload);
+        $this->factory = new WebhookEventFactory();
+    }
 
-    expect($event)->toBeInstanceOf(WebhookReceived::class)
-        ->and($event->eventName)->toBe('subscription.started')
-        ->and($event->resourceId)->toBe('sub_123')
-        ->and($event->resourceName)->toBe('subscription')
-        ->and($event->testmode)->toBeTrue()
-        ->and($event->getCustomerId())->toBe('cus_456');
-});
+    public function test_it_parses_webhook_payload_into_webhook_received_event(): void
+    {
+        $payload = [
+            'eventName' => 'subscription.started',
+            'resourceId' => 'sub_123',
+            'resourceName' => 'subscription',
+            'object' => ['data' => ['customerId' => 'cus_456']],
+            'raisedAt' => '2024-01-15T10:00:00Z',
+            'testmode' => true,
+        ];
 
-test('it creates SubscriptionStarted event from webhook', function () {
-    $webhook = new WebhookReceived(
-        eventName: 'subscription.started',
-        resourceId: 'sub_123',
-        resourceName: 'subscription',
-        object: [
-            'data' => [
-                'customerId' => 'cus_456',
-                'subscriptionPlanId' => 'plan_789',
-                'name' => 'Premium Plan',
-                'quantity' => 1,
+        $event = $this->factory->parsePayload($payload);
+
+        $this->assertInstanceOf(WebhookReceived::class, $event);
+        $this->assertSame('subscription.started', $event->eventName);
+        $this->assertSame('sub_123', $event->resourceId);
+        $this->assertSame('subscription', $event->resourceName);
+        $this->assertTrue($event->testmode);
+        $this->assertSame('cus_456', $event->getCustomerId());
+    }
+
+    public function test_it_creates_subscription_started_event_from_webhook(): void
+    {
+        $webhook = new WebhookReceived(
+            eventName: 'subscription.started',
+            resourceId: 'sub_123',
+            resourceName: 'subscription',
+            object: [
+                'data' => [
+                    'customerId' => 'cus_456',
+                    'subscriptionPlanId' => 'plan_789',
+                    'name' => 'Premium Plan',
+                    'quantity' => 1,
+                ],
             ],
-        ],
-        raisedAt: '2024-01-15T10:00:00Z',
-        testmode: false,
-    );
+            raisedAt: '2024-01-15T10:00:00Z',
+            testmode: false,
+        );
 
-    $event = $this->factory->createFromWebhook($webhook);
+        $event = $this->factory->createFromWebhook($webhook);
 
-    expect($event)->toBeInstanceOf(SubscriptionStarted::class)
-        ->and($event->customerId)->toBe('cus_456')
-        ->and($event->subscriptionId)->toBe('sub_123')
-        ->and($event->planId)->toBe('plan_789')
-        ->and($event->name)->toBe('Premium Plan')
-        ->and($event->quantity)->toBe(1);
-});
+        $this->assertInstanceOf(SubscriptionStarted::class, $event);
+        $this->assertSame('cus_456', $event->customerId);
+        $this->assertSame('sub_123', $event->subscriptionId);
+        $this->assertSame('plan_789', $event->planId);
+        $this->assertSame('Premium Plan', $event->name);
+        $this->assertSame(1, $event->quantity);
+    }
 
-test('it creates SubscriptionCanceledImmediately event from webhook', function () {
-    $webhook = new WebhookReceived(
-        eventName: 'subscription.canceled_immediately',
-        resourceId: 'sub_123',
-        resourceName: 'subscription',
-        object: [
-            'data' => [
-                'customerId' => 'cus_456',
+    public function test_it_creates_subscription_canceled_immediately_event_from_webhook(): void
+    {
+        $webhook = new WebhookReceived(
+            eventName: 'subscription.canceled_immediately',
+            resourceId: 'sub_123',
+            resourceName: 'subscription',
+            object: [
+                'data' => [
+                    'customerId' => 'cus_456',
+                ],
             ],
-        ],
-        raisedAt: '2024-01-15T10:00:00Z',
-        testmode: false,
-    );
+            raisedAt: '2024-01-15T10:00:00Z',
+            testmode: false,
+        );
 
-    $event = $this->factory->createFromWebhook($webhook);
+        $event = $this->factory->createFromWebhook($webhook);
 
-    expect($event)->toBeInstanceOf(SubscriptionCanceledImmediately::class)
-        ->and($event->customerId)->toBe('cus_456')
-        ->and($event->subscriptionId)->toBe('sub_123');
-});
+        $this->assertInstanceOf(SubscriptionCanceledImmediately::class, $event);
+        $this->assertSame('cus_456', $event->customerId);
+        $this->assertSame('sub_123', $event->subscriptionId);
+    }
 
-test('it creates SubscriptionCanceledWithGracePeriod event from webhook', function () {
-    $webhook = new WebhookReceived(
-        eventName: 'subscription.canceled_with_grace_period',
-        resourceId: 'sub_123',
-        resourceName: 'subscription',
-        object: [
-            'data' => [
-                'customerId' => 'cus_456',
-                'endsAt' => '2024-02-15T10:00:00Z',
+    public function test_it_creates_subscription_canceled_with_grace_period_event_from_webhook(): void
+    {
+        $webhook = new WebhookReceived(
+            eventName: 'subscription.canceled_with_grace_period',
+            resourceId: 'sub_123',
+            resourceName: 'subscription',
+            object: [
+                'data' => [
+                    'customerId' => 'cus_456',
+                    'endsAt' => '2024-02-15T10:00:00Z',
+                ],
             ],
-        ],
-        raisedAt: '2024-01-15T10:00:00Z',
-        testmode: false,
-    );
+            raisedAt: '2024-01-15T10:00:00Z',
+            testmode: false,
+        );
 
-    $event = $this->factory->createFromWebhook($webhook);
+        $event = $this->factory->createFromWebhook($webhook);
 
-    expect($event)->toBeInstanceOf(SubscriptionCanceledWithGracePeriod::class)
-        ->and($event->customerId)->toBe('cus_456')
-        ->and($event->subscriptionId)->toBe('sub_123')
-        ->and($event->endsAt)->toBeInstanceOf(DateTimeInterface::class);
-});
+        $this->assertInstanceOf(SubscriptionCanceledWithGracePeriod::class, $event);
+        $this->assertSame('cus_456', $event->customerId);
+        $this->assertSame('sub_123', $event->subscriptionId);
+        $this->assertInstanceOf(DateTimeInterface::class, $event->endsAt);
+    }
 
-test('it creates OrderPaid event from webhook', function () {
-    $webhook = new WebhookReceived(
-        eventName: 'order.paid',
-        resourceId: 'ord_123',
-        resourceName: 'order',
-        object: [
-            'data' => [
-                'customerId' => 'cus_456',
-                'total' => 9900,
-                'currency' => 'EUR',
-                'invoiceNumber' => 'INV-2024-001',
-                'paymentMethod' => 'credit_card',
+    public function test_it_creates_order_paid_event_from_webhook(): void
+    {
+        $webhook = new WebhookReceived(
+            eventName: 'order.paid',
+            resourceId: 'ord_123',
+            resourceName: 'order',
+            object: [
+                'data' => [
+                    'customerId' => 'cus_456',
+                    'total' => 9900,
+                    'currency' => 'EUR',
+                    'invoiceNumber' => 'INV-2024-001',
+                    'paymentMethod' => 'credit_card',
+                ],
             ],
-        ],
-        raisedAt: '2024-01-15T10:00:00Z',
-        testmode: false,
-    );
+            raisedAt: '2024-01-15T10:00:00Z',
+            testmode: false,
+        );
 
-    $event = $this->factory->createFromWebhook($webhook);
+        $event = $this->factory->createFromWebhook($webhook);
 
-    expect($event)->toBeInstanceOf(OrderPaid::class)
-        ->and($event->customerId)->toBe('cus_456')
-        ->and($event->orderId)->toBe('ord_123')
-        ->and($event->total)->toBe(9900)
-        ->and($event->currency)->toBe('EUR')
-        ->and($event->invoiceNumber)->toBe('INV-2024-001')
-        ->and($event->paymentMethod)->toBe('credit_card');
-});
+        $this->assertInstanceOf(OrderPaid::class, $event);
+        $this->assertSame('cus_456', $event->customerId);
+        $this->assertSame('ord_123', $event->orderId);
+        $this->assertSame(9900, $event->total);
+        $this->assertSame('EUR', $event->currency);
+        $this->assertSame('INV-2024-001', $event->invoiceNumber);
+        $this->assertSame('credit_card', $event->paymentMethod);
+    }
 
-test('it creates UnsupportedWebhookReceived for unknown events', function () {
-    $webhook = new WebhookReceived(
-        eventName: 'unknown.event',
-        resourceId: 'res_123',
-        resourceName: 'unknown',
-        object: [],
-        raisedAt: '2024-01-15T10:00:00Z',
-        testmode: false,
-    );
+    public function test_it_creates_unsupported_webhook_received_for_unknown_events(): void
+    {
+        $webhook = new WebhookReceived(
+            eventName: 'unknown.event',
+            resourceId: 'res_123',
+            resourceName: 'unknown',
+            object: [],
+            raisedAt: '2024-01-15T10:00:00Z',
+            testmode: false,
+        );
 
-    $event = $this->factory->createFromWebhook($webhook);
+        $event = $this->factory->createFromWebhook($webhook);
 
-    expect($event)->toBeInstanceOf(UnsupportedWebhookReceived::class)
-        ->and($event->eventName)->toBe('unknown.event');
-});
+        $this->assertInstanceOf(UnsupportedWebhookReceived::class, $event);
+        $this->assertSame('unknown.event', $event->eventName);
+    }
 
-test('it returns list of supported events', function () {
-    $supported = $this->factory->getSupportedEvents();
+    public function test_it_returns_list_of_supported_events(): void
+    {
+        $supported = $this->factory->getSupportedEvents();
 
-    expect($supported)->toContain('subscription.started')
-        ->and($supported)->toContain('subscription.canceled_immediately')
-        ->and($supported)->toContain('subscription.canceled_with_grace_period')
-        ->and($supported)->toContain('order.paid');
-});
+        $this->assertContains('subscription.started', $supported);
+        $this->assertContains('subscription.canceled_immediately', $supported);
+        $this->assertContains('subscription.canceled_with_grace_period', $supported);
+        $this->assertContains('order.paid', $supported);
+    }
 
-test('it checks if event is supported', function () {
-    expect($this->factory->isSupported('subscription.started'))->toBeTrue()
-        ->and($this->factory->isSupported('order.paid'))->toBeTrue()
-        ->and($this->factory->isSupported('unknown.event'))->toBeFalse();
-});
+    public function test_it_checks_if_event_is_supported(): void
+    {
+        $this->assertTrue($this->factory->isSupported('subscription.started'));
+        $this->assertTrue($this->factory->isSupported('order.paid'));
+        $this->assertFalse($this->factory->isSupported('unknown.event'));
+    }
+}

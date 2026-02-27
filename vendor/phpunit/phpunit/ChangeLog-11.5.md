@@ -2,6 +2,41 @@
 
 All notable changes of the PHPUnit 11.5 release series are documented in this file using the [Keep a CHANGELOG](https://keepachangelog.com/) principles.
 
+## [11.5.55] - 2026-02-18
+
+### Fixed
+
+* [#6521](https://github.com/sebastianbergmann/phpunit/issues/6521): Performance regression in PHPUnit 11.5.54, PHPUnit 12.5.13, and PHPUnit 13.0.4
+
+## [11.5.54] - 2026-02-18
+
+### Fixed
+
+* [#6489](https://github.com/sebastianbergmann/phpunit/pull/6489): Classification of self/direct/indirect deprecation triggers is not aligned with Symfony's bridge for PHPUnit
+
+## [11.5.53] - 2026-02-10
+
+### Fixed
+
+* [#6503](https://github.com/sebastianbergmann/phpunit/issues/6503): Temporary file used by `SourceMapper` may be deleted prematurely when multiple PHPUnit processes run in parallel
+
+## [11.5.52] - 2026-02-08
+
+### Fixed
+
+* [#6495](https://github.com/sebastianbergmann/phpunit/pull/6495): Source map for issue trigger identification is regenerated in process isolation child processes
+
+## [11.5.51] - 2026-02-05
+
+### Added
+
+* [#6488](https://github.com/sebastianbergmann/phpunit/issues/6488): Allow disabling issue trigger identification for improved performance
+
+### Fixed
+
+* [#6486](https://github.com/sebastianbergmann/phpunit/issues/6486): Incorrect file name reported for errors for test methods declared in traits
+* [#6490](https://github.com/sebastianbergmann/phpunit/pull/6490): Incorrect test count when tests are skipped in before-class method
+
 ## [11.5.50] - 2026-01-27
 
 ### Changed
@@ -419,6 +454,11 @@ All notable changes of the PHPUnit 11.5 release series are documented in this fi
 * [#6055](https://github.com/sebastianbergmann/phpunit/issues/6055): `assertNotContainsOnly()` (use `assertContainsNotOnlyArray()`, `assertContainsNotOnlyBool()`, `assertContainsNotOnlyCallable()`, `assertContainsNotOnlyFloat()`, `assertContainsNotOnlyInt()`, `assertContainsNotOnlyIterable()`, `assertContainsNotOnlyNumeric()`, `assertContainsNotOnlyObject()`, `assertContainsNotOnlyResource()`, `assertContainsNotOnlyClosedResource()`, `assertContainsNotOnlyScalar()`, or `assertContainsNotOnlyString()` instead)
 * [#6059](https://github.com/sebastianbergmann/phpunit/issues/6059): `containsOnly()` (use `containsOnlyArray()`, `containsOnlyBool()`, `containsOnlyCallable()`, `containsOnlyFloat()`, `containsOnlyInt()`, `containsOnlyIterable()`, `containsOnlyNumeric()`, `containsOnlyObject()`, `containsOnlyResource()`, `containsOnlyClosedResource()`, `containsOnlyScalar()`, or `containsOnlyString()` instead)
 
+[11.5.55]: https://github.com/sebastianbergmann/phpunit/compare/11.5.54...11.5.55
+[11.5.54]: https://github.com/sebastianbergmann/phpunit/compare/11.5.53...11.5.54
+[11.5.53]: https://github.com/sebastianbergmann/phpunit/compare/11.5.52...11.5.53
+[11.5.52]: https://github.com/sebastianbergmann/phpunit/compare/11.5.51...11.5.52
+[11.5.51]: https://github.com/sebastianbergmann/phpunit/compare/11.5.50...11.5.51
 [11.5.50]: https://github.com/sebastianbergmann/phpunit/compare/11.5.49...11.5.50
 [11.5.49]: https://github.com/sebastianbergmann/phpunit/compare/11.5.48...11.5.49
 [11.5.48]: https://github.com/sebastianbergmann/phpunit/compare/11.5.47...11.5.48

@@ -2,44 +2,52 @@
 
 declare(strict_types=1);
 
+namespace Vatly\Fluent\Tests\Events;
+
 use Vatly\Fluent\Events\UnsupportedWebhookReceived;
 use Vatly\Fluent\Events\WebhookReceived;
+use Vatly\Fluent\Tests\TestCase;
 
-test('it can be instantiated with all properties', function () {
-    $event = new UnsupportedWebhookReceived(
-        eventName: 'unknown.event',
-        resourceId: 'res_123',
-        resourceName: 'resource',
-        object: ['data' => ['key' => 'value']],
-        raisedAt: '2024-01-15T10:00:00Z',
-        testmode: true,
-    );
+class UnsupportedWebhookReceivedTest extends TestCase
+{
+    public function test_it_can_be_instantiated_with_all_properties(): void
+    {
+        $event = new UnsupportedWebhookReceived(
+            eventName: 'unknown.event',
+            resourceId: 'res_123',
+            resourceName: 'resource',
+            object: ['data' => ['key' => 'value']],
+            raisedAt: '2024-01-15T10:00:00Z',
+            testmode: true,
+        );
 
-    expect($event->eventName)->toBe('unknown.event')
-        ->and($event->resourceId)->toBe('res_123')
-        ->and($event->resourceName)->toBe('resource')
-        ->and($event->object)->toBe(['data' => ['key' => 'value']])
-        ->and($event->raisedAt)->toBe('2024-01-15T10:00:00Z')
-        ->and($event->testmode)->toBeTrue();
-});
+        $this->assertSame('unknown.event', $event->eventName);
+        $this->assertSame('res_123', $event->resourceId);
+        $this->assertSame('resource', $event->resourceName);
+        $this->assertSame(['data' => ['key' => 'value']], $event->object);
+        $this->assertSame('2024-01-15T10:00:00Z', $event->raisedAt);
+        $this->assertTrue($event->testmode);
+    }
 
-test('it creates from WebhookReceived', function () {
-    $webhook = new WebhookReceived(
-        eventName: 'unknown.event.type',
-        resourceId: 'xyz_789',
-        resourceName: 'unknown_resource',
-        object: ['foo' => 'bar'],
-        raisedAt: '2024-06-01T12:00:00Z',
-        testmode: false,
-    );
+    public function test_it_creates_from_webhook_received(): void
+    {
+        $webhook = new WebhookReceived(
+            eventName: 'unknown.event.type',
+            resourceId: 'xyz_789',
+            resourceName: 'unknown_resource',
+            object: ['foo' => 'bar'],
+            raisedAt: '2024-06-01T12:00:00Z',
+            testmode: false,
+        );
 
-    $event = UnsupportedWebhookReceived::fromWebhook($webhook);
+        $event = UnsupportedWebhookReceived::fromWebhook($webhook);
 
-    expect($event)->toBeInstanceOf(UnsupportedWebhookReceived::class)
-        ->and($event->eventName)->toBe('unknown.event.type')
-        ->and($event->resourceId)->toBe('xyz_789')
-        ->and($event->resourceName)->toBe('unknown_resource')
-        ->and($event->object)->toBe(['foo' => 'bar'])
-        ->and($event->raisedAt)->toBe('2024-06-01T12:00:00Z')
-        ->and($event->testmode)->toBeFalse();
-});
+        $this->assertInstanceOf(UnsupportedWebhookReceived::class, $event);
+        $this->assertSame('unknown.event.type', $event->eventName);
+        $this->assertSame('xyz_789', $event->resourceId);
+        $this->assertSame('unknown_resource', $event->resourceName);
+        $this->assertSame(['foo' => 'bar'], $event->object);
+        $this->assertSame('2024-06-01T12:00:00Z', $event->raisedAt);
+        $this->assertFalse($event->testmode);
+    }
+}

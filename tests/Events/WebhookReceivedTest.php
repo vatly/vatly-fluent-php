@@ -2,64 +2,79 @@
 
 declare(strict_types=1);
 
+namespace Vatly\Fluent\Tests\Events;
+
 use Vatly\Fluent\Events\WebhookReceived;
+use Vatly\Fluent\Tests\TestCase;
 
-test('it can be instantiated with all properties', function () {
-    $event = new WebhookReceived(
-        eventName: 'subscription.started',
-        resourceId: 'sub_123',
-        resourceName: 'subscription',
-        object: ['data' => ['customerId' => 'cus_456']],
-        raisedAt: '2024-01-15T10:00:00Z',
-        testmode: true,
-    );
+class WebhookReceivedTest extends TestCase
+{
+    public function test_it_can_be_instantiated_with_all_properties(): void
+    {
+        $event = new WebhookReceived(
+            eventName: 'subscription.started',
+            resourceId: 'sub_123',
+            resourceName: 'subscription',
+            object: ['data' => ['customerId' => 'cus_456']],
+            raisedAt: '2024-01-15T10:00:00Z',
+            testmode: true,
+        );
 
-    expect($event->eventName)->toBe('subscription.started')
-        ->and($event->resourceId)->toBe('sub_123')
-        ->and($event->resourceName)->toBe('subscription')
-        ->and($event->object)->toBe(['data' => ['customerId' => 'cus_456']])
-        ->and($event->raisedAt)->toBe('2024-01-15T10:00:00Z')
-        ->and($event->testmode)->toBeTrue();
-});
+        $this->assertSame('subscription.started', $event->eventName);
+        $this->assertSame('sub_123', $event->resourceId);
+        $this->assertSame('subscription', $event->resourceName);
+        $this->assertSame(['data' => ['customerId' => 'cus_456']], $event->object);
+        $this->assertSame('2024-01-15T10:00:00Z', $event->raisedAt);
+        $this->assertTrue($event->testmode);
+    }
 
-test('it converts to array', function () {
-    $event = new WebhookReceived(
-        eventName: 'subscription.started',
-        resourceId: 'sub_123',
-        resourceName: 'subscription',
-        object: ['data' => []],
-        raisedAt: '2024-01-15T10:00:00Z',
-        testmode: false,
-    );
+    public function test_it_converts_to_array(): void
+    {
+        $event = new WebhookReceived(
+            eventName: 'subscription.started',
+            resourceId: 'sub_123',
+            resourceName: 'subscription',
+            object: ['data' => []],
+            raisedAt: '2024-01-15T10:00:00Z',
+            testmode: false,
+        );
 
-    $array = $event->toArray();
+        $array = $event->toArray();
 
-    expect($array)->toHaveKeys(['eventName', 'resourceId', 'resourceName', 'object', 'raisedAt', 'testmode'])
-        ->and($array['eventName'])->toBe('subscription.started');
-});
+        $this->assertArrayHasKey('eventName', $array);
+        $this->assertArrayHasKey('resourceId', $array);
+        $this->assertArrayHasKey('resourceName', $array);
+        $this->assertArrayHasKey('object', $array);
+        $this->assertArrayHasKey('raisedAt', $array);
+        $this->assertArrayHasKey('testmode', $array);
+        $this->assertSame('subscription.started', $array['eventName']);
+    }
 
-test('it extracts customer ID from object', function () {
-    $event = new WebhookReceived(
-        eventName: 'subscription.started',
-        resourceId: 'sub_123',
-        resourceName: 'subscription',
-        object: ['data' => ['customerId' => 'cus_456']],
-        raisedAt: '2024-01-15T10:00:00Z',
-        testmode: false,
-    );
+    public function test_it_extracts_customer_id_from_object(): void
+    {
+        $event = new WebhookReceived(
+            eventName: 'subscription.started',
+            resourceId: 'sub_123',
+            resourceName: 'subscription',
+            object: ['data' => ['customerId' => 'cus_456']],
+            raisedAt: '2024-01-15T10:00:00Z',
+            testmode: false,
+        );
 
-    expect($event->getCustomerId())->toBe('cus_456');
-});
+        $this->assertSame('cus_456', $event->getCustomerId());
+    }
 
-test('it returns null when customer ID not present', function () {
-    $event = new WebhookReceived(
-        eventName: 'test.event',
-        resourceId: 'res_123',
-        resourceName: 'resource',
-        object: ['data' => []],
-        raisedAt: '2024-01-15T10:00:00Z',
-        testmode: false,
-    );
+    public function test_it_returns_null_when_customer_id_not_present(): void
+    {
+        $event = new WebhookReceived(
+            eventName: 'test.event',
+            resourceId: 'res_123',
+            resourceName: 'resource',
+            object: ['data' => []],
+            raisedAt: '2024-01-15T10:00:00Z',
+            testmode: false,
+        );
 
-    expect($event->getCustomerId())->toBeNull();
-});
+        $this->assertNull($event->getCustomerId());
+    }
+}

@@ -7,89 +7,30 @@ namespace Composer\Autoload;
 class ComposerStaticInit031008422d816d085fc4700624f7886c
 {
     public static $files = array (
-        '0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => __DIR__ . '/..' . '/symfony/polyfill-mbstring/bootstrap.php',
-        '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
-        '320cde22f66dd4f5d3fd621d3e88b98f' => __DIR__ . '/..' . '/symfony/polyfill-ctype/bootstrap.php',
-        '8825ede83f2f289127722d4e842cf7e8' => __DIR__ . '/..' . '/symfony/polyfill-intl-grapheme/bootstrap.php',
-        'e69f7f6ee287b969198c3c9d6777bd38' => __DIR__ . '/..' . '/symfony/polyfill-intl-normalizer/bootstrap.php',
-        'b6b991a57620e2fb6b2f66f03fe9ddc2' => __DIR__ . '/..' . '/symfony/string/Resources/functions.php',
         '6124b4c8570aa390c21fafd04a26c69f' => __DIR__ . '/..' . '/myclabs/deep-copy/src/DeepCopy/deep_copy.php',
-        'ec07570ca5a812141189b1fa81503674' => __DIR__ . '/..' . '/phpunit/phpunit/src/Framework/Assert/Functions.php',
-        '35a6ad97d21e794e7e22a17d806652e4' => __DIR__ . '/..' . '/nunomaduro/termwind/src/Functions.php',
-        'a1cfe24d14977df6878b9bf804af2d1c' => __DIR__ . '/..' . '/nunomaduro/collision/src/Adapters/Phpunit/Autoload.php',
-        'aadac1114cab8dc19489a7f6dc24c003' => __DIR__ . '/..' . '/pestphp/pest-plugin-arch/src/Autoload.php',
         'c72349b1fe8d0deeedd3a52e8aa814d8' => __DIR__ . '/..' . '/mockery/mockery/library/helpers.php',
         'ce9671a430e4846b44e1c68c7611f9f5' => __DIR__ . '/..' . '/mockery/mockery/library/Mockery.php',
-        'f83ed111c2f97a0449abf067f157f418' => __DIR__ . '/..' . '/pestphp/pest/src/Functions.php',
-        '7d2876738dc0328edeb8a103c76cd8e7' => __DIR__ . '/..' . '/pestphp/pest/src/Pest.php',
         '9b38cf48e83f5d8f60375221cd213eee' => __DIR__ . '/..' . '/phpstan/phpstan/bootstrap.php',
+        'ec07570ca5a812141189b1fa81503674' => __DIR__ . '/..' . '/phpunit/phpunit/src/Framework/Assert/Functions.php',
     );
 
     public static $prefixLengthsPsr4 = array (
-        'p' =>
-        array (
-            'phpDocumentor\\Reflection\\' => 25,
-        ),
-        'W' =>
-        array (
-            'Whoops\\' => 7,
-            'Webmozart\\Assert\\' => 17,
-        ),
         'V' =>
         array (
             'Vatly\\Fluent\\Tests\\' => 19,
             'Vatly\\Fluent\\' => 13,
             'Vatly\\' => 6,
         ),
-        'T' =>
-        array (
-            'Termwind\\' => 9,
-        ),
-        'S' =>
-        array (
-            'Symfony\\Polyfill\\Mbstring\\' => 26,
-            'Symfony\\Polyfill\\Intl\\Normalizer\\' => 33,
-            'Symfony\\Polyfill\\Intl\\Grapheme\\' => 31,
-            'Symfony\\Polyfill\\Ctype\\' => 23,
-            'Symfony\\Contracts\\Service\\' => 26,
-            'Symfony\\Component\\String\\' => 25,
-            'Symfony\\Component\\Process\\' => 26,
-            'Symfony\\Component\\Finder\\' => 25,
-            'Symfony\\Component\\Console\\' => 26,
-        ),
         'P' =>
         array (
-            'Psr\\SimpleCache\\' => 16,
-            'Psr\\Log\\' => 8,
-            'Psr\\Container\\' => 14,
             'PhpParser\\' => 10,
-            'Pest\\Plugin\\' => 12,
-            'Pest\\Mutate\\' => 12,
-            'Pest\\Arch\\' => 10,
-            'Pest\\' => 5,
-            'ParaTest\\' => 9,
-            'PHPUnit\\Architecture\\' => 21,
-            'PHPStan\\PhpDocParser\\' => 21,
-        ),
-        'N' =>
-        array (
-            'NunoMaduro\\Collision\\' => 21,
         ),
         'M' =>
         array (
             'Mockery\\' => 8,
         ),
-        'J' =>
-        array (
-            'Jean85\\' => 7,
-        ),
-        'F' =>
-        array (
-            'Fidry\\CpuCoreCounter\\' => 21,
-        ),
         'D' =>
         array (
-            'Doctrine\\Deprecations\\' => 22,
             'DeepCopy\\' => 9,
         ),
         'C' =>
@@ -99,20 +40,6 @@ class ComposerStaticInit031008422d816d085fc4700624f7886c
     );
 
     public static $prefixDirsPsr4 = array (
-        'phpDocumentor\\Reflection\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/phpdocumentor/reflection-docblock/src',
-            1 => __DIR__ . '/..' . '/phpdocumentor/type-resolver/src',
-            2 => __DIR__ . '/..' . '/phpdocumentor/reflection-common/src',
-        ),
-        'Whoops\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/filp/whoops/src/Whoops',
-        ),
-        'Webmozart\\Assert\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/webmozart/assert/src',
-        ),
         'Vatly\\Fluent\\Tests\\' =>
         array (
             0 => __DIR__ . '/../..' . '/tests',
@@ -125,109 +52,13 @@ class ComposerStaticInit031008422d816d085fc4700624f7886c
         array (
             0 => __DIR__ . '/..' . '/vatly/vatly-api-php/src',
         ),
-        'Termwind\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/nunomaduro/termwind/src',
-        ),
-        'Symfony\\Polyfill\\Mbstring\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/symfony/polyfill-mbstring',
-        ),
-        'Symfony\\Polyfill\\Intl\\Normalizer\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/symfony/polyfill-intl-normalizer',
-        ),
-        'Symfony\\Polyfill\\Intl\\Grapheme\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/symfony/polyfill-intl-grapheme',
-        ),
-        'Symfony\\Polyfill\\Ctype\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/symfony/polyfill-ctype',
-        ),
-        'Symfony\\Contracts\\Service\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/symfony/service-contracts',
-        ),
-        'Symfony\\Component\\String\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/symfony/string',
-        ),
-        'Symfony\\Component\\Process\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/symfony/process',
-        ),
-        'Symfony\\Component\\Finder\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/symfony/finder',
-        ),
-        'Symfony\\Component\\Console\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/symfony/console',
-        ),
-        'Psr\\SimpleCache\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/psr/simple-cache/src',
-        ),
-        'Psr\\Log\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/psr/log/src',
-        ),
-        'Psr\\Container\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/psr/container/src',
-        ),
         'PhpParser\\' =>
         array (
             0 => __DIR__ . '/..' . '/nikic/php-parser/lib/PhpParser',
         ),
-        'Pest\\Plugin\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/pestphp/pest-plugin/src',
-        ),
-        'Pest\\Mutate\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/pestphp/pest-plugin-mutate/src',
-        ),
-        'Pest\\Arch\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/pestphp/pest-plugin-arch/src',
-        ),
-        'Pest\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/pestphp/pest/src',
-        ),
-        'ParaTest\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/brianium/paratest/src',
-        ),
-        'PHPUnit\\Architecture\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/ta-tikoma/phpunit-architecture-test/src',
-        ),
-        'PHPStan\\PhpDocParser\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/phpstan/phpdoc-parser/src',
-        ),
-        'NunoMaduro\\Collision\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/nunomaduro/collision/src',
-        ),
         'Mockery\\' =>
         array (
             0 => __DIR__ . '/..' . '/mockery/mockery/library/Mockery',
-        ),
-        'Jean85\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/jean85/pretty-package-versions/src',
-        ),
-        'Fidry\\CpuCoreCounter\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/fidry/cpu-core-counter/src',
-        ),
-        'Doctrine\\Deprecations\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/doctrine/deprecations/src',
         ),
         'DeepCopy\\' =>
         array (
@@ -309,7 +140,6 @@ class ComposerStaticInit031008422d816d085fc4700624f7886c
         'Hamcrest\\Type\\IsString' => __DIR__ . '/..' . '/hamcrest/hamcrest-php/hamcrest/Hamcrest/Type/IsString.php',
         'Hamcrest\\Util' => __DIR__ . '/..' . '/hamcrest/hamcrest-php/hamcrest/Hamcrest/Util.php',
         'Hamcrest\\Xml\\HasXPath' => __DIR__ . '/..' . '/hamcrest/hamcrest-php/hamcrest/Hamcrest/Xml/HasXPath.php',
-        'Normalizer' => __DIR__ . '/..' . '/symfony/polyfill-intl-normalizer/Resources/stubs/Normalizer.php',
         'PHPUnit\\Event\\Application\\Finished' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Events/Application/Finished.php',
         'PHPUnit\\Event\\Application\\FinishedSubscriber' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Events/Application/FinishedSubscriber.php',
         'PHPUnit\\Event\\Application\\Started' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Events/Application/Started.php',
@@ -317,12 +147,8 @@ class ComposerStaticInit031008422d816d085fc4700624f7886c
         'PHPUnit\\Event\\Code\\ClassMethod' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/ClassMethod.php',
         'PHPUnit\\Event\\Code\\ComparisonFailure' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/ComparisonFailure.php',
         'PHPUnit\\Event\\Code\\ComparisonFailureBuilder' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/ComparisonFailureBuilder.php',
-        'PHPUnit\\Event\\Code\\IssueTrigger\\DirectTrigger' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Issue/DirectTrigger.php',
-        'PHPUnit\\Event\\Code\\IssueTrigger\\IndirectTrigger' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Issue/IndirectTrigger.php',
+        'PHPUnit\\Event\\Code\\IssueTrigger\\Code' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Issue/Code.php',
         'PHPUnit\\Event\\Code\\IssueTrigger\\IssueTrigger' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Issue/IssueTrigger.php',
-        'PHPUnit\\Event\\Code\\IssueTrigger\\SelfTrigger' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Issue/SelfTrigger.php',
-        'PHPUnit\\Event\\Code\\IssueTrigger\\TestTrigger' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Issue/TestTrigger.php',
-        'PHPUnit\\Event\\Code\\IssueTrigger\\UnknownTrigger' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Issue/UnknownTrigger.php',
         'PHPUnit\\Event\\Code\\NoTestCaseObjectOnCallStackException' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Exception/NoTestCaseObjectOnCallStackException.php',
         'PHPUnit\\Event\\Code\\Phpt' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Phpt.php',
         'PHPUnit\\Event\\Code\\Test' => __DIR__ . '/..' . '/phpunit/phpunit/src/Event/Value/Test/Test.php',
@@ -1129,6 +955,7 @@ class ComposerStaticInit031008422d816d085fc4700624f7886c
         'PHPUnit\\TextUI\\Output\\Default\\ProgressPrinter\\TestPreparedSubscriber' => __DIR__ . '/..' . '/phpunit/phpunit/src/TextUI/Output/Default/ProgressPrinter/Subscriber/TestPreparedSubscriber.php',
         'PHPUnit\\TextUI\\Output\\Default\\ProgressPrinter\\TestRunnerExecutionStartedSubscriber' => __DIR__ . '/..' . '/phpunit/phpunit/src/TextUI/Output/Default/ProgressPrinter/Subscriber/TestRunnerExecutionStartedSubscriber.php',
         'PHPUnit\\TextUI\\Output\\Default\\ProgressPrinter\\TestSkippedSubscriber' => __DIR__ . '/..' . '/phpunit/phpunit/src/TextUI/Output/Default/ProgressPrinter/Subscriber/TestSkippedSubscriber.php',
+        'PHPUnit\\TextUI\\Output\\Default\\ProgressPrinter\\TestSuiteSkippedSubscriber' => __DIR__ . '/..' . '/phpunit/phpunit/src/TextUI/Output/Default/ProgressPrinter/Subscriber/TestSuiteSkippedSubscriber.php',
         'PHPUnit\\TextUI\\Output\\Default\\ProgressPrinter\\TestTriggeredDeprecationSubscriber' => __DIR__ . '/..' . '/phpunit/phpunit/src/TextUI/Output/Default/ProgressPrinter/Subscriber/TestTriggeredDeprecationSubscriber.php',
         'PHPUnit\\TextUI\\Output\\Default\\ProgressPrinter\\TestTriggeredErrorSubscriber' => __DIR__ . '/..' . '/phpunit/phpunit/src/TextUI/Output/Default/ProgressPrinter/Subscriber/TestTriggeredErrorSubscriber.php',
         'PHPUnit\\TextUI\\Output\\Default\\ProgressPrinter\\TestTriggeredNoticeSubscriber' => __DIR__ . '/..' . '/phpunit/phpunit/src/TextUI/Output/Default/ProgressPrinter/Subscriber/TestTriggeredNoticeSubscriber.php',
