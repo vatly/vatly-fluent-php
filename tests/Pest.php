@@ -8,4 +8,4 @@ declare(strict_types=1);
 |--------------------------------------------------------------------------
 */
 
-uses()->group('unit')->in('Actions', 'Builders', 'Contracts', 'Events', 'Exceptions', 'Webhooks');
+uses()->group('unit')->in('Actions', 'Builders', 'Contracts', 'Events', 'Exceptions', 'Webhooks', 'Webhooks/Reactions');
