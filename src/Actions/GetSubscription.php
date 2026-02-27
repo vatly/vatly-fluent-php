@@ -5,19 +5,18 @@ declare(strict_types=1);
 namespace Vatly\Fluent\Actions;
 
 use Vatly\API\Resources\Subscription;
-use Vatly\Fluent\Actions\Responses\GetSubscriptionResponse;
 
 class GetSubscription extends BaseAction
 {
     /**
      * @param array<string, mixed> $parameters
      */
-    public function execute(string $subscriptionId, array $parameters = []): GetSubscriptionResponse
+    public function execute(string $subscriptionId, array $parameters = []): Subscription
     {
-        $apiResponse = $this->vatlyApiClient->subscriptions->get($subscriptionId, $parameters);
+        $subscription = $this->vatlyApiClient->subscriptions->get($subscriptionId, $parameters);
 
-        assert($apiResponse instanceof Subscription);
+        assert($subscription instanceof Subscription);
 
-        return GetSubscriptionResponse::fromApiResponse($apiResponse);
+        return $subscription;
     }
 }

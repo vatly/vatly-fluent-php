@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Vatly\Fluent\Actions\GetPaymentMethodUpdateUrl;
-use Vatly\Fluent\Actions\Responses\GetPaymentMethodUpdateUrlResponse;
 use Vatly\API\Endpoints\SubscriptionEndpoint;
 use Vatly\API\Types\Link;
 use Vatly\API\VatlyApiClient;
@@ -33,8 +32,8 @@ describe('execute', function () {
         
         $response = $this->action->execute($subscriptionId);
         
-        expect($response)->toBeInstanceOf(GetPaymentMethodUpdateUrlResponse::class)
-            ->and($response->url)->toBe($expectedUrl)
+        expect($response)->toBeInstanceOf(Link::class)
+            ->and($response->href)->toBe($expectedUrl)
             ->and($response->type)->toBe('text/html');
     });
     
@@ -56,6 +55,6 @@ describe('execute', function () {
         
         $response = $this->action->execute($subscriptionId, $prefillData);
         
-        expect($response)->toBeInstanceOf(GetPaymentMethodUpdateUrlResponse::class);
+        expect($response)->toBeInstanceOf(Link::class);
     });
 });

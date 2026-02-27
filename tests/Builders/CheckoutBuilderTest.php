@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
+use Vatly\API\Resources\Checkout;
 use Vatly\Fluent\Actions\CreateCheckout;
-use Vatly\Fluent\Actions\Responses\CreateCheckoutResponse;
 use Vatly\Fluent\Builders\CheckoutBuilder;
 use Vatly\Fluent\Contracts\BillableInterface;
 use Vatly\Fluent\Exceptions\IncompleteInformationException;
@@ -176,7 +176,6 @@ function createTestBillable(string $vatlyId): BillableInterface
             return 1;
         }
 
-
         public function save(): mixed
         {
             return true;
@@ -195,12 +194,17 @@ function createMockCreateCheckout(): CreateCheckout
             // Don't call parent constructor - we don't need the API client for tests
         }
 
-        public function execute(array $payload, array $filters = []): CreateCheckoutResponse
+        public function execute(array $payload, array $filters = []): Checkout
         {
-            return new CreateCheckoutResponse(
-                id: 'chk_test_123',
-                url: 'https://checkout.vatly.test/chk_test_123',
-            );
+            $checkout = new Checkout();
+            $checkout->id = 'chk_test_123';
+            $checkout->status = 'created';
+            $checkout->testmode = false;
+            $checkout->merchantId = 'merchant_test';
+            $checkout->redirectUrlSuccess = 'https://example.com/success';
+            $checkout->redirectUrlCanceled = 'https://example.com/canceled';
+
+            return $checkout;
         }
     };
 }

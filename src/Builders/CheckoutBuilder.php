@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Builders;
 
+use Vatly\API\Resources\Checkout;
 use Vatly\Fluent\Actions\CreateCheckout;
-use Vatly\Fluent\Actions\Responses\CreateCheckoutResponse;
 use Vatly\Fluent\Builders\Concerns\ManagesTestmode;
 use Vatly\Fluent\Contracts\BillableInterface;
 use Vatly\Fluent\Exceptions\IncompleteInformationException;
@@ -62,7 +62,7 @@ class CheckoutBuilder
         string $redirectUrlSuccess,
         string $redirectUrlCanceled,
         array $payloadOverrides = [],
-    ): CreateCheckoutResponse {
+    ): Checkout {
         $this
             ->withTestmode($this->testmode)
             ->withItems($items)

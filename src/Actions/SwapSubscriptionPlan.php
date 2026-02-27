@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Vatly\Fluent\Actions;
 
 use Vatly\API\Resources\Subscription;
-use Vatly\Fluent\Actions\Responses\SwapSubscriptionPlanResponse;
 
 class SwapSubscriptionPlan extends BaseAction
 {
@@ -16,14 +15,14 @@ class SwapSubscriptionPlan extends BaseAction
         string $subscriptionId,
         string $newPlanId,
         array $parameters = [],
-    ): SwapSubscriptionPlanResponse {
-        $apiResponse = $this->vatlyApiClient->subscriptions->update($subscriptionId, array_merge(
+    ): Subscription {
+        $subscription = $this->vatlyApiClient->subscriptions->update($subscriptionId, array_merge(
             ['subscriptionPlanId' => $newPlanId],
             $parameters,
         ));
 
-        assert($apiResponse instanceof Subscription);
+        assert($subscription instanceof Subscription);
 
-        return SwapSubscriptionPlanResponse::fromApiResponse($apiResponse);
+        return $subscription;
     }
 }
