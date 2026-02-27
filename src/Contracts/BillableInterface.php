@@ -45,5 +45,5 @@ interface BillableInterface
     /**
      * Persist the billable entity.
      */
-    public function save(): void;
+    public function save();
 }
