@@ -1,0 +1,211 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Method Vatly\\Fluent\\Actions\\CreateCheckout\:\:execute\(\) has parameter \$filters with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Actions/CreateCheckout.php
+
+		-
+			message: '#^Method Vatly\\Fluent\\Actions\\CreateCheckout\:\:execute\(\) has parameter \$payload with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Actions/CreateCheckout.php
+
+		-
+			message: '#^Parameter \#1 \$checkout of static method Vatly\\Fluent\\Actions\\Responses\\CreateCheckoutResponse\:\:fromApiResponse\(\) expects Vatly\\API\\Resources\\Checkout, Vatly\\API\\Resources\\BaseResource given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Actions/CreateCheckout.php
+
+		-
+			message: '#^Method Vatly\\Fluent\\Actions\\CreateCustomer\:\:execute\(\) has parameter \$filters with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Actions/CreateCustomer.php
+
+		-
+			message: '#^Method Vatly\\Fluent\\Actions\\CreateCustomer\:\:execute\(\) has parameter \$payload with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Actions/CreateCustomer.php
+
+		-
+			message: '#^Parameter \#1 \$response of static method Vatly\\Fluent\\Actions\\Responses\\CustomerResponse\:\:fromApiResponse\(\) expects Vatly\\API\\Resources\\Customer, Vatly\\API\\Resources\\BaseResource given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Actions/CreateCustomer.php
+
+		-
+			message: '#^Method Vatly\\Fluent\\Actions\\GetCheckout\:\:execute\(\) has parameter \$parameters with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Actions/GetCheckout.php
+
+		-
+			message: '#^Parameter \#1 \$checkout of static method Vatly\\Fluent\\Actions\\Responses\\GetCheckoutResponse\:\:fromApiResponse\(\) expects Vatly\\API\\Resources\\Checkout, Vatly\\API\\Resources\\BaseResource given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Actions/GetCheckout.php
+
+		-
+			message: '#^Method Vatly\\Fluent\\Actions\\GetCustomer\:\:execute\(\) has parameter \$parameters with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Actions/GetCustomer.php
+
+		-
+			message: '#^Parameter \#1 \$response of static method Vatly\\Fluent\\Actions\\Responses\\CustomerResponse\:\:fromApiResponse\(\) expects Vatly\\API\\Resources\\Customer, Vatly\\API\\Resources\\BaseResource given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Actions/GetCustomer.php
+
+		-
+			message: '#^Method Vatly\\Fluent\\Actions\\GetPaymentMethodUpdateUrl\:\:execute\(\) has parameter \$prefillData with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Actions/GetPaymentMethodUpdateUrl.php
+
+		-
+			message: '#^Method Vatly\\Fluent\\Actions\\GetSubscription\:\:execute\(\) has parameter \$parameters with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Actions/GetSubscription.php
+
+		-
+			message: '#^Parameter \#1 \$response of static method Vatly\\Fluent\\Actions\\Responses\\GetSubscriptionResponse\:\:fromApiResponse\(\) expects Vatly\\API\\Resources\\Subscription, Vatly\\API\\Resources\\BaseResource given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Actions/GetSubscription.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 1
+			path: src/Actions/Responses/CreateCheckoutResponse.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 1
+			path: src/Actions/Responses/CustomerResponse.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 1
+			path: src/Actions/Responses/GetCheckoutResponse.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 1
+			path: src/Actions/Responses/GetSubscriptionResponse.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 1
+			path: src/Actions/Responses/SwapSubscriptionPlanResponse.php
+
+		-
+			message: '#^Method Vatly\\Fluent\\Actions\\SwapSubscriptionPlan\:\:execute\(\) has parameter \$parameters with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Actions/SwapSubscriptionPlan.php
+
+		-
+			message: '#^Parameter \#1 \$response of static method Vatly\\Fluent\\Actions\\Responses\\SwapSubscriptionPlanResponse\:\:fromApiResponse\(\) expects Vatly\\API\\Resources\\Subscription, Vatly\\API\\Resources\\BaseResource\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Actions/SwapSubscriptionPlan.php
+
+		-
+			message: '#^Property Vatly\\Fluent\\Builders\\CheckoutBuilder\:\:\$metadata type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Builders/CheckoutBuilder.php
+
+		-
+			message: '#^Method Vatly\\Fluent\\Contracts\\BillableInterface\:\:getKey\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: src/Contracts/BillableInterface.php
+
+		-
+			message: '#^Method Vatly\\Fluent\\Contracts\\BillableInterface\:\:save\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: src/Contracts/BillableInterface.php
+
+		-
+			message: '#^PHPDoc tag @throws with type Vatly\\Exceptions\\InvalidCustomer is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 1
+			path: src/Contracts/CustomerRepositoryInterface.php
+
+		-
+			message: '#^Method Vatly\\Fluent\\Contracts\\OrderRepositoryInterface\:\:create\(\) has parameter \$attributes with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Contracts/OrderRepositoryInterface.php
+
+		-
+			message: '#^Method Vatly\\Fluent\\Contracts\\OrderRepositoryInterface\:\:update\(\) has parameter \$attributes with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Contracts/OrderRepositoryInterface.php
+
+		-
+			message: '#^Method Vatly\\Fluent\\Contracts\\SubscriptionRepositoryInterface\:\:create\(\) has parameter \$attributes with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Contracts/SubscriptionRepositoryInterface.php
+
+		-
+			message: '#^Method Vatly\\Fluent\\Contracts\\SubscriptionRepositoryInterface\:\:update\(\) has parameter \$attributes with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Contracts/SubscriptionRepositoryInterface.php
+
+		-
+			message: '#^Method Vatly\\Fluent\\Contracts\\WebhookCallRepositoryInterface\:\:record\(\) has parameter \$payload with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Contracts/WebhookCallRepositoryInterface.php
+
+		-
+			message: '#^Method Vatly\\Fluent\\Events\\UnsupportedWebhookReceived\:\:__construct\(\) has parameter \$object with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Events/UnsupportedWebhookReceived.php
+
+		-
+			message: '#^Method Vatly\\Fluent\\Events\\WebhookReceived\:\:__construct\(\) has parameter \$object with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Events/WebhookReceived.php
+
+		-
+			message: '#^Class Vatly\\API\\VatlyApiClient constructor invoked with 3 parameters, 0\-2 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: src/Vatly.php
+
+		-
+			message: '#^Parameter \#1 \$httpClientFactory of class Vatly\\API\\VatlyApiClient constructor expects Vatly\\API\\HttpClient\\HttpClientFactoryInterface\|null, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Vatly.php
+
+		-
+			message: '#^Parameter \#2 \$compatibilityChecker of class Vatly\\API\\VatlyApiClient constructor expects Vatly\\API\\CompatibilityChecker\|null, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Vatly.php
+
+		-
+			message: '#^Match expression does not handle remaining value\: true$#'
+			identifier: match.unhandled
+			count: 2
+			path: src/Webhooks/Reactions/CancelSubscriptionOnCanceled.php
