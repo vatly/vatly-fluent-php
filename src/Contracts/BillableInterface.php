@@ -42,12 +42,12 @@ interface BillableInterface
      *
      * @return mixed
      */
-    public function getKey(): mixed;
+    public function getKey();
 
     /**
      * Persist the billable entity.
      *
      * @return mixed
      */
-    public function save(): mixed;
+    public function save();
 }
