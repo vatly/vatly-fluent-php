@@ -13,10 +13,14 @@ This package serves as the core logic layer, designed to be portable across PHP 
 ## Installation
 
 ```bash
-composer require vatly/vatly-fluent-php:v0.1.0-alpha.1
+composer require vatly/vatly-fluent-php
 ```
 
-Pin to an exact version. This is an alpha release and the API will change.
+This package follows semantic versioning. During alpha, pin to exact versions if you need stability:
+
+```bash
+composer require vatly/vatly-fluent-php:v0.3.0-alpha.2
+```
 
 ## Requirements
 
