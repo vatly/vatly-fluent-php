@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Webhooks\Reactions;
 
+use Vatly\Fluent\Contracts\EventDispatcherInterface;
 use Vatly\Fluent\Contracts\SubscriptionRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
+use Vatly\Fluent\Events\LocalSubscriptionCreated;
 use Vatly\Fluent\Events\SubscriptionStarted;
 
 class SyncSubscriptionOnStarted implements WebhookReactionInterface
 {
     public function __construct(
         private readonly SubscriptionRepositoryInterface $subscriptions,
+        private readonly EventDispatcherInterface $dispatcher,
     ) {
         //
     }
@@ -36,7 +39,7 @@ class SyncSubscriptionOnStarted implements WebhookReactionInterface
             return;
         }
 
-        $this->subscriptions->create([
+        $subscription = $this->subscriptions->create([
             'vatly_id' => $event->subscriptionId,
             'customer_id' => $event->customerId,
             'type' => $event->type,
@@ -44,5 +47,7 @@ class SyncSubscriptionOnStarted implements WebhookReactionInterface
             'name' => $event->name,
             'quantity' => $event->quantity,
         ]);
+
+        $this->dispatcher->dispatch(new LocalSubscriptionCreated($subscription));
     }
 }

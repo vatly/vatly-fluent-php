@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Vatly\Fluent\Tests\Webhooks\Reactions;
 
 use Mockery;
+use Vatly\Fluent\Contracts\EventDispatcherInterface;
 use Vatly\Fluent\Contracts\SubscriptionInterface;
 use Vatly\Fluent\Contracts\SubscriptionRepositoryInterface;
+use Vatly\Fluent\Events\LocalSubscriptionCreated;
 use Vatly\Fluent\Events\OrderPaid;
 use Vatly\Fluent\Events\SubscriptionStarted;
 use Vatly\Fluent\Tests\TestCase;
@@ -17,7 +19,8 @@ class SyncSubscriptionOnStartedTest extends TestCase
     public function test_it_supports_subscription_started_events(): void
     {
         $repo = Mockery::mock(SubscriptionRepositoryInterface::class);
-        $reaction = new SyncSubscriptionOnStarted($repo);
+        $dispatcher = Mockery::mock(EventDispatcherInterface::class);
+        $reaction = new SyncSubscriptionOnStarted($repo, $dispatcher);
 
         $event = new SubscriptionStarted('cus_1', 'sub_1', 'plan_1', 'default', 'Monthly', 1);
 
@@ -27,7 +30,8 @@ class SyncSubscriptionOnStartedTest extends TestCase
     public function test_it_does_not_support_other_events(): void
     {
         $repo = Mockery::mock(SubscriptionRepositoryInterface::class);
-        $reaction = new SyncSubscriptionOnStarted($repo);
+        $dispatcher = Mockery::mock(EventDispatcherInterface::class);
+        $reaction = new SyncSubscriptionOnStarted($repo, $dispatcher);
 
         $event = new OrderPaid('cus_1', 'ord_1', 9900, 'EUR', null, null);
 
@@ -36,6 +40,7 @@ class SyncSubscriptionOnStartedTest extends TestCase
 
     public function test_it_creates_a_subscription_when_none_exists(): void
     {
+        $subscription = Mockery::mock(SubscriptionInterface::class);
         $repo = Mockery::mock(SubscriptionRepositoryInterface::class);
         $repo->shouldReceive('findByVatlyId')->with('sub_1')->once()->andReturnNull();
         $repo->shouldReceive('create')->once()->with(Mockery::on(function ($attrs) {
@@ -45,9 +50,15 @@ class SyncSubscriptionOnStartedTest extends TestCase
                 && $attrs['plan_id'] === 'plan_1'
                 && $attrs['name'] === 'Monthly'
                 && $attrs['quantity'] === 1;
-        }))->andReturn(Mockery::mock(SubscriptionInterface::class));
+        }))->andReturn($subscription);
 
-        $reaction = new SyncSubscriptionOnStarted($repo);
+        $dispatcher = Mockery::mock(EventDispatcherInterface::class);
+        $dispatcher->shouldReceive('dispatch')->once()->with(Mockery::on(function ($event) use ($subscription) {
+            return $event instanceof LocalSubscriptionCreated
+                && $event->subscription === $subscription;
+        }));
+
+        $reaction = new SyncSubscriptionOnStarted($repo, $dispatcher);
         $reaction->handle(new SubscriptionStarted('cus_1', 'sub_1', 'plan_1', 'default', 'Monthly', 1));
     }
 
@@ -61,7 +72,10 @@ class SyncSubscriptionOnStartedTest extends TestCase
         }))->andReturn($existing);
         $repo->shouldNotReceive('create');
 
-        $reaction = new SyncSubscriptionOnStarted($repo);
+        $dispatcher = Mockery::mock(EventDispatcherInterface::class);
+        $dispatcher->shouldNotReceive('dispatch');
+
+        $reaction = new SyncSubscriptionOnStarted($repo, $dispatcher);
         $reaction->handle(new SubscriptionStarted('cus_1', 'sub_1', 'plan_1', 'default', 'Monthly', 1));
     }
 }
