@@ -21,37 +21,46 @@ class SubscriptionBuilder
 
     protected string $redirectUrlCanceled = '';
 
+    protected ConfigurationInterface $config;
+
+    protected BillableInterface $owner;
+
+    protected CheckoutBuilder $checkoutBuilder;
+
     public function __construct(
-        protected readonly ConfigurationInterface $config,
-        protected BillableInterface $owner,
-        protected CheckoutBuilder $checkoutBuilder,
+        ConfigurationInterface $config,
+        BillableInterface $owner,
+        CheckoutBuilder $checkoutBuilder
     ) {
+        $this->config = $config;
+        $this->owner = $owner;
+        $this->checkoutBuilder = $checkoutBuilder;
         $this->redirectUrlSuccess = $this->config->getDefaultRedirectUrlSuccess();
         $this->redirectUrlCanceled = $this->config->getDefaultRedirectUrlCanceled();
     }
 
-    public function toPlan(string $planId): static
+    public function toPlan(string $planId): self
     {
         $this->planId = $planId;
 
         return $this;
     }
 
-    public function withRedirectUrlSuccess(string $redirectUrlSuccess): static
+    public function withRedirectUrlSuccess(string $redirectUrlSuccess): self
     {
         $this->redirectUrlSuccess = $redirectUrlSuccess;
 
         return $this;
     }
 
-    public function withRedirectUrlCanceled(string $redirectUrlCanceled): static
+    public function withRedirectUrlCanceled(string $redirectUrlCanceled): self
     {
         $this->redirectUrlCanceled = $redirectUrlCanceled;
 
         return $this;
     }
 
-    public function withQuantity(int $quantity): static
+    public function withQuantity(int $quantity): self
     {
         $this->quantity = $quantity;
 

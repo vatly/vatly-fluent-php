@@ -8,9 +8,10 @@ use Vatly\API\VatlyApiClient;
 
 abstract class BaseAction
 {
-    public function __construct(
-        protected readonly VatlyApiClient $vatlyApiClient,
-    ) {
-        //
+    protected VatlyApiClient $vatlyApiClient;
+
+    public function __construct(VatlyApiClient $vatlyApiClient)
+    {
+        $this->vatlyApiClient = $vatlyApiClient;
     }
 }

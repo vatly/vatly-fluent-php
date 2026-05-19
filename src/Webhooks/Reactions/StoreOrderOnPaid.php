@@ -12,9 +12,12 @@ use Vatly\Fluent\Events\OrderPaid;
 
 class StoreOrderOnPaid implements WebhookReactionInterface
 {
-    public function __construct(
-        private readonly OrderRepositoryInterface $orders,
-    ) {}
+    private OrderRepositoryInterface $orders;
+
+    public function __construct(OrderRepositoryInterface $orders)
+    {
+        $this->orders = $orders;
+    }
 
     public function supports(object $event): bool
     {

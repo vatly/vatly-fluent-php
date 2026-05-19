@@ -11,28 +11,35 @@ use Vatly\Fluent\Contracts\WebhookReactionInterface;
 
 class WebhookProcessor
 {
+    private SignatureVerifier $signatureVerifier;
+    private WebhookEventFactory $eventFactory;
+    private WebhookCallRepositoryInterface $repository;
+    private EventDispatcherInterface $dispatcher;
+    private string $webhookSecret;
+
+    /** @var WebhookReactionInterface[] */
+    private array $reactions;
+
     /**
      * @param  WebhookReactionInterface[]  $reactions
      */
     public function __construct(
-        private readonly SignatureVerifier $signatureVerifier,
-        private readonly WebhookEventFactory $eventFactory,
-        private readonly WebhookCallRepositoryInterface $repository,
-        private readonly EventDispatcherInterface $dispatcher,
-        private readonly string $webhookSecret,
-        private readonly array $reactions = [],
+        SignatureVerifier $signatureVerifier,
+        WebhookEventFactory $eventFactory,
+        WebhookCallRepositoryInterface $repository,
+        EventDispatcherInterface $dispatcher,
+        string $webhookSecret,
+        array $reactions = []
     ) {
-        //
+        $this->signatureVerifier = $signatureVerifier;
+        $this->eventFactory = $eventFactory;
+        $this->repository = $repository;
+        $this->dispatcher = $dispatcher;
+        $this->webhookSecret = $webhookSecret;
+        $this->reactions = $reactions;
     }
 
     /**
-     * Handle an incoming webhook request.
-     *
-     * Flow: verify → parse → store → react → dispatch
-     *
-     * Reactions handle core billing logic (storing orders, syncing subscriptions).
-     * The dispatcher fires the event for framework-specific listeners (emails, etc).
-     *
      * @throws \Vatly\Fluent\Exceptions\InvalidWebhookSignatureException
      */
     public function handle(string $payload, string $signature): void
@@ -40,7 +47,6 @@ class WebhookProcessor
         $this->signatureVerifier->verify($signature, $payload, $this->webhookSecret);
 
         $decoded = json_decode($payload, true, 512, JSON_THROW_ON_ERROR);
-
         $webhook = $this->eventFactory->parsePayload($decoded);
 
         $this->repository->record(

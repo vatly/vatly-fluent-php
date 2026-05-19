@@ -10,13 +10,13 @@
         }
     ],
     "require": {
-        "php": "^8.2",
+        "php": "^8.0",
         "vatly/vatly-api-php": "^0.1.0-alpha.1"
     },
     "require-dev": {
         "mockery/mockery": "^1.6",
-        "phpstan/phpstan": "^2.1",
-        "phpunit/phpunit": "^11.0"
+        "phpstan/phpstan": "^1.12",
+        "phpunit/phpunit": "^9.6"
     },
     "autoload": {
         "psr-4": {

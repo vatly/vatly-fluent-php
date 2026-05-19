@@ -14,10 +14,15 @@ use Vatly\Fluent\Events\SubscriptionStarted;
 
 class SyncSubscriptionOnStarted implements WebhookReactionInterface
 {
-    public function __construct(
-        private readonly SubscriptionRepositoryInterface $subscriptions,
-        private readonly EventDispatcherInterface $dispatcher,
-    ) {}
+    private SubscriptionRepositoryInterface $subscriptions;
+
+    private EventDispatcherInterface $dispatcher;
+
+    public function __construct(SubscriptionRepositoryInterface $subscriptions, EventDispatcherInterface $dispatcher)
+    {
+        $this->subscriptions = $subscriptions;
+        $this->dispatcher = $dispatcher;
+    }
 
     public function supports(object $event): bool
     {

@@ -20,13 +20,18 @@ class WebhookEventFactory
      */
     public function createFromWebhook(WebhookReceived $webhook): object
     {
-        return match ($webhook->eventName) {
-            SubscriptionStarted::VATLY_EVENT_NAME => SubscriptionStarted::fromWebhook($webhook),
-            SubscriptionCanceledImmediately::VATLY_EVENT_NAME => SubscriptionCanceledImmediately::fromWebhook($webhook),
-            SubscriptionCanceledWithGracePeriod::VATLY_EVENT_NAME => SubscriptionCanceledWithGracePeriod::fromWebhook($webhook),
-            OrderPaid::VATLY_EVENT_NAME => OrderPaid::fromWebhook($webhook),
-            default => UnsupportedWebhookReceived::fromWebhook($webhook),
-        };
+        switch ($webhook->eventName) {
+            case SubscriptionStarted::VATLY_EVENT_NAME:
+                return SubscriptionStarted::fromWebhook($webhook);
+            case SubscriptionCanceledImmediately::VATLY_EVENT_NAME:
+                return SubscriptionCanceledImmediately::fromWebhook($webhook);
+            case SubscriptionCanceledWithGracePeriod::VATLY_EVENT_NAME:
+                return SubscriptionCanceledWithGracePeriod::fromWebhook($webhook);
+            case OrderPaid::VATLY_EVENT_NAME:
+                return OrderPaid::fromWebhook($webhook);
+            default:
+                return UnsupportedWebhookReceived::fromWebhook($webhook);
+        }
     }
 
     /**
@@ -37,18 +42,16 @@ class WebhookEventFactory
     public function parsePayload(array $payload): WebhookReceived
     {
         return new WebhookReceived(
-            eventName: $payload['eventName'] ?? '',
-            resourceId: $payload['resourceId'] ?? '',
-            resourceName: $payload['resourceName'] ?? '',
-            object: $payload['object'] ?? [],
-            raisedAt: $payload['raisedAt'] ?? '',
-            testmode: $payload['testmode'] ?? false,
+            $payload['eventName'] ?? '',
+            $payload['resourceId'] ?? '',
+            $payload['resourceName'] ?? '',
+            $payload['object'] ?? [],
+            $payload['raisedAt'] ?? '',
+            $payload['testmode'] ?? false
         );
     }
 
     /**
-     * Get the list of supported event names.
-     *
      * @return array<string>
      */
     public function getSupportedEvents(): array
@@ -61,9 +64,6 @@ class WebhookEventFactory
         ];
     }
 
-    /**
-     * Check if an event name is supported.
-     */
     public function isSupported(string $eventName): bool
     {
         return in_array($eventName, $this->getSupportedEvents(), true);

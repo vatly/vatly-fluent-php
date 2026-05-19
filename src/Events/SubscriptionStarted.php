@@ -13,26 +13,38 @@ class SubscriptionStarted
 
     public const DEFAULT_TYPE = 'default';
 
+    public string $customerId;
+    public string $subscriptionId;
+    public string $planId;
+    public string $type;
+    public string $name;
+    public int $quantity;
+
     public function __construct(
-        public readonly string $customerId,
-        public readonly string $subscriptionId,
-        public readonly string $planId,
-        public readonly string $type,
-        public readonly string $name,
-        public readonly int $quantity,
+        string $customerId,
+        string $subscriptionId,
+        string $planId,
+        string $type,
+        string $name,
+        int $quantity
     ) {
-        //
+        $this->customerId = $customerId;
+        $this->subscriptionId = $subscriptionId;
+        $this->planId = $planId;
+        $this->type = $type;
+        $this->name = $name;
+        $this->quantity = $quantity;
     }
 
     public static function fromWebhook(WebhookReceived $webhook): self
     {
         return new self(
-            customerId: $webhook->object['data']['customerId'],
-            subscriptionId: $webhook->resourceId,
-            planId: $webhook->object['data']['subscriptionPlanId'],
-            type: self::DEFAULT_TYPE,
-            name: $webhook->object['data']['name'],
-            quantity: $webhook->object['data']['quantity'],
+            $webhook->object['data']['customerId'],
+            $webhook->resourceId,
+            $webhook->object['data']['subscriptionPlanId'],
+            self::DEFAULT_TYPE,
+            $webhook->object['data']['name'],
+            $webhook->object['data']['quantity']
         );
     }
 }

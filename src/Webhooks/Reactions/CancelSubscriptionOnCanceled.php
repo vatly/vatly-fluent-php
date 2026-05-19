@@ -13,9 +13,12 @@ use Vatly\Fluent\Events\SubscriptionCanceledWithGracePeriod;
 
 class CancelSubscriptionOnCanceled implements WebhookReactionInterface
 {
-    public function __construct(
-        private readonly SubscriptionRepositoryInterface $subscriptions,
-    ) {}
+    private SubscriptionRepositoryInterface $subscriptions;
+
+    public function __construct(SubscriptionRepositoryInterface $subscriptions)
+    {
+        $this->subscriptions = $subscriptions;
+    }
 
     public function supports(object $event): bool
     {
@@ -25,11 +28,13 @@ class CancelSubscriptionOnCanceled implements WebhookReactionInterface
 
     public function handle(object $event): void
     {
-        $subscriptionId = match (true) {
-            $event instanceof SubscriptionCanceledImmediately => $event->subscriptionId,
-            $event instanceof SubscriptionCanceledWithGracePeriod => $event->subscriptionId,
-            default => throw new \InvalidArgumentException('Unsupported event type'),
-        };
+        if ($event instanceof SubscriptionCanceledImmediately) {
+            $subscriptionId = $event->subscriptionId;
+        } elseif ($event instanceof SubscriptionCanceledWithGracePeriod) {
+            $subscriptionId = $event->subscriptionId;
+        } else {
+            throw new \InvalidArgumentException('Unsupported event type');
+        }
 
         $subscription = $this->subscriptions->findByVatlyId($subscriptionId);
 
@@ -37,11 +42,13 @@ class CancelSubscriptionOnCanceled implements WebhookReactionInterface
             return;
         }
 
-        $endsAt = match (true) {
-            $event instanceof SubscriptionCanceledImmediately => new DateTimeImmutable(),
-            $event instanceof SubscriptionCanceledWithGracePeriod => $event->endsAt,
-            default => throw new \InvalidArgumentException('Unsupported event type'),
-        };
+        if ($event instanceof SubscriptionCanceledImmediately) {
+            $endsAt = new DateTimeImmutable();
+        } elseif ($event instanceof SubscriptionCanceledWithGracePeriod) {
+            $endsAt = $event->endsAt;
+        } else {
+            throw new \InvalidArgumentException('Unsupported event type');
+        }
 
         $this->subscriptions->update($subscription, new UpdateSubscriptionData(
             endsAt: $endsAt,

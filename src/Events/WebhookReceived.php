@@ -9,18 +9,31 @@ namespace Vatly\Fluent\Events;
  */
 class WebhookReceived
 {
+    public string $eventName;
+    public string $resourceId;
+    public string $resourceName;
+    /** @var array<string, mixed> */
+    public array $object;
+    public string $raisedAt;
+    public bool $testmode;
+
     /**
      * @param array<string, mixed> $object
      */
     public function __construct(
-        public readonly string $eventName,
-        public readonly string $resourceId,
-        public readonly string $resourceName,
-        public readonly array $object,
-        public readonly string $raisedAt,
-        public readonly bool $testmode,
+        string $eventName,
+        string $resourceId,
+        string $resourceName,
+        array $object,
+        string $raisedAt,
+        bool $testmode
     ) {
-        //
+        $this->eventName = $eventName;
+        $this->resourceId = $resourceId;
+        $this->resourceName = $resourceName;
+        $this->object = $object;
+        $this->raisedAt = $raisedAt;
+        $this->testmode = $testmode;
     }
 
     /**
@@ -38,9 +51,6 @@ class WebhookReceived
         ];
     }
 
-    /**
-     * Get the customer ID from the webhook payload, if present.
-     */
     public function getCustomerId(): ?string
     {
         return $this->object['data']['customerId'] ?? null;

@@ -24,11 +24,14 @@ class CheckoutBuilder
     /** @var array<int, array<string, mixed>> */
     protected array $items = [];
 
-    public function __construct(
-        protected BillableInterface $owner,
-        protected readonly CreateCheckout $createCheckout,
-    ) {
-        //
+    protected BillableInterface $owner;
+
+    protected CreateCheckout $createCheckout;
+
+    public function __construct(BillableInterface $owner, CreateCheckout $createCheckout)
+    {
+        $this->owner = $owner;
+        $this->createCheckout = $createCheckout;
     }
 
     /**
@@ -61,7 +64,7 @@ class CheckoutBuilder
         array $items,
         string $redirectUrlSuccess,
         string $redirectUrlCanceled,
-        array $payloadOverrides = [],
+        array $payloadOverrides = []
     ): Checkout {
         $this
             ->withTestmode($this->testmode)
@@ -78,14 +81,14 @@ class CheckoutBuilder
         return $this->createCheckout->execute($payload);
     }
 
-    public function withRedirectUrlSuccess(string $url): static
+    public function withRedirectUrlSuccess(string $url): self
     {
         $this->redirectUrlSuccess = $url;
 
         return $this;
     }
 
-    public function withRedirectUrlCanceled(string $url): static
+    public function withRedirectUrlCanceled(string $url): self
     {
         $this->redirectUrlCanceled = $url;
 
@@ -95,7 +98,7 @@ class CheckoutBuilder
     /**
      * @param array<string, mixed> $metadata
      */
-    public function withMetadata(array $metadata): static
+    public function withMetadata(array $metadata): self
     {
         $this->metadata = $metadata;
 
@@ -105,7 +108,7 @@ class CheckoutBuilder
     /**
      * @param array<int, array<string, mixed>> $items
      */
-    public function withItems(array $items): static
+    public function withItems(array $items): self
     {
         foreach ($items as $item) {
             $this->items[] = $item;

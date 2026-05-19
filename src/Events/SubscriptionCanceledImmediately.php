@@ -4,25 +4,24 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Events;
 
-/**
- * Event representing a subscription being canceled immediately at Vatly.
- */
 class SubscriptionCanceledImmediately
 {
     public const VATLY_EVENT_NAME = 'subscription.canceled_immediately';
 
-    public function __construct(
-        public readonly string $customerId,
-        public readonly string $subscriptionId,
-    ) {
-        //
+    public string $customerId;
+    public string $subscriptionId;
+
+    public function __construct(string $customerId, string $subscriptionId)
+    {
+        $this->customerId = $customerId;
+        $this->subscriptionId = $subscriptionId;
     }
 
     public static function fromWebhook(WebhookReceived $webhook): self
     {
         return new self(
-            customerId: $webhook->object['data']['customerId'],
-            subscriptionId: $webhook->resourceId,
+            $webhook->object['data']['customerId'],
+            $webhook->resourceId
         );
     }
 }
