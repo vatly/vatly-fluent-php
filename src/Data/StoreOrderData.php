@@ -6,8 +6,10 @@ namespace Vatly\Fluent\Data;
 
 /**
  * Data for storing a new order from Vatly.
+ *
+ * @immutable
  */
-readonly class StoreOrderData
+class StoreOrderData
 {
     public function __construct(
         public string $vatlyId,

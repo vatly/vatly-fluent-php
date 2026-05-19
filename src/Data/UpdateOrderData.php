@@ -6,8 +6,10 @@ namespace Vatly\Fluent\Data;
 
 /**
  * Data for updating an existing order from Vatly.
+ *
+ * @immutable
  */
-readonly class UpdateOrderData
+class UpdateOrderData
 {
     public function __construct(
         public ?string $status = null,

@@ -6,6 +6,8 @@ namespace Vatly\Fluent\Events;
 
 /**
  * Event representing a subscription being started at Vatly.
+ *
+ * @immutable
  */
 class SubscriptionStarted
 {
@@ -14,12 +16,12 @@ class SubscriptionStarted
     public const DEFAULT_TYPE = 'default';
 
     public function __construct(
-        public readonly string $customerId,
-        public readonly string $subscriptionId,
-        public readonly string $planId,
-        public readonly string $type,
-        public readonly string $name,
-        public readonly int $quantity,
+        public string $customerId,
+        public string $subscriptionId,
+        public string $planId,
+        public string $type,
+        public string $name,
+        public int $quantity,
     ) {
         //
     }

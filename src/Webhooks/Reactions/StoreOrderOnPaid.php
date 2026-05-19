@@ -10,10 +10,13 @@ use Vatly\Fluent\Data\StoreOrderData;
 use Vatly\Fluent\Data\UpdateOrderData;
 use Vatly\Fluent\Events\OrderPaid;
 
+/**
+ * @immutable
+ */
 class StoreOrderOnPaid implements WebhookReactionInterface
 {
     public function __construct(
-        private readonly OrderRepositoryInterface $orders,
+        private OrderRepositoryInterface $orders,
     ) {}
 
     public function supports(object $event): bool

@@ -25,8 +25,10 @@ class CheckoutBuilder
     protected array $items = [];
 
     public function __construct(
+        /** @readonly */
         protected BillableInterface $owner,
-        protected readonly CreateCheckout $createCheckout,
+        /** @readonly */
+        protected CreateCheckout $createCheckout,
     ) {
         //
     }

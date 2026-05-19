@@ -11,10 +11,13 @@ use Vatly\Fluent\Data\UpdateSubscriptionData;
 use Vatly\Fluent\Events\SubscriptionCanceledImmediately;
 use Vatly\Fluent\Events\SubscriptionCanceledWithGracePeriod;
 
+/**
+ * @immutable
+ */
 class CancelSubscriptionOnCanceled implements WebhookReactionInterface
 {
     public function __construct(
-        private readonly SubscriptionRepositoryInterface $subscriptions,
+        private SubscriptionRepositoryInterface $subscriptions,
     ) {}
 
     public function supports(object $event): bool

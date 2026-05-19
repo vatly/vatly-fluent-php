@@ -6,18 +6,20 @@ namespace Vatly\Fluent\Events;
 
 /**
  * Event representing an order being paid at Vatly.
+ *
+ * @immutable
  */
 class OrderPaid
 {
     public const VATLY_EVENT_NAME = 'order.paid';
 
     public function __construct(
-        public readonly string $customerId,
-        public readonly string $orderId,
-        public readonly int $total,
-        public readonly string $currency,
-        public readonly ?string $invoiceNumber,
-        public readonly ?string $paymentMethod,
+        public string $customerId,
+        public string $orderId,
+        public int $total,
+        public string $currency,
+        public ?string $invoiceNumber,
+        public ?string $paymentMethod,
     ) {
         //
     }

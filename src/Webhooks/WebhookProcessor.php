@@ -9,18 +9,21 @@ use Vatly\Fluent\Contracts\EventDispatcherInterface;
 use Vatly\Fluent\Contracts\WebhookCallRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
 
+/**
+ * @immutable
+ */
 class WebhookProcessor
 {
     /**
      * @param  WebhookReactionInterface[]  $reactions
      */
     public function __construct(
-        private readonly SignatureVerifier $signatureVerifier,
-        private readonly WebhookEventFactory $eventFactory,
-        private readonly WebhookCallRepositoryInterface $repository,
-        private readonly EventDispatcherInterface $dispatcher,
-        private readonly string $webhookSecret,
-        private readonly array $reactions = [],
+        private SignatureVerifier $signatureVerifier,
+        private WebhookEventFactory $eventFactory,
+        private WebhookCallRepositoryInterface $repository,
+        private EventDispatcherInterface $dispatcher,
+        private string $webhookSecret,
+        private array $reactions = [],
     ) {
         //
     }
