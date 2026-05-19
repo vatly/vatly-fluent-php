@@ -8,14 +8,14 @@ use Mockery;
 use Vatly\API\Endpoints\SubscriptionEndpoint;
 use Vatly\API\Types\Link;
 use Vatly\API\VatlyApiClient;
-use Vatly\Fluent\Actions\CreateBillingUpdateLink;
+use Vatly\Fluent\Actions\CreateSubscriptionBillingUpdateLink;
 use Vatly\Fluent\Tests\TestCase;
 
-class CreateBillingUpdateLinkTest extends TestCase
+class CreateSubscriptionBillingUpdateLinkTest extends TestCase
 {
     private VatlyApiClient $mockApiClient;
     private SubscriptionEndpoint $mockSubscriptionEndpoint;
-    private CreateBillingUpdateLink $action;
+    private CreateSubscriptionBillingUpdateLink $action;
 
     protected function setUp(): void
     {
@@ -25,7 +25,7 @@ class CreateBillingUpdateLinkTest extends TestCase
         $this->mockSubscriptionEndpoint = Mockery::mock(SubscriptionEndpoint::class);
         $this->mockApiClient->subscriptions = $this->mockSubscriptionEndpoint;
 
-        $this->action = new CreateBillingUpdateLink($this->mockApiClient);
+        $this->action = new CreateSubscriptionBillingUpdateLink($this->mockApiClient);
     }
 
     public function test_it_returns_the_billing_update_link(): void

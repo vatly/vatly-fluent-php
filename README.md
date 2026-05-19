@@ -30,7 +30,7 @@ composer require vatly/vatly-fluent-php:v0.4.0-alpha.1
 ## What's included
 
 - **`Vatly` facade:** single entry point that lazy-instantiates actions and exposes the API client, signature verifier, and webhook event factory
-- **Actions:** CreateCheckout, CreateCustomer, GetCheckout, GetCustomer, GetSubscription, CreateBillingUpdateLink, CancelSubscription, SwapSubscriptionPlan
+- **Actions:** CreateCheckout, CreateCustomer, GetCheckout, GetCustomer, GetSubscription, CreateSubscriptionBillingUpdateLink, CancelSubscription, SwapSubscriptionPlan
 - **Builders:** framework-agnostic `CheckoutBuilder` and `SubscriptionBuilder` driven by a `BillableInterface`
 - **Webhook handling:** signature verification, event factory, typed event objects (`OrderPaid`, `SubscriptionStarted`, `SubscriptionCanceledImmediately`, `SubscriptionCanceledWithGracePeriod`, etc.), and a `WebhookProcessor` that dispatches built-in reactions (sync subscription, store order, cancel subscription) plus your own
 - **Contracts:** `BillableInterface`, repository interfaces (`SubscriptionRepositoryInterface`, `OrderRepositoryInterface`, `CustomerRepositoryInterface`, `WebhookCallRepositoryInterface`), `EventDispatcherInterface`, `ConfigurationInterface` for framework integration
