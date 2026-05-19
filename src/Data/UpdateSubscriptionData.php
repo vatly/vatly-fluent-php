@@ -8,8 +8,10 @@ use DateTimeInterface;
 
 /**
  * Data for updating an existing subscription from Vatly.
+ *
+ * @immutable
  */
-readonly class UpdateSubscriptionData
+class UpdateSubscriptionData
 {
     public function __construct(
         public ?string $planId = null,

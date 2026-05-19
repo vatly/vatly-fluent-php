@@ -214,7 +214,6 @@ class CheckoutBuilderTest extends TestCase
                 $checkout->id = 'chk_test_123';
                 $checkout->status = 'created';
                 $checkout->testmode = false;
-                $checkout->merchantId = 'merchant_test';
                 $checkout->redirectUrlSuccess = 'https://example.com/success';
                 $checkout->redirectUrlCanceled = 'https://example.com/canceled';
 

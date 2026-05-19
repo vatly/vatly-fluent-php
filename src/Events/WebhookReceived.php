@@ -6,6 +6,8 @@ namespace Vatly\Fluent\Events;
 
 /**
  * Event representing a raw webhook call received from Vatly.
+ *
+ * @immutable
  */
 class WebhookReceived
 {
@@ -13,12 +15,12 @@ class WebhookReceived
      * @param array<string, mixed> $object
      */
     public function __construct(
-        public readonly string $eventName,
-        public readonly string $resourceId,
-        public readonly string $resourceName,
-        public readonly array $object,
-        public readonly string $raisedAt,
-        public readonly bool $testmode,
+        public string $eventName,
+        public string $resourceId,
+        public string $resourceName,
+        public array $object,
+        public string $raisedAt,
+        public bool $testmode,
     ) {
         //
     }

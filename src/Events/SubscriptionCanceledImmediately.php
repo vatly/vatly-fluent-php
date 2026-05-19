@@ -6,14 +6,16 @@ namespace Vatly\Fluent\Events;
 
 /**
  * Event representing a subscription being canceled immediately at Vatly.
+ *
+ * @immutable
  */
 class SubscriptionCanceledImmediately
 {
     public const VATLY_EVENT_NAME = 'subscription.canceled_immediately';
 
     public function __construct(
-        public readonly string $customerId,
-        public readonly string $subscriptionId,
+        public string $customerId,
+        public string $subscriptionId,
     ) {
         //
     }

@@ -22,8 +22,11 @@ class SubscriptionBuilder
     protected string $redirectUrlCanceled = '';
 
     public function __construct(
-        protected readonly ConfigurationInterface $config,
+        /** @readonly */
+        protected ConfigurationInterface $config,
+        /** @readonly */
         protected BillableInterface $owner,
+        /** @readonly */
         protected CheckoutBuilder $checkoutBuilder,
     ) {
         $this->redirectUrlSuccess = $this->config->getDefaultRedirectUrlSuccess();

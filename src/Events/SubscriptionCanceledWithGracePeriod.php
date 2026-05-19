@@ -9,15 +9,17 @@ use DateTimeInterface;
 
 /**
  * Event representing a subscription being canceled with a grace period at Vatly.
+ *
+ * @immutable
  */
 class SubscriptionCanceledWithGracePeriod
 {
     public const VATLY_EVENT_NAME = 'subscription.canceled_with_grace_period';
 
     public function __construct(
-        public readonly string $customerId,
-        public readonly string $subscriptionId,
-        public readonly DateTimeInterface $endsAt,
+        public string $customerId,
+        public string $subscriptionId,
+        public DateTimeInterface $endsAt,
     ) {
         //
     }

@@ -19,42 +19,47 @@ composer require vatly/vatly-fluent-php
 This package follows semantic versioning. During alpha, pin to exact versions if you need stability:
 
 ```bash
-composer require vatly/vatly-fluent-php:v0.3.0-alpha.2
+composer require vatly/vatly-fluent-php:v0.4.0-alpha.1
 ```
 
 ## Requirements
 
-- PHP 8.2+
+- PHP 8.0+
 - A Vatly API key ([vatly.com](https://vatly.com))
 
 ## What's included
 
+- **`Vatly` facade:** single entry point that lazy-instantiates actions and exposes the API client, signature verifier, and webhook event factory
 - **Actions:** CreateCheckout, CreateCustomer, GetCheckout, GetCustomer, GetSubscription, GetPaymentMethodUpdateUrl, CancelSubscription, SwapSubscriptionPlan
-- **Webhook handling:** Signature verification, event factory, typed event objects
-- **Contracts:** BillableInterface, repository interfaces for framework integration
-- **Responses:** Typed response objects for all actions
+- **Builders:** framework-agnostic `CheckoutBuilder` and `SubscriptionBuilder` driven by a `BillableInterface`
+- **Webhook handling:** signature verification, event factory, typed event objects (`OrderPaid`, `SubscriptionStarted`, `SubscriptionCanceledImmediately`, `SubscriptionCanceledWithGracePeriod`, etc.), and a `WebhookProcessor` that dispatches built-in reactions (sync subscription, store order, cancel subscription) plus your own
+- **Contracts:** `BillableInterface`, repository interfaces (`SubscriptionRepositoryInterface`, `OrderRepositoryInterface`, `CustomerRepositoryInterface`, `WebhookCallRepositoryInterface`), `EventDispatcherInterface`, `ConfigurationInterface` for framework integration
+- **Data DTOs:** immutable inputs for repository store/update operations (`StoreOrderData`, `StoreSubscriptionData`, `UpdateOrderData`, `UpdateSubscriptionData`)
+
+Actions return raw `Vatly\API\Resources\*` objects from the underlying [vatly-api-php](https://github.com/Vatly/vatly-api-php) client — there is no separate response wrapper layer.
 
 ## Usage
 
 ```php
-use Vatly\API\VatlyApiClient;
-use Vatly\Fluent\Actions\CreateCheckout;
+use Vatly\Fluent\Vatly;
 
-$client = new VatlyApiClient();
-$client->setApiKey('test_xxxxxxxxxxxx');
+$vatly = new Vatly('test_xxxxxxxxxxxx');
 
-$checkout = new CreateCheckout($client);
-$response = $checkout->execute([
-    'products' => ['subscription_plan_id'],
+$checkout = $vatly->createCheckout()->execute([
+    'products' => [
+        ['id' => 'subscription_plan_id', 'quantity' => 1],
+    ],
     'customerId' => 'cust_xxx',
     'redirectUrlSuccess' => 'https://example.com/success',
     'redirectUrlCanceled' => 'https://example.com/canceled',
 ]);
 ```
 
+`$checkout` is a `Vatly\API\Resources\Checkout` — see [vatly-api-php](https://github.com/Vatly/vatly-api-php) for the full resource shape.
+
 ## For framework integrations
 
-If you're using Laravel, see [vatly/vatly-laravel](https://github.com/Vatly/vatly-laravel) which provides Eloquent models, traits, builders, and event listeners on top of this package.
+If you're using Laravel, see [vatly/vatly-laravel](https://github.com/Vatly/vatly-laravel). It provides Eloquent models, a `Billable` trait, Eloquent-aware repositories (implementations of the contracts above), Laravel-flavoured builders (driven by `Illuminate\Database\Eloquent\Model` and `Collection`), an event-bus bridge, and a webhook controller — all on top of this package.
 
 ## Testing
 
