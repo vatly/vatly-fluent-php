@@ -66,4 +66,12 @@ class WebhookProcessor
 
         $this->dispatcher->dispatch($event);
     }
+
+    /**
+     * @return WebhookReactionInterface[]
+     */
+    public function getReactions(): array
+    {
+        return $this->reactions;
+    }
 }
