@@ -25,11 +25,10 @@ use Vatly\Fluent\Exceptions\CustomerAlreadyCreatedException;
 use Vatly\Fluent\Exceptions\InvalidCustomerException;
 
 /**
- * The per-owner Vatly orchestrator.
+ * The per-owner Vatly orchestrator — the canonical API surface.
  *
- * This is the canonical surface every driver exposes — Laravel, Symfony,
- * WordPress, etc. each provide a thin accessor (e.g. `$user->vatlyBillable()`)
- * that returns one of these.
+ * Drivers expose this through a framework-idiomatic accessor on the host
+ * entity (e.g. `$user->vatlyBillable()`) that returns one of these.
  */
 class Billable
 {
@@ -144,11 +143,6 @@ class Billable
         );
     }
 
-    public function newCheckout(): CheckoutBuilder
-    {
-        return $this->checkout();
-    }
-
     // --- Subscriptions ---
 
     public function subscribe(): SubscriptionBuilder
@@ -158,14 +152,6 @@ class Billable
             owner: $this->owner,
             checkoutBuilder: $this->checkout(),
         );
-    }
-
-    /**
-     * Cashier-style alias of subscribe().
-     */
-    public function newSubscription(): SubscriptionBuilder
-    {
-        return $this->subscribe();
     }
 
     public function subscribed(string $type = 'default'): bool

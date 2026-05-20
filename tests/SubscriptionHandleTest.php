@@ -66,8 +66,7 @@ class SubscriptionHandleTest extends TestCase
             ->once()
             ->with($subscription, Mockery::on(function (UpdateSubscriptionData $data) {
                 return $data->planId === 'plan_premium'
-                    && $data->quantity === 2
-                    && $data->type === 'team';
+                    && $data->quantity === 2;
             }))
             ->andReturn($updatedSubscription);
 
@@ -77,7 +76,7 @@ class SubscriptionHandleTest extends TestCase
             swapAction: $swapAction,
         );
 
-        $returned = $handle->swap('team', 'plan_premium');
+        $returned = $handle->swap('plan_premium');
 
         $this->assertSame($handle, $returned);
         $this->assertSame($updatedSubscription, $handle->model());
@@ -109,7 +108,7 @@ class SubscriptionHandleTest extends TestCase
             swapAction: $swapAction,
         );
 
-        $this->assertSame($handle, $handle->swapAndInvoice('default', 'plan_premium'));
+        $this->assertSame($handle, $handle->swapAndInvoice('plan_premium'));
     }
 
     public function test_cancel_calls_the_api_only(): void

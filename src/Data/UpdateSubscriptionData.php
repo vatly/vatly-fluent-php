@@ -18,6 +18,5 @@ class UpdateSubscriptionData
         public ?string $name = null,
         public ?int $quantity = null,
         public ?DateTimeInterface $endsAt = null,
-        public ?string $type = null,
     ) {}
 }

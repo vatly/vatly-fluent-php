@@ -118,7 +118,7 @@ class SubscriptionHandle
      * @param array<string, mixed> $options Extra parameters passed to the Vatly API
      *                                      (e.g. applyImmediately, invoiceImmediately).
      */
-    public function swap(string $type, string $planId, array $options = []): self
+    public function swap(string $planId, array $options = []): self
     {
         $response = $this->swapAction->execute(
             $this->subscription->getVatlyId(),
@@ -131,7 +131,6 @@ class SubscriptionHandle
             new UpdateSubscriptionData(
                 planId: $response->subscriptionPlanId,
                 quantity: $response->quantity,
-                type: $type,
             ),
         );
 
@@ -147,12 +146,12 @@ class SubscriptionHandle
      *
      * @param array<string, mixed> $options
      */
-    public function swapAndInvoice(string $type, string $planId, array $options = []): self
+    public function swapAndInvoice(string $planId, array $options = []): self
     {
         $options['applyImmediately'] = true;
         $options['invoiceImmediately'] = true;
 
-        return $this->swap($type, $planId, $options);
+        return $this->swap($planId, $options);
     }
 
     /**

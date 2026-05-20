@@ -35,7 +35,6 @@ class BillableTest extends TestCase
         $billable = $this->buildBillable();
 
         $this->assertInstanceOf(CheckoutBuilder::class, $billable->checkout());
-        $this->assertInstanceOf(CheckoutBuilder::class, $billable->newCheckout());
     }
 
     public function test_subscribe_returns_a_subscription_builder(): void
@@ -47,7 +46,6 @@ class BillableTest extends TestCase
         $billable = $this->buildBillable(config: $config);
 
         $this->assertInstanceOf(SubscriptionBuilder::class, $billable->subscribe());
-        $this->assertInstanceOf(SubscriptionBuilder::class, $billable->newSubscription());
     }
 
     public function test_subscribed_delegates_to_the_repository(): void
