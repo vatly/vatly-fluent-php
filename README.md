@@ -6,39 +6,34 @@
 
 > **Alpha release -- under active development. Expect breaking changes.**
 
-Framework-agnostic fluent PHP SDK for [Vatly](https://vatly.com) billing. Wraps the [vatly-api-php](https://github.com/Vatly/vatly-api-php) client with expressive, action-based methods for managing subscriptions, checkouts, customers, and webhooks.
+Shared internals for [Vatly](https://vatly.com) framework drivers. This package is the framework-agnostic core that powers driver packages like [`vatly/vatly-laravel`](https://github.com/Vatly/vatly-laravel) — webhook processing, contracts, events, and DTOs that drivers reuse so they don't reimplement the same patterns.
 
-This package serves as the core logic layer, designed to be portable across PHP frameworks and as a reference for future language ports (JS, Python).
+## Looking for a Vatly integration?
 
-## Installation
+**Most users want a framework driver, not this package directly:**
 
-```bash
-composer require vatly/vatly-fluent-php
-```
+| Framework | Package |
+| --- | --- |
+| Laravel | [`vatly/vatly-laravel`](https://github.com/Vatly/vatly-laravel) |
+| Symfony, WordPress, etc. | _Planned. Want to build one? See [CONTRIBUTING.md](CONTRIBUTING.md)._ |
+| No framework / raw API | [`vatly/vatly-api-php`](https://github.com/Vatly/vatly-api-php) |
 
-This package follows semantic versioning. During alpha, pin to exact versions if you need stability:
+This package on its own doesn't persist anything, dispatch events, or read configuration — those concerns belong to a driver. You install it transitively through a driver.
 
-```bash
-composer require vatly/vatly-fluent-php:v0.4.0-alpha.1
-```
+## What's inside
 
-## Requirements
+Drivers wire these pieces into their framework's IoC container, ORM, event bus, and routing:
 
-- PHP 8.0+
-- A Vatly API key ([vatly.com](https://vatly.com))
+- **Contracts** ([src/Contracts](src/Contracts)): `BillableInterface`, `SubscriptionInterface`, `OrderInterface`, repository interfaces (`SubscriptionRepositoryInterface`, `CustomerRepositoryInterface`, `OrderRepositoryInterface`, `WebhookCallRepositoryInterface`), `EventDispatcherInterface`, `ConfigurationInterface`, `WebhookReactionInterface`.
+- **Webhook pipeline** ([src/Webhooks](src/Webhooks)): `WebhookProcessor` orchestrates signature verification → event parsing → audit logging → reactions → dispatch. Built-in reactions: `SyncSubscriptionOnStarted`, `StoreOrderOnPaid`, `CancelSubscriptionOnCanceled`.
+- **Events** ([src/Events](src/Events)): typed POPOs — `OrderPaid`, `SubscriptionStarted`, `SubscriptionCanceledImmediately`, `SubscriptionCanceledWithGracePeriod`, `LocalSubscriptionCreated`, `WebhookReceived`, `UnsupportedWebhookReceived`.
+- **Actions** ([src/Actions](src/Actions)): thin wrappers around [`vatly/vatly-api-php`](https://github.com/Vatly/vatly-api-php) — `CreateCheckout`, `CreateCustomer`, `GetCheckout`, `GetCustomer`, `GetSubscription`, `CreateSubscriptionBillingUpdateLink`, `CancelSubscription`, `SwapSubscriptionPlan`. Return raw `Vatly\API\Resources\*` objects.
+- **Builders** ([src/Builders](src/Builders)): `CheckoutBuilder` and `SubscriptionBuilder` driven by a `BillableInterface`.
+- **Data DTOs** ([src/Data](src/Data)): immutable inputs for repository operations — `StoreOrderData`, `StoreSubscriptionData`, `UpdateOrderData`, `UpdateSubscriptionData`.
 
-## What's included
+## Direct usage (advanced)
 
-- **`Vatly` facade:** single entry point that lazy-instantiates actions and exposes the API client, signature verifier, and webhook event factory
-- **Actions:** CreateCheckout, CreateCustomer, GetCheckout, GetCustomer, GetSubscription, CreateSubscriptionBillingUpdateLink, CancelSubscription, SwapSubscriptionPlan
-- **Builders:** framework-agnostic `CheckoutBuilder` and `SubscriptionBuilder` driven by a `BillableInterface`
-- **Webhook handling:** signature verification, event factory, typed event objects (`OrderPaid`, `SubscriptionStarted`, `SubscriptionCanceledImmediately`, `SubscriptionCanceledWithGracePeriod`, etc.), and a `WebhookProcessor` that dispatches built-in reactions (sync subscription, store order, cancel subscription) plus your own
-- **Contracts:** `BillableInterface`, repository interfaces (`SubscriptionRepositoryInterface`, `OrderRepositoryInterface`, `CustomerRepositoryInterface`, `WebhookCallRepositoryInterface`), `EventDispatcherInterface`, `ConfigurationInterface` for framework integration
-- **Data DTOs:** immutable inputs for repository store/update operations (`StoreOrderData`, `StoreSubscriptionData`, `UpdateOrderData`, `UpdateSubscriptionData`)
-
-Actions return raw `Vatly\API\Resources\*` objects from the underlying [vatly-api-php](https://github.com/Vatly/vatly-api-php) client — there is no separate response wrapper layer.
-
-## Usage
+If you're not using a driver — for example a custom framework integration — you can wire this package up yourself. Start with the [Driver Author Guide](CONTRIBUTING.md), then use the `Vatly` entry point for read-only operations:
 
 ```php
 use Vatly\Fluent\Vatly;
@@ -46,26 +41,41 @@ use Vatly\Fluent\Vatly;
 $vatly = new Vatly('test_xxxxxxxxxxxx');
 
 $checkout = $vatly->createCheckout()->execute([
-    'products' => [
-        ['id' => 'subscription_plan_id', 'quantity' => 1],
-    ],
+    'products' => [['id' => 'plan_abc', 'quantity' => 1]],
     'customerId' => 'cust_xxx',
     'redirectUrlSuccess' => 'https://example.com/success',
     'redirectUrlCanceled' => 'https://example.com/canceled',
 ]);
 ```
 
-`$checkout` is a `Vatly\API\Resources\Checkout` — see [vatly-api-php](https://github.com/Vatly/vatly-api-php) for the full resource shape.
+For webhook handling, subscription sync, and anything stateful, you'll need to implement the repository contracts and wire a `WebhookProcessor` — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## For framework integrations
+## Requirements
 
-If you're using Laravel, see [vatly/vatly-laravel](https://github.com/Vatly/vatly-laravel). It provides Eloquent models, a `Billable` trait, Eloquent-aware repositories (implementations of the contracts above), Laravel-flavoured builders (driven by `Illuminate\Database\Eloquent\Model` and `Collection`), an event-bus bridge, and a webhook controller — all on top of this package.
+- PHP 8.0+
+- A Vatly API key ([vatly.com](https://vatly.com))
+
+## Installation
+
+```bash
+composer require vatly/vatly-fluent-php
+```
+
+Pin to an exact version during alpha:
+
+```bash
+composer require vatly/vatly-fluent-php:v0.4.0-alpha.3
+```
 
 ## Testing
 
 ```bash
 composer test
 ```
+
+## Contributing & building a driver
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the contracts a driver implements, the wiring pattern, and the planned consolidation work.
 
 ## License
 
