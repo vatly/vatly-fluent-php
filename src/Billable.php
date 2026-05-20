@@ -112,7 +112,7 @@ class Billable
         return $this->createAsVatlyCustomer($options);
     }
 
-    public function assertCustomerExists(): void
+    private function assertCustomerExists(): void
     {
         if (! $this->owner->hasVatlyId()) {
             throw InvalidCustomerException::notYetCreated($this->owner);
@@ -156,10 +156,7 @@ class Billable
         return $this->handleFor($subscription);
     }
 
-    /**
-     * Build a SubscriptionHandle wrapping the given subscription.
-     */
-    public function handleFor(SubscriptionInterface $subscription): SubscriptionHandle
+    private function handleFor(SubscriptionInterface $subscription): SubscriptionHandle
     {
         return new SubscriptionHandle(
             subscription: $subscription,
