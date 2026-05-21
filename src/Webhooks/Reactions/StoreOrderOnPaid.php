@@ -36,6 +36,8 @@ class StoreOrderOnPaid implements WebhookReactionInterface
                 currency: $event->currency,
                 invoiceNumber: $event->invoiceNumber,
                 paymentMethod: $event->paymentMethod,
+                subtotal: $event->subtotal,
+                taxSummary: $event->taxSummary,
             ));
 
             return;
@@ -49,6 +51,8 @@ class StoreOrderOnPaid implements WebhookReactionInterface
             currency: $event->currency,
             invoiceNumber: $event->invoiceNumber,
             paymentMethod: $event->paymentMethod,
+            subtotal: $event->subtotal,
+            taxSummary: $event->taxSummary,
         ));
     }
 }

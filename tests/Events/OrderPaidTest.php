@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Tests\Events;
 
+use Mockery;
+use Vatly\API\Resources\Order as ApiOrder;
+use Vatly\API\Types\Money;
+use Vatly\API\Types\TaxSummaryCollection;
+use Vatly\API\VatlyApiClient;
 use Vatly\Fluent\Events\OrderPaid;
-use Vatly\Fluent\Events\WebhookReceived;
 use Vatly\Fluent\Tests\TestCase;
+use Vatly\Fluent\Types\TaxSummary;
 
 class OrderPaidTest extends TestCase
 {
@@ -21,6 +26,8 @@ class OrderPaidTest extends TestCase
             customerId: 'cus_123',
             orderId: 'ord_456',
             total: 9900,
+            subtotal: 8182,
+            taxSummary: TaxSummary::empty(),
             currency: 'EUR',
             invoiceNumber: 'INV-2024-001',
             paymentMethod: 'credit_card',
@@ -29,64 +36,65 @@ class OrderPaidTest extends TestCase
         $this->assertSame('cus_123', $event->customerId);
         $this->assertSame('ord_456', $event->orderId);
         $this->assertSame(9900, $event->total);
+        $this->assertSame(8182, $event->subtotal);
+        $this->assertCount(0, $event->taxSummary);
         $this->assertSame('EUR', $event->currency);
         $this->assertSame('INV-2024-001', $event->invoiceNumber);
         $this->assertSame('credit_card', $event->paymentMethod);
     }
 
-    public function test_it_creates_from_webhook(): void
+    public function test_it_builds_from_api_order_resource_with_tax_breakdown(): void
     {
-        $webhook = new WebhookReceived(
-            eventName: 'order.paid',
-            resourceId: 'ord_123',
-            resourceName: 'order',
-            object: [
-                'data' => [
-                    'customerId' => 'cus_456',
-                    'total' => 4999,
-                    'currency' => 'USD',
-                    'invoiceNumber' => 'INV-2024-002',
-                    'paymentMethod' => 'ideal',
-                ],
+        $apiOrder = new ApiOrder(Mockery::mock(VatlyApiClient::class));
+        $apiOrder->id = 'ord_123';
+        $apiOrder->customerId = 'cus_456';
+        $apiOrder->total = new Money('USD', '49.99');
+        $apiOrder->subtotal = new Money('USD', '41.31');
+        $apiOrder->invoiceNumber = 'INV-2024-002';
+        $apiOrder->paymentMethod = 'ideal';
+        $apiOrder->status = 'paid';
+        $apiOrder->taxSummary = new TaxSummaryCollection([
+            [
+                'taxRate' => ['name' => 'VAT', 'percentage' => 21.0, 'taxablePercentage' => 100.0],
+                'amount' => ['currency' => 'USD', 'value' => '8.68'],
             ],
-            raisedAt: '2024-01-15T10:00:00Z',
-            testmode: false,
-        );
+        ]);
 
-        $event = OrderPaid::fromWebhook($webhook);
+        $event = OrderPaid::fromApiOrder($apiOrder);
 
         $this->assertSame('cus_456', $event->customerId);
         $this->assertSame('ord_123', $event->orderId);
         $this->assertSame(4999, $event->total);
+        $this->assertSame(4131, $event->subtotal);
         $this->assertSame('USD', $event->currency);
         $this->assertSame('INV-2024-002', $event->invoiceNumber);
         $this->assertSame('ideal', $event->paymentMethod);
+        $this->assertCount(1, $event->taxSummary);
+        $this->assertSame(868, $event->taxSummary->items[0]->amount);
+        $this->assertSame('VAT', $event->taxSummary->items[0]->rate->name);
     }
 
-    public function test_it_creates_from_webhook_with_nullable_fields(): void
+    public function test_it_builds_from_api_order_with_no_customer_or_invoice(): void
     {
-        $webhook = new WebhookReceived(
-            eventName: 'order.paid',
-            resourceId: 'ord_789',
-            resourceName: 'order',
-            object: [
-                'data' => [
-                    'customerId' => 'cus_012',
-                    'total' => 1500,
-                    'currency' => 'GBP',
-                ],
-            ],
-            raisedAt: '2024-01-15T10:00:00Z',
-            testmode: false,
-        );
+        $apiOrder = new ApiOrder(Mockery::mock(VatlyApiClient::class));
+        $apiOrder->id = 'ord_789';
+        $apiOrder->customerId = null;
+        $apiOrder->total = new Money('GBP', '15.00');
+        $apiOrder->subtotal = new Money('GBP', '12.40');
+        $apiOrder->invoiceNumber = null;
+        $apiOrder->paymentMethod = null;
+        $apiOrder->status = 'paid';
+        $apiOrder->taxSummary = new TaxSummaryCollection([]);
 
-        $event = OrderPaid::fromWebhook($webhook);
+        $event = OrderPaid::fromApiOrder($apiOrder);
 
-        $this->assertSame('cus_012', $event->customerId);
+        $this->assertSame('', $event->customerId);
         $this->assertSame('ord_789', $event->orderId);
         $this->assertSame(1500, $event->total);
+        $this->assertSame(1240, $event->subtotal);
         $this->assertSame('GBP', $event->currency);
         $this->assertNull($event->invoiceNumber);
         $this->assertNull($event->paymentMethod);
+        $this->assertCount(0, $event->taxSummary);
     }
 }

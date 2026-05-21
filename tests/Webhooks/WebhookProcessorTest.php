@@ -6,6 +6,7 @@ namespace Vatly\Fluent\Tests\Webhooks;
 
 use DateTimeInterface;
 use Mockery;
+use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Contracts\EventDispatcherInterface;
 use Vatly\Fluent\Contracts\WebhookCallRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
@@ -32,7 +33,7 @@ class WebhookProcessorTest extends TestCase
 
         $this->secret = 'test-webhook-secret';
         $this->signatureVerifier = new SignatureVerifier();
-        $this->eventFactory = new WebhookEventFactory();
+        $this->eventFactory = new WebhookEventFactory(Mockery::mock(GetOrder::class));
         $this->repository = Mockery::mock(WebhookCallRepositoryInterface::class);
         $this->dispatcher = Mockery::mock(EventDispatcherInterface::class);
 

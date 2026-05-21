@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Webhooks;
 
+use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Events\OrderPaid;
 use Vatly\Fluent\Events\SubscriptionCanceledImmediately;
 use Vatly\Fluent\Events\SubscriptionCanceledWithGracePeriod;
@@ -13,8 +14,18 @@ use Vatly\Fluent\Events\WebhookReceived;
 
 class WebhookEventFactory
 {
+    public function __construct(
+        private GetOrder $getOrder,
+    ) {
+        //
+    }
+
     /**
      * Create a typed event from a raw webhook.
+     *
+     * For `order.paid` the factory performs a follow-up API GET so the
+     * dispatched event carries the full tax breakdown — webhook payloads
+     * themselves only include gross total.
      *
      * @return SubscriptionStarted|SubscriptionCanceledImmediately|SubscriptionCanceledWithGracePeriod|OrderPaid|UnsupportedWebhookReceived
      */
@@ -24,7 +35,7 @@ class WebhookEventFactory
             SubscriptionStarted::VATLY_EVENT_NAME => SubscriptionStarted::fromWebhook($webhook),
             SubscriptionCanceledImmediately::VATLY_EVENT_NAME => SubscriptionCanceledImmediately::fromWebhook($webhook),
             SubscriptionCanceledWithGracePeriod::VATLY_EVENT_NAME => SubscriptionCanceledWithGracePeriod::fromWebhook($webhook),
-            OrderPaid::VATLY_EVENT_NAME => OrderPaid::fromWebhook($webhook),
+            OrderPaid::VATLY_EVENT_NAME => OrderPaid::fromApiOrder($this->getOrder->execute($webhook->resourceId)),
             default => UnsupportedWebhookReceived::fromWebhook($webhook),
         };
     }

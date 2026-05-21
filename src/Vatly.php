@@ -9,6 +9,7 @@ use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Actions\CreateCheckout;
 use Vatly\Fluent\Actions\CreateCustomer;
 use Vatly\Fluent\Actions\GetCustomer;
+use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\Fluent\Actions\SwapSubscriptionPlan;
 use Vatly\API\VatlyApiClient;
@@ -30,6 +31,7 @@ class Vatly
     // Lazy-loaded actions
     private ?CreateCustomer $createCustomer = null;
     private ?GetCustomer $getCustomer = null;
+    private ?GetOrder $getOrder = null;
     private ?CreateCheckout $createCheckout = null;
     private ?GetSubscription $getSubscription = null;
     private ?CancelSubscription $cancelSubscription = null;
@@ -42,7 +44,7 @@ class Vatly
         $this->apiClient = new VatlyApiClient();
         $this->apiClient->setApiKey($apiKey);
         $this->signatureVerifier = new SignatureVerifier();
-        $this->webhookEventFactory = new WebhookEventFactory();
+        $this->webhookEventFactory = new WebhookEventFactory($this->getOrder());
     }
 
     /**
@@ -79,6 +81,11 @@ class Vatly
     public function getCustomer(): GetCustomer
     {
         return $this->getCustomer ??= new GetCustomer($this->apiClient);
+    }
+
+    public function getOrder(): GetOrder
+    {
+        return $this->getOrder ??= new GetOrder($this->apiClient);
     }
 
     public function createCheckout(): CreateCheckout

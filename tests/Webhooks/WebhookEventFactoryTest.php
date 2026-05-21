@@ -5,6 +5,12 @@ declare(strict_types=1);
 namespace Vatly\Fluent\Tests\Webhooks;
 
 use DateTimeInterface;
+use Mockery;
+use Vatly\API\Resources\Order as ApiOrder;
+use Vatly\API\Types\Money;
+use Vatly\API\Types\TaxSummaryCollection;
+use Vatly\API\VatlyApiClient;
+use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Events\OrderPaid;
 use Vatly\Fluent\Events\SubscriptionCanceledImmediately;
 use Vatly\Fluent\Events\SubscriptionCanceledWithGracePeriod;
@@ -17,12 +23,14 @@ use Vatly\Fluent\Webhooks\WebhookEventFactory;
 class WebhookEventFactoryTest extends TestCase
 {
     private WebhookEventFactory $factory;
+    private GetOrder $getOrder;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->factory = new WebhookEventFactory();
+        $this->getOrder = Mockery::mock(GetOrder::class);
+        $this->factory = new WebhookEventFactory($this->getOrder);
     }
 
     public function test_it_parses_webhook_payload_into_webhook_received_event(): void
@@ -120,8 +128,25 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertInstanceOf(DateTimeInterface::class, $event->endsAt);
     }
 
-    public function test_it_creates_order_paid_event_from_webhook(): void
+    public function test_it_creates_order_paid_event_from_webhook_with_enriched_tax_data(): void
     {
+        $apiOrder = $this->buildApiOrder([
+            'id' => 'ord_123',
+            'customerId' => 'cus_456',
+            'total' => ['currency' => 'EUR', 'value' => '99.00'],
+            'subtotal' => ['currency' => 'EUR', 'value' => '81.82'],
+            'taxRates' => [
+                ['name' => 'VAT', 'percentage' => 21.0, 'taxablePercentage' => 100.0, 'amount' => '17.18'],
+            ],
+            'invoiceNumber' => 'INV-2024-001',
+            'paymentMethod' => 'credit_card',
+        ]);
+
+        $this->getOrder->shouldReceive('execute')
+            ->once()
+            ->with('ord_123')
+            ->andReturn($apiOrder);
+
         $webhook = new WebhookReceived(
             eventName: 'order.paid',
             resourceId: 'ord_123',
@@ -145,9 +170,15 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertSame('cus_456', $event->customerId);
         $this->assertSame('ord_123', $event->orderId);
         $this->assertSame(9900, $event->total);
+        $this->assertSame(8182, $event->subtotal);
         $this->assertSame('EUR', $event->currency);
         $this->assertSame('INV-2024-001', $event->invoiceNumber);
         $this->assertSame('credit_card', $event->paymentMethod);
+        $this->assertCount(1, $event->taxSummary);
+        $this->assertSame('VAT', $event->taxSummary->items[0]->rate->name);
+        $this->assertSame(21.0, $event->taxSummary->items[0]->rate->percentage);
+        $this->assertSame(1718, $event->taxSummary->items[0]->amount);
+        $this->assertSame('EUR', $event->taxSummary->items[0]->currency);
     }
 
     public function test_it_creates_unsupported_webhook_received_for_unknown_events(): void
@@ -182,5 +213,43 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertTrue($this->factory->isSupported('subscription.started'));
         $this->assertTrue($this->factory->isSupported('order.paid'));
         $this->assertFalse($this->factory->isSupported('unknown.event'));
+    }
+
+    /**
+     * @param array{
+     *   id: string,
+     *   customerId: string,
+     *   total: array{currency: string, value: string},
+     *   subtotal: array{currency: string, value: string},
+     *   taxRates: array<int, array{name: string, percentage: float, taxablePercentage: float, amount: string}>,
+     *   invoiceNumber: ?string,
+     *   paymentMethod: ?string,
+     * } $data
+     */
+    private function buildApiOrder(array $data): ApiOrder
+    {
+        $order = new ApiOrder(Mockery::mock(VatlyApiClient::class));
+        $order->id = $data['id'];
+        $order->customerId = $data['customerId'];
+        $order->total = new Money($data['total']['currency'], $data['total']['value']);
+        $order->subtotal = new Money($data['subtotal']['currency'], $data['subtotal']['value']);
+        $order->invoiceNumber = $data['invoiceNumber'];
+        $order->paymentMethod = $data['paymentMethod'];
+        $order->status = 'paid';
+
+        $taxItems = array_map(
+            fn (array $rate) => [
+                'taxRate' => [
+                    'name' => $rate['name'],
+                    'percentage' => $rate['percentage'],
+                    'taxablePercentage' => $rate['taxablePercentage'],
+                ],
+                'amount' => ['currency' => $data['total']['currency'], 'value' => $rate['amount']],
+            ],
+            $data['taxRates'],
+        );
+        $order->taxSummary = new TaxSummaryCollection($taxItems);
+
+        return $order;
     }
 }
