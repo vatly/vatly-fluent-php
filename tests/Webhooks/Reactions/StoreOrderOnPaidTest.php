@@ -12,6 +12,9 @@ use Vatly\Fluent\Data\UpdateOrderData;
 use Vatly\Fluent\Events\OrderPaid;
 use Vatly\Fluent\Events\SubscriptionStarted;
 use Vatly\Fluent\Tests\TestCase;
+use Vatly\Fluent\Types\TaxSummary;
+use Vatly\Fluent\Types\TaxSummaryItem;
+use Vatly\Fluent\Types\TaxSummaryRate;
 use Vatly\Fluent\Webhooks\Reactions\StoreOrderOnPaid;
 
 class StoreOrderOnPaidTest extends TestCase
@@ -21,9 +24,7 @@ class StoreOrderOnPaidTest extends TestCase
         $repo = Mockery::mock(OrderRepositoryInterface::class);
         $reaction = new StoreOrderOnPaid($repo);
 
-        $event = new OrderPaid('cus_1', 'ord_1', 9900, 'EUR', 'INV-001', 'card');
-
-        $this->assertTrue($reaction->supports($event));
+        $this->assertTrue($reaction->supports($this->makeEvent()));
     }
 
     public function test_it_does_not_support_other_events(): void
@@ -36,35 +37,71 @@ class StoreOrderOnPaidTest extends TestCase
         $this->assertFalse($reaction->supports($event));
     }
 
-    public function test_it_stores_an_order_when_none_exists(): void
+    public function test_it_stores_an_order_with_tax_breakdown_when_none_exists(): void
     {
+        $taxSummary = $this->makeTaxSummary();
+        $event = $this->makeEvent(taxSummary: $taxSummary);
+
         $repo = Mockery::mock(OrderRepositoryInterface::class);
         $repo->shouldReceive('findByVatlyId')->with('ord_1')->once()->andReturnNull();
-        $repo->shouldReceive('store')->once()->with(Mockery::on(function (StoreOrderData $data) {
+        $repo->shouldReceive('store')->once()->with(Mockery::on(function (StoreOrderData $data) use ($taxSummary) {
             return $data->vatlyId === 'ord_1'
                 && $data->customerId === 'cus_1'
                 && $data->status === 'paid'
                 && $data->total === 9900
+                && $data->subtotal === 8182
+                && $data->taxSummary === $taxSummary
                 && $data->currency === 'EUR'
                 && $data->invoiceNumber === 'INV-001'
                 && $data->paymentMethod === 'card';
         }))->andReturn(Mockery::mock(OrderInterface::class));
 
         $reaction = new StoreOrderOnPaid($repo);
-        $reaction->handle(new OrderPaid('cus_1', 'ord_1', 9900, 'EUR', 'INV-001', 'card'));
+        $reaction->handle($event);
     }
 
-    public function test_it_updates_an_existing_order(): void
+    public function test_it_updates_an_existing_order_with_tax_breakdown(): void
     {
+        $taxSummary = $this->makeTaxSummary();
+        $event = $this->makeEvent(taxSummary: $taxSummary);
+
         $existing = Mockery::mock(OrderInterface::class);
         $repo = Mockery::mock(OrderRepositoryInterface::class);
         $repo->shouldReceive('findByVatlyId')->with('ord_1')->once()->andReturn($existing);
-        $repo->shouldReceive('update')->once()->with($existing, Mockery::on(function (UpdateOrderData $data) {
-            return $data->status === 'paid' && $data->total === 9900;
+        $repo->shouldReceive('update')->once()->with($existing, Mockery::on(function (UpdateOrderData $data) use ($taxSummary) {
+            return $data->status === 'paid'
+                && $data->total === 9900
+                && $data->subtotal === 8182
+                && $data->taxSummary === $taxSummary;
         }))->andReturn($existing);
         $repo->shouldNotReceive('store');
 
         $reaction = new StoreOrderOnPaid($repo);
-        $reaction->handle(new OrderPaid('cus_1', 'ord_1', 9900, 'EUR', 'INV-001', 'card'));
+        $reaction->handle($event);
+    }
+
+    private function makeEvent(?TaxSummary $taxSummary = null): OrderPaid
+    {
+        return new OrderPaid(
+            customerId: 'cus_1',
+            orderId: 'ord_1',
+            total: 9900,
+            subtotal: 8182,
+            taxSummary: $taxSummary ?? TaxSummary::empty(),
+            currency: 'EUR',
+            invoiceNumber: 'INV-001',
+            paymentMethod: 'card',
+        );
+    }
+
+    private function makeTaxSummary(): TaxSummary
+    {
+        return new TaxSummary([
+            new TaxSummaryItem(
+                rate: new TaxSummaryRate('VAT', 21.0, 100.0),
+                amount: 1718,
+                currency: 'EUR',
+            ),
+        ]);
     }
 }

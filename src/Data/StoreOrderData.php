@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Data;
 
+use Vatly\Fluent\Types\TaxSummary;
+
 /**
  * Data for storing a new order from Vatly.
  *
@@ -19,5 +21,7 @@ class StoreOrderData
         public string $currency,
         public ?string $invoiceNumber = null,
         public ?string $paymentMethod = null,
+        public ?int $subtotal = null,
+        public ?TaxSummary $taxSummary = null,
     ) {}
 }

@@ -4,8 +4,16 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Events;
 
+use Vatly\API\Resources\Order as ApiOrder;
+use Vatly\Fluent\Types\Money;
+use Vatly\Fluent\Types\TaxSummary;
+
 /**
  * Event representing an order being paid at Vatly.
+ *
+ * Carries the full tax breakdown so consumers can materialize a local invoice
+ * without a follow-up API call. The webhook payload itself is sparse; the
+ * WebhookEventFactory enriches via `GetOrder` before dispatching.
  *
  * @immutable
  */
@@ -17,6 +25,8 @@ class OrderPaid
         public string $customerId,
         public string $orderId,
         public int $total,
+        public int $subtotal,
+        public TaxSummary $taxSummary,
         public string $currency,
         public ?string $invoiceNumber,
         public ?string $paymentMethod,
@@ -24,15 +34,17 @@ class OrderPaid
         //
     }
 
-    public static function fromWebhook(WebhookReceived $webhook): self
+    public static function fromApiOrder(ApiOrder $order): self
     {
         return new self(
-            customerId: $webhook->object['data']['customerId'],
-            orderId: $webhook->resourceId,
-            total: $webhook->object['data']['total'],
-            currency: $webhook->object['data']['currency'],
-            invoiceNumber: $webhook->object['data']['invoiceNumber'] ?? null,
-            paymentMethod: $webhook->object['data']['paymentMethod'] ?? null,
+            customerId: $order->customerId ?? '',
+            orderId: $order->id,
+            total: Money::fromApiMoneyToCents($order->total),
+            subtotal: Money::fromApiMoneyToCents($order->subtotal),
+            taxSummary: TaxSummary::fromApiResource($order->taxSummary),
+            currency: $order->total->currency,
+            invoiceNumber: $order->invoiceNumber,
+            paymentMethod: $order->paymentMethod,
         );
     }
 }

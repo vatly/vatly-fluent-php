@@ -6,7 +6,7 @@ namespace Vatly\Fluent\Actions;
 
 use Vatly\API\Types\Link;
 
-class CreateSubscriptionBillingUpdateLink extends BaseAction
+class UpdateSubscriptionBilling extends BaseAction
 {
     /**
      * Create a signed URL where the customer can update the billing details for a subscription
@@ -18,7 +18,7 @@ class CreateSubscriptionBillingUpdateLink extends BaseAction
      */
     public function execute(string $subscriptionId, array $prefillData = []): Link
     {
-        return $this->vatlyApiClient->subscriptions->createBillingUpdateLink(
+        return $this->vatlyApiClient->subscriptions->updateBilling(
             $subscriptionId,
             $prefillData
         );

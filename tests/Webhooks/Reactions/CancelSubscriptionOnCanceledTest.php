@@ -13,6 +13,7 @@ use Vatly\Fluent\Events\OrderPaid;
 use Vatly\Fluent\Events\SubscriptionCanceledImmediately;
 use Vatly\Fluent\Events\SubscriptionCanceledWithGracePeriod;
 use Vatly\Fluent\Tests\TestCase;
+use Vatly\Fluent\Types\TaxSummary;
 use Vatly\Fluent\Webhooks\Reactions\CancelSubscriptionOnCanceled;
 
 class CancelSubscriptionOnCanceledTest extends TestCase
@@ -42,7 +43,7 @@ class CancelSubscriptionOnCanceledTest extends TestCase
         $repo = Mockery::mock(SubscriptionRepositoryInterface::class);
         $reaction = new CancelSubscriptionOnCanceled($repo);
 
-        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 9900, 'EUR', null, null)));
+        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 9900, 8182, TaxSummary::empty(), 'EUR', null, null)));
     }
 
     public function test_it_persists_the_event_ends_at_for_immediate_cancellation(): void

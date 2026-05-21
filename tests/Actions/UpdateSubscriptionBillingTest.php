@@ -8,14 +8,14 @@ use Mockery;
 use Vatly\API\Endpoints\SubscriptionEndpoint;
 use Vatly\API\Types\Link;
 use Vatly\API\VatlyApiClient;
-use Vatly\Fluent\Actions\CreateSubscriptionBillingUpdateLink;
+use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Tests\TestCase;
 
-class CreateSubscriptionBillingUpdateLinkTest extends TestCase
+class UpdateSubscriptionBillingTest extends TestCase
 {
     private VatlyApiClient $mockApiClient;
     private SubscriptionEndpoint $mockSubscriptionEndpoint;
-    private CreateSubscriptionBillingUpdateLink $action;
+    private UpdateSubscriptionBilling $action;
 
     protected function setUp(): void
     {
@@ -25,7 +25,7 @@ class CreateSubscriptionBillingUpdateLinkTest extends TestCase
         $this->mockSubscriptionEndpoint = Mockery::mock(SubscriptionEndpoint::class);
         $this->mockApiClient->subscriptions = $this->mockSubscriptionEndpoint;
 
-        $this->action = new CreateSubscriptionBillingUpdateLink($this->mockApiClient);
+        $this->action = new UpdateSubscriptionBilling($this->mockApiClient);
     }
 
     public function test_it_returns_the_billing_update_link(): void
@@ -34,7 +34,7 @@ class CreateSubscriptionBillingUpdateLinkTest extends TestCase
         $expectedUrl = 'https://checkout.vatly.com/billing-update/abc123';
 
         $this->mockSubscriptionEndpoint
-            ->shouldReceive('createBillingUpdateLink')
+            ->shouldReceive('updateBilling')
             ->once()
             ->with($subscriptionId, [])
             ->andReturn(new Link($expectedUrl, 'text/html'));
@@ -58,7 +58,7 @@ class CreateSubscriptionBillingUpdateLinkTest extends TestCase
         ];
 
         $this->mockSubscriptionEndpoint
-            ->shouldReceive('createBillingUpdateLink')
+            ->shouldReceive('updateBilling')
             ->once()
             ->with($subscriptionId, $prefillData)
             ->andReturn(new Link('https://checkout.vatly.com/billing-update/xyz', 'text/html'));

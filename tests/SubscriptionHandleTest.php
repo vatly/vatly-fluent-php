@@ -10,7 +10,7 @@ use ReflectionClass;
 use Vatly\API\Resources\Subscription as ApiSubscription;
 use Vatly\API\Types\Link;
 use Vatly\Fluent\Actions\CancelSubscription;
-use Vatly\Fluent\Actions\CreateSubscriptionBillingUpdateLink;
+use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\Fluent\Actions\SwapSubscriptionPlan;
 use Vatly\Fluent\Contracts\SubscriptionInterface;
@@ -132,19 +132,19 @@ class SubscriptionHandleTest extends TestCase
 
         $link = new Link('https://vatly.example/billing/upd_xyz', 'text/html');
 
-        $linkAction = Mockery::mock(CreateSubscriptionBillingUpdateLink::class);
+        $linkAction = Mockery::mock(UpdateSubscriptionBilling::class);
         $linkAction->shouldReceive('execute')
             ->with('subscription_abc', ['redirectUrlSuccess' => 'https://app/done'])
             ->andReturn($link);
 
         $handle = $this->buildHandle(
             subscription: $subscription,
-            createBillingUpdateLinkAction: $linkAction,
+            updateBillingAction: $linkAction,
         );
 
         $this->assertSame(
             'https://vatly.example/billing/upd_xyz',
-            $handle->createBillingUpdateLink(['redirectUrlSuccess' => 'https://app/done']),
+            $handle->updateBilling(['redirectUrlSuccess' => 'https://app/done']),
         );
     }
 
@@ -230,7 +230,7 @@ class SubscriptionHandleTest extends TestCase
         ?SwapSubscriptionPlan $swapAction = null,
         ?CancelSubscription $cancelAction = null,
         ?GetSubscription $getSubscriptionAction = null,
-        ?CreateSubscriptionBillingUpdateLink $createBillingUpdateLinkAction = null,
+        ?UpdateSubscriptionBilling $updateBillingAction = null,
     ): SubscriptionHandle {
         return new SubscriptionHandle(
             subscription: $subscription ?? Mockery::mock(SubscriptionInterface::class),
@@ -238,8 +238,8 @@ class SubscriptionHandleTest extends TestCase
             swapAction: $swapAction ?? Mockery::mock(SwapSubscriptionPlan::class),
             cancelAction: $cancelAction ?? Mockery::mock(CancelSubscription::class),
             getSubscriptionAction: $getSubscriptionAction ?? Mockery::mock(GetSubscription::class),
-            createBillingUpdateLinkAction: $createBillingUpdateLinkAction
-                ?? Mockery::mock(CreateSubscriptionBillingUpdateLink::class),
+            updateBillingAction: $updateBillingAction
+                ?? Mockery::mock(UpdateSubscriptionBilling::class),
         );
     }
 }

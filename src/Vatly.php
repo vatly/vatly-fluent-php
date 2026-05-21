@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace Vatly\Fluent;
 
 use Vatly\Fluent\Actions\CancelSubscription;
-use Vatly\Fluent\Actions\CreateSubscriptionBillingUpdateLink;
+use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Actions\CreateCheckout;
 use Vatly\Fluent\Actions\CreateCustomer;
 use Vatly\Fluent\Actions\GetCustomer;
+use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\Fluent\Actions\SwapSubscriptionPlan;
 use Vatly\API\VatlyApiClient;
@@ -30,11 +31,12 @@ class Vatly
     // Lazy-loaded actions
     private ?CreateCustomer $createCustomer = null;
     private ?GetCustomer $getCustomer = null;
+    private ?GetOrder $getOrder = null;
     private ?CreateCheckout $createCheckout = null;
     private ?GetSubscription $getSubscription = null;
     private ?CancelSubscription $cancelSubscription = null;
     private ?SwapSubscriptionPlan $swapSubscriptionPlan = null;
-    private ?CreateSubscriptionBillingUpdateLink $createSubscriptionBillingUpdateLink = null;
+    private ?UpdateSubscriptionBilling $updateSubscriptionBilling = null;
 
     public function __construct(
         string $apiKey,
@@ -42,7 +44,7 @@ class Vatly
         $this->apiClient = new VatlyApiClient();
         $this->apiClient->setApiKey($apiKey);
         $this->signatureVerifier = new SignatureVerifier();
-        $this->webhookEventFactory = new WebhookEventFactory();
+        $this->webhookEventFactory = new WebhookEventFactory($this->getOrder());
     }
 
     /**
@@ -81,6 +83,11 @@ class Vatly
         return $this->getCustomer ??= new GetCustomer($this->apiClient);
     }
 
+    public function getOrder(): GetOrder
+    {
+        return $this->getOrder ??= new GetOrder($this->apiClient);
+    }
+
     public function createCheckout(): CreateCheckout
     {
         return $this->createCheckout ??= new CreateCheckout($this->apiClient);
@@ -101,8 +108,8 @@ class Vatly
         return $this->swapSubscriptionPlan ??= new SwapSubscriptionPlan($this->apiClient);
     }
 
-    public function createSubscriptionBillingUpdateLink(): CreateSubscriptionBillingUpdateLink
+    public function updateSubscriptionBilling(): UpdateSubscriptionBilling
     {
-        return $this->createSubscriptionBillingUpdateLink ??= new CreateSubscriptionBillingUpdateLink($this->apiClient);
+        return $this->updateSubscriptionBilling ??= new UpdateSubscriptionBilling($this->apiClient);
     }
 }

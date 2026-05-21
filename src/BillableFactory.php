@@ -7,7 +7,7 @@ namespace Vatly\Fluent;
 use Vatly\Fluent\Actions\CancelSubscription;
 use Vatly\Fluent\Actions\CreateCheckout;
 use Vatly\Fluent\Actions\CreateCustomer;
-use Vatly\Fluent\Actions\CreateSubscriptionBillingUpdateLink;
+use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Actions\GetCustomer;
 use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\Fluent\Actions\SwapSubscriptionPlan;
@@ -37,7 +37,7 @@ class BillableFactory
         private GetSubscription $getSubscriptionAction,
         private SwapSubscriptionPlan $swapSubscriptionPlanAction,
         private CancelSubscription $cancelSubscriptionAction,
-        private CreateSubscriptionBillingUpdateLink $createBillingUpdateLinkAction,
+        private UpdateSubscriptionBilling $updateBillingAction,
     ) {
         //
     }
@@ -56,7 +56,7 @@ class BillableFactory
             getSubscriptionAction: $this->getSubscriptionAction,
             swapSubscriptionPlanAction: $this->swapSubscriptionPlanAction,
             cancelSubscriptionAction: $this->cancelSubscriptionAction,
-            createBillingUpdateLinkAction: $this->createBillingUpdateLinkAction,
+            updateBillingAction: $this->updateBillingAction,
         );
     }
 }

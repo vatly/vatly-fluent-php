@@ -10,7 +10,7 @@ use Vatly\API\Resources\Customer;
 use Vatly\Fluent\Actions\CancelSubscription;
 use Vatly\Fluent\Actions\CreateCheckout;
 use Vatly\Fluent\Actions\CreateCustomer;
-use Vatly\Fluent\Actions\CreateSubscriptionBillingUpdateLink;
+use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Actions\GetCustomer;
 use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\Fluent\Actions\SwapSubscriptionPlan;
@@ -238,7 +238,7 @@ class BillableTest extends TestCase
         ?GetSubscription $getSubscriptionAction = null,
         ?SwapSubscriptionPlan $swapSubscriptionPlanAction = null,
         ?CancelSubscription $cancelSubscriptionAction = null,
-        ?CreateSubscriptionBillingUpdateLink $createBillingUpdateLinkAction = null,
+        ?UpdateSubscriptionBilling $updateBillingAction = null,
     ): Billable {
         return new Billable(
             owner: $owner ?? $this->stubOwner(),
@@ -252,8 +252,8 @@ class BillableTest extends TestCase
             getSubscriptionAction: $getSubscriptionAction ?? Mockery::mock(GetSubscription::class),
             swapSubscriptionPlanAction: $swapSubscriptionPlanAction ?? Mockery::mock(SwapSubscriptionPlan::class),
             cancelSubscriptionAction: $cancelSubscriptionAction ?? Mockery::mock(CancelSubscription::class),
-            createBillingUpdateLinkAction: $createBillingUpdateLinkAction
-                ?? Mockery::mock(CreateSubscriptionBillingUpdateLink::class),
+            updateBillingAction: $updateBillingAction
+                ?? Mockery::mock(UpdateSubscriptionBilling::class),
         );
     }
 }

@@ -6,7 +6,7 @@ namespace Vatly\Fluent;
 
 use DateTimeInterface;
 use Vatly\Fluent\Actions\CancelSubscription;
-use Vatly\Fluent\Actions\CreateSubscriptionBillingUpdateLink;
+use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\Fluent\Actions\SwapSubscriptionPlan;
 use Vatly\Fluent\Contracts\BillableInterface;
@@ -30,7 +30,7 @@ class SubscriptionHandle
         private SwapSubscriptionPlan $swapAction,
         private CancelSubscription $cancelAction,
         private GetSubscription $getSubscriptionAction,
-        private CreateSubscriptionBillingUpdateLink $createBillingUpdateLinkAction,
+        private UpdateSubscriptionBilling $updateBillingAction,
     ) {
         //
     }
@@ -172,9 +172,9 @@ class SubscriptionHandle
      *
      * @param array<string, mixed> $prefillData Optional pre-fill data.
      */
-    public function createBillingUpdateLink(array $prefillData = []): string
+    public function updateBilling(array $prefillData = []): string
     {
-        $link = $this->createBillingUpdateLinkAction->execute(
+        $link = $this->updateBillingAction->execute(
             $this->subscription->getVatlyId(),
             $prefillData,
         );

@@ -8,7 +8,7 @@ use Mockery;
 use Vatly\Fluent\Actions\CancelSubscription;
 use Vatly\Fluent\Actions\CreateCheckout;
 use Vatly\Fluent\Actions\CreateCustomer;
-use Vatly\Fluent\Actions\CreateSubscriptionBillingUpdateLink;
+use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Actions\GetCustomer;
 use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\Fluent\Actions\SwapSubscriptionPlan;
@@ -37,7 +37,7 @@ class BillableFactoryTest extends TestCase
             getSubscriptionAction: Mockery::mock(GetSubscription::class),
             swapSubscriptionPlanAction: Mockery::mock(SwapSubscriptionPlan::class),
             cancelSubscriptionAction: Mockery::mock(CancelSubscription::class),
-            createBillingUpdateLinkAction: Mockery::mock(CreateSubscriptionBillingUpdateLink::class),
+            updateBillingAction: Mockery::mock(UpdateSubscriptionBilling::class),
         );
 
         $billable = $factory->forOwner($owner);
@@ -59,7 +59,7 @@ class BillableFactoryTest extends TestCase
             getSubscriptionAction: Mockery::mock(GetSubscription::class),
             swapSubscriptionPlanAction: Mockery::mock(SwapSubscriptionPlan::class),
             cancelSubscriptionAction: Mockery::mock(CancelSubscription::class),
-            createBillingUpdateLinkAction: Mockery::mock(CreateSubscriptionBillingUpdateLink::class),
+            updateBillingAction: Mockery::mock(UpdateSubscriptionBilling::class),
         );
 
         $ownerA = Mockery::mock(BillableInterface::class);
