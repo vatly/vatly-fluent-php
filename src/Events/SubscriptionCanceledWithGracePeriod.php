@@ -28,7 +28,7 @@ class SubscriptionCanceledWithGracePeriod
     {
         return new self(
             customerId: $webhook->object['data']['customerId'],
-            subscriptionId: $webhook->resourceId,
+            subscriptionId: $webhook->entityId,
             endsAt: new DateTimeImmutable($webhook->object['data']['endsAt']),
         );
     }

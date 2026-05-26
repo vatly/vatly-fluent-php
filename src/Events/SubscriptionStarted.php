@@ -30,7 +30,7 @@ class SubscriptionStarted
     {
         return new self(
             customerId: $webhook->object['data']['customerId'],
-            subscriptionId: $webhook->resourceId,
+            subscriptionId: $webhook->entityId,
             planId: $webhook->object['data']['subscriptionPlanId'],
             type: self::DEFAULT_TYPE,
             name: $webhook->object['data']['name'],

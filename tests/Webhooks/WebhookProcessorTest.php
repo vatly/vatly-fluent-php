@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Tests\Webhooks;
 
-use DateTimeInterface;
 use Mockery;
 use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Contracts\EventDispatcherInterface;
@@ -14,14 +13,12 @@ use Vatly\Fluent\Events\SubscriptionStarted;
 use Vatly\Fluent\Events\UnsupportedWebhookReceived;
 use Vatly\Fluent\Exceptions\InvalidWebhookSignatureException;
 use Vatly\Fluent\Tests\TestCase;
-use Vatly\Fluent\Webhooks\SignatureVerifier;
 use Vatly\Fluent\Webhooks\WebhookEventFactory;
 use Vatly\Fluent\Webhooks\WebhookProcessor;
 
 class WebhookProcessorTest extends TestCase
 {
     private string $secret;
-    private SignatureVerifier $signatureVerifier;
     private WebhookEventFactory $eventFactory;
     private WebhookCallRepositoryInterface $repository;
     private EventDispatcherInterface $dispatcher;
@@ -32,13 +29,11 @@ class WebhookProcessorTest extends TestCase
         parent::setUp();
 
         $this->secret = 'test-webhook-secret';
-        $this->signatureVerifier = new SignatureVerifier();
         $this->eventFactory = new WebhookEventFactory(Mockery::mock(GetOrder::class));
         $this->repository = Mockery::mock(WebhookCallRepositoryInterface::class);
         $this->dispatcher = Mockery::mock(EventDispatcherInterface::class);
 
         $this->processor = new WebhookProcessor(
-            $this->signatureVerifier,
             $this->eventFactory,
             $this->repository,
             $this->dispatcher,
@@ -48,11 +43,12 @@ class WebhookProcessorTest extends TestCase
 
     public function test_it_processes_a_valid_webhook_end_to_end(): void
     {
-        $payload = json_encode([
-            'eventName' => 'subscription.started',
-            'resourceId' => 'sub_123',
-            'resourceName' => 'subscription',
-            'object' => [
+        $payload = $this->makePayload(
+            id: 'webhook_event_abc',
+            eventName: 'subscription.started',
+            entityType: 'subscription',
+            entityId: 'sub_123',
+            object: [
                 'data' => [
                     'customerId' => 'cus_456',
                     'subscriptionPlanId' => 'plan_789',
@@ -60,9 +56,7 @@ class WebhookProcessorTest extends TestCase
                     'quantity' => 1,
                 ],
             ],
-            'raisedAt' => '2024-01-15T10:00:00Z',
-            'testmode' => false,
-        ]);
+        );
 
         $signature = $this->makeSignatureHeader($payload, $this->secret);
 
@@ -70,20 +64,20 @@ class WebhookProcessorTest extends TestCase
             ->shouldReceive('record')
             ->once()
             ->withArgs(function (
+                string $id,
+                string $resource,
                 string $eventName,
-                string $resourceId,
-                string $resourceName,
-                array $recordedPayload,
-                DateTimeInterface $raisedAt,
-                bool $testmode,
+                string $entityType,
+                string $entityId,
+                array $object,
                 ?string $vatlyCustomerId,
             ) {
-                return $eventName === 'subscription.started'
-                    && $resourceId === 'sub_123'
-                    && $resourceName === 'subscription'
-                    && $recordedPayload['eventName'] === 'subscription.started'
-                    && $raisedAt->format('Y-m-d') === '2024-01-15'
-                    && $testmode === false
+                return $id === 'webhook_event_abc'
+                    && $resource === 'webhook_event'
+                    && $eventName === 'subscription.started'
+                    && $entityType === 'subscription'
+                    && $entityId === 'sub_123'
+                    && $object['data']['customerId'] === 'cus_456'
                     && $vatlyCustomerId === 'cus_456';
             });
 
@@ -102,11 +96,12 @@ class WebhookProcessorTest extends TestCase
 
     public function test_it_runs_matching_reactions_before_dispatching(): void
     {
-        $payload = json_encode([
-            'eventName' => 'subscription.started',
-            'resourceId' => 'sub_123',
-            'resourceName' => 'subscription',
-            'object' => [
+        $payload = $this->makePayload(
+            id: 'webhook_event_xyz',
+            eventName: 'subscription.started',
+            entityType: 'subscription',
+            entityId: 'sub_123',
+            object: [
                 'data' => [
                     'customerId' => 'cus_456',
                     'subscriptionPlanId' => 'plan_789',
@@ -114,9 +109,7 @@ class WebhookProcessorTest extends TestCase
                     'quantity' => 1,
                 ],
             ],
-            'raisedAt' => '2024-01-15T10:00:00Z',
-            'testmode' => false,
-        ]);
+        );
 
         $signature = $this->makeSignatureHeader($payload, $this->secret);
 
@@ -134,7 +127,6 @@ class WebhookProcessorTest extends TestCase
         $nonMatchingReaction->shouldNotReceive('handle');
 
         $processor = new WebhookProcessor(
-            $this->signatureVerifier,
             $this->eventFactory,
             $this->repository,
             $this->dispatcher,
@@ -147,33 +139,29 @@ class WebhookProcessorTest extends TestCase
 
     public function test_it_throws_exception_for_invalid_signature(): void
     {
-        $payload = json_encode([
-            'eventName' => 'subscription.started',
-            'resourceId' => 'sub_123',
-            'resourceName' => 'subscription',
-            'object' => [],
-            'raisedAt' => '2024-01-15T10:00:00Z',
-            'testmode' => false,
-        ]);
+        $payload = $this->makePayload(
+            id: 'webhook_event_abc',
+            eventName: 'subscription.started',
+            entityType: 'subscription',
+            entityId: 'sub_123',
+        );
 
         $this->repository->shouldNotReceive('record');
         $this->dispatcher->shouldNotReceive('dispatch');
 
         $this->expectException(InvalidWebhookSignatureException::class);
 
-        $this->processor->handle($payload, 'invalid-signature');
+        $this->processor->handle($payload, 't='.time().',v1=deadbeef');
     }
 
     public function test_it_throws_exception_for_missing_signature(): void
     {
-        $payload = json_encode([
-            'eventName' => 'subscription.started',
-            'resourceId' => 'sub_123',
-            'resourceName' => 'subscription',
-            'object' => [],
-            'raisedAt' => '2024-01-15T10:00:00Z',
-            'testmode' => false,
-        ]);
+        $payload = $this->makePayload(
+            id: 'webhook_event_abc',
+            eventName: 'subscription.started',
+            entityType: 'subscription',
+            entityId: 'sub_123',
+        );
 
         $this->repository->shouldNotReceive('record');
         $this->dispatcher->shouldNotReceive('dispatch');
@@ -183,16 +171,28 @@ class WebhookProcessorTest extends TestCase
         $this->processor->handle($payload, '');
     }
 
+    public function test_it_throws_exception_for_malformed_payload(): void
+    {
+        $this->repository->shouldNotReceive('record');
+        $this->dispatcher->shouldNotReceive('dispatch');
+
+        $payload = json_encode(['eventName' => 'subscription.started']); // missing required fields
+        $signature = $this->makeSignatureHeader($payload, $this->secret);
+
+        $this->expectException(InvalidWebhookSignatureException::class);
+
+        $this->processor->handle($payload, $signature);
+    }
+
     public function test_it_dispatches_unsupported_webhook_received_for_unknown_events(): void
     {
-        $payload = json_encode([
-            'eventName' => 'unknown.event',
-            'resourceId' => 'res_123',
-            'resourceName' => 'unknown',
-            'object' => [],
-            'raisedAt' => '2024-01-15T10:00:00Z',
-            'testmode' => false,
-        ]);
+        $payload = $this->makePayload(
+            id: 'webhook_event_abc',
+            eventName: 'unknown.event',
+            entityType: 'unknown',
+            entityId: 'res_123',
+            object: [],
+        );
 
         $signature = $this->makeSignatureHeader($payload, $this->secret);
 
@@ -209,44 +209,25 @@ class WebhookProcessorTest extends TestCase
         $this->processor->handle($payload, $signature);
     }
 
-    public function test_it_records_webhook_with_testmode_flag(): void
-    {
-        $payload = json_encode([
-            'eventName' => 'subscription.started',
-            'resourceId' => 'sub_123',
-            'resourceName' => 'subscription',
-            'object' => [
-                'data' => [
-                    'customerId' => 'cus_456',
-                    'subscriptionPlanId' => 'plan_789',
-                    'name' => 'Test Plan',
-                    'quantity' => 1,
-                ],
-            ],
-            'raisedAt' => '2024-01-15T10:00:00Z',
-            'testmode' => true,
+    /**
+     * @param array<string, mixed> $object
+     */
+    private function makePayload(
+        string $id,
+        string $eventName,
+        string $entityType,
+        string $entityId,
+        array $object = [],
+        string $resource = 'webhook_event',
+    ): string {
+        return (string) json_encode([
+            'id' => $id,
+            'resource' => $resource,
+            'eventName' => $eventName,
+            'entityType' => $entityType,
+            'entityId' => $entityId,
+            'object' => (object) $object,
         ]);
-
-        $signature = $this->makeSignatureHeader($payload, $this->secret);
-
-        $this->repository
-            ->shouldReceive('record')
-            ->once()
-            ->withArgs(function (
-                string $eventName,
-                string $resourceId,
-                string $resourceName,
-                array $recordedPayload,
-                DateTimeInterface $raisedAt,
-                bool $testmode,
-                ?string $vatlyCustomerId,
-            ) {
-                return $testmode === true;
-            });
-
-        $this->dispatcher->shouldReceive('dispatch')->once();
-
-        $this->processor->handle($payload, $signature);
     }
 
     private function makeSignatureHeader(string $payload, string $secret, ?int $timestamp = null): string

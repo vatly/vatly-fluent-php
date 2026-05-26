@@ -42,9 +42,11 @@ class SubscriptionStartedTest extends TestCase
     public function test_it_creates_from_webhook(): void
     {
         $webhook = new WebhookReceived(
+            id: 'webhook_event_abc',
+            resource: 'webhook_event',
             eventName: 'subscription.started',
-            resourceId: 'sub_123',
-            resourceName: 'subscription',
+            entityType: 'subscription',
+            entityId: 'sub_123',
             object: [
                 'data' => [
                     'customerId' => 'cus_456',
@@ -53,8 +55,6 @@ class SubscriptionStartedTest extends TestCase
                     'quantity' => 1,
                 ],
             ],
-            raisedAt: '2024-01-15T10:00:00Z',
-            testmode: false,
         );
 
         $event = SubscriptionStarted::fromWebhook($webhook);

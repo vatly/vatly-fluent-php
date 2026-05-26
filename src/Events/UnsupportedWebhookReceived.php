@@ -15,12 +15,12 @@ class UnsupportedWebhookReceived
      * @param array<string, mixed> $object
      */
     public function __construct(
+        public string $id,
+        public string $resource,
         public string $eventName,
-        public string $resourceId,
-        public string $resourceName,
+        public string $entityType,
+        public string $entityId,
         public array $object,
-        public string $raisedAt,
-        public bool $testmode,
     ) {
         //
     }
@@ -28,12 +28,12 @@ class UnsupportedWebhookReceived
     public static function fromWebhook(WebhookReceived $webhook): self
     {
         return new self(
+            id: $webhook->id,
+            resource: $webhook->resource,
             eventName: $webhook->eventName,
-            resourceId: $webhook->resourceId,
-            resourceName: $webhook->resourceName,
+            entityType: $webhook->entityType,
+            entityId: $webhook->entityId,
             object: $webhook->object,
-            raisedAt: $webhook->raisedAt,
-            testmode: $webhook->testmode,
         );
     }
 }
