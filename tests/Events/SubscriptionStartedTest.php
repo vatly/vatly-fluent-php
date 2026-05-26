@@ -47,6 +47,8 @@ class SubscriptionStartedTest extends TestCase
             eventName: 'subscription.started',
             entityType: 'subscription',
             entityId: 'sub_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
             object: [
                 'customerId' => 'cus_456',
                 'subscriptionPlanId' => 'plan_789',

@@ -26,6 +26,8 @@ class WebhookReceived
         public string $eventName,
         public string $entityType,
         public string $entityId,
+        public bool $testmode,
+        public string $createdAt,
         public array $object,
     ) {
         //
@@ -42,6 +44,8 @@ class WebhookReceived
             'eventName' => $this->eventName,
             'entityType' => $this->entityType,
             'entityId' => $this->entityId,
+            'testmode' => $this->testmode,
+            'createdAt' => $this->createdAt,
             'object' => $this->object,
         ];
     }

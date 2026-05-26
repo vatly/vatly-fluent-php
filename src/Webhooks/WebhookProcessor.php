@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Webhooks;
 
+use DateTimeImmutable;
 use InvalidArgumentException;
 use Vatly\API\Exceptions\InvalidSignatureException;
 use Vatly\API\Webhooks\Webhook;
@@ -66,6 +67,8 @@ class WebhookProcessor
             eventName: $webhook->eventName,
             entityType: $webhook->entityType,
             entityId: $webhook->entityId,
+            testmode: $webhook->testmode,
+            createdAt: new DateTimeImmutable($webhook->createdAt),
             object: $webhook->object,
             vatlyCustomerId: $webhook->getCustomerId(),
         );

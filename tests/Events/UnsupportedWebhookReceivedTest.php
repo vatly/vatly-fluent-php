@@ -18,6 +18,8 @@ class UnsupportedWebhookReceivedTest extends TestCase
             eventName: 'unknown.event',
             entityType: 'resource',
             entityId: 'res_123',
+            testmode: true,
+            createdAt: '2024-01-15T10:00:00Z',
             object: ['data' => ['key' => 'value']],
         );
 
@@ -26,6 +28,8 @@ class UnsupportedWebhookReceivedTest extends TestCase
         $this->assertSame('unknown.event', $event->eventName);
         $this->assertSame('resource', $event->entityType);
         $this->assertSame('res_123', $event->entityId);
+        $this->assertTrue($event->testmode);
+        $this->assertSame('2024-01-15T10:00:00Z', $event->createdAt);
         $this->assertSame(['data' => ['key' => 'value']], $event->object);
     }
 
@@ -37,6 +41,8 @@ class UnsupportedWebhookReceivedTest extends TestCase
             eventName: 'unknown.event.type',
             entityType: 'unknown_resource',
             entityId: 'xyz_789',
+            testmode: false,
+            createdAt: '2024-06-01T12:00:00Z',
             object: ['foo' => 'bar'],
         );
 
@@ -48,6 +54,8 @@ class UnsupportedWebhookReceivedTest extends TestCase
         $this->assertSame('unknown.event.type', $event->eventName);
         $this->assertSame('unknown_resource', $event->entityType);
         $this->assertSame('xyz_789', $event->entityId);
+        $this->assertFalse($event->testmode);
+        $this->assertSame('2024-06-01T12:00:00Z', $event->createdAt);
         $this->assertSame(['foo' => 'bar'], $event->object);
     }
 }

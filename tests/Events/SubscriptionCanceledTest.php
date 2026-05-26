@@ -33,7 +33,7 @@ class SubscriptionCanceledTest extends TestCase
         $this->assertSame($endsAt, $event->endsAt);
     }
 
-    public function test_immediately_creates_from_webhook(): void
+    public function test_immediately_creates_from_webhook_using_createdAt(): void
     {
         $webhook = new WebhookReceived(
             id: 'webhook_event_abc',
@@ -41,10 +41,9 @@ class SubscriptionCanceledTest extends TestCase
             eventName: 'subscription.canceled_immediately',
             entityType: 'subscription',
             entityId: 'sub_123',
-            object: [
-                'customerId' => 'cus_456',
-                'endedAt' => '2024-01-15T10:00:00Z',
-            ],
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            object: ['customerId' => 'cus_456'],
         );
 
         $event = SubscriptionCanceledImmediately::fromWebhook($webhook);
@@ -85,6 +84,8 @@ class SubscriptionCanceledTest extends TestCase
             eventName: 'subscription.canceled_with_grace_period',
             entityType: 'subscription',
             entityId: 'sub_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
             object: [
                 'customerId' => 'cus_456',
                 'endedAt' => '2024-02-15T10:00:00Z',

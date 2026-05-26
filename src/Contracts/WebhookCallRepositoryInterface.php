@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Contracts;
 
+use DateTimeInterface;
+
 /**
  * Interface for webhook call persistence.
  */
@@ -20,6 +22,8 @@ interface WebhookCallRepositoryInterface
         string $eventName,
         string $entityType,
         string $entityId,
+        bool $testmode,
+        DateTimeInterface $createdAt,
         array $object,
         ?string $vatlyCustomerId = null,
     ): void;

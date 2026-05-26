@@ -29,7 +29,7 @@ class SubscriptionCanceledImmediately
         return new self(
             customerId: $webhook->object['customerId'],
             subscriptionId: $webhook->entityId,
-            endsAt: new DateTimeImmutable($webhook->object['endedAt']),
+            endsAt: new DateTimeImmutable($webhook->createdAt),
         );
     }
 }

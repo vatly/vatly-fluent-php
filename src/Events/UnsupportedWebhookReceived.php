@@ -20,6 +20,8 @@ class UnsupportedWebhookReceived
         public string $eventName,
         public string $entityType,
         public string $entityId,
+        public bool $testmode,
+        public string $createdAt,
         public array $object,
     ) {
         //
@@ -33,6 +35,8 @@ class UnsupportedWebhookReceived
             eventName: $webhook->eventName,
             entityType: $webhook->entityType,
             entityId: $webhook->entityId,
+            testmode: $webhook->testmode,
+            createdAt: $webhook->createdAt,
             object: $webhook->object,
         );
     }

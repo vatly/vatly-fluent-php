@@ -42,6 +42,8 @@ class WebhookEventFactoryTest extends TestCase
             eventName: 'subscription.started',
             entityType: 'subscription',
             entityId: 'sub_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
             object: (object) ['customerId' => 'cus_456'],
         );
 
@@ -53,6 +55,8 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertSame('subscription.started', $event->eventName);
         $this->assertSame('subscription', $event->entityType);
         $this->assertSame('sub_123', $event->entityId);
+        $this->assertFalse($event->testmode);
+        $this->assertSame('2024-01-15T10:00:00Z', $event->createdAt);
         $this->assertSame('cus_456', $event->getCustomerId());
     }
 
@@ -64,6 +68,8 @@ class WebhookEventFactoryTest extends TestCase
             eventName: 'unknown.event',
             entityType: 'unknown',
             entityId: 'res_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
             object: null,
         );
 
@@ -80,6 +86,8 @@ class WebhookEventFactoryTest extends TestCase
             eventName: 'subscription.started',
             entityType: 'subscription',
             entityId: 'sub_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
             object: [
                 'customerId' => 'cus_456',
                 'subscriptionPlanId' => 'plan_789',
@@ -106,6 +114,8 @@ class WebhookEventFactoryTest extends TestCase
             eventName: 'subscription.canceled_immediately',
             entityType: 'subscription',
             entityId: 'sub_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
             object: [
                 'customerId' => 'cus_456',
                 'endedAt' => '2024-01-15T10:00:00Z',
@@ -127,6 +137,8 @@ class WebhookEventFactoryTest extends TestCase
             eventName: 'subscription.canceled_with_grace_period',
             entityType: 'subscription',
             entityId: 'sub_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
             object: [
                 'customerId' => 'cus_456',
                 'endedAt' => '2024-02-15T10:00:00Z',
@@ -166,6 +178,8 @@ class WebhookEventFactoryTest extends TestCase
             eventName: 'order.paid',
             entityType: 'order',
             entityId: 'ord_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
             object: [
                 'customerId' => 'cus_456',
                 'total' => ['currency' => 'EUR', 'value' => '99.00'],
@@ -199,6 +213,8 @@ class WebhookEventFactoryTest extends TestCase
             eventName: 'unknown.event',
             entityType: 'unknown',
             entityId: 'res_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
             object: [],
         );
 

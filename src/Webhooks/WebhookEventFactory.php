@@ -58,6 +58,8 @@ class WebhookEventFactory
             eventName: $payload->eventName,
             entityType: $payload->entityType,
             entityId: $payload->entityId,
+            testmode: $payload->testmode,
+            createdAt: $payload->createdAt,
             object: $object,
         );
     }

@@ -17,6 +17,8 @@ class WebhookReceivedTest extends TestCase
             eventName: 'subscription.started',
             entityType: 'subscription',
             entityId: 'sub_123',
+            testmode: true,
+            createdAt: '2024-01-15T10:00:00Z',
             object: ['customerId' => 'cus_456'],
         );
 
@@ -25,6 +27,8 @@ class WebhookReceivedTest extends TestCase
         $this->assertSame('subscription.started', $event->eventName);
         $this->assertSame('subscription', $event->entityType);
         $this->assertSame('sub_123', $event->entityId);
+        $this->assertTrue($event->testmode);
+        $this->assertSame('2024-01-15T10:00:00Z', $event->createdAt);
         $this->assertSame(['customerId' => 'cus_456'], $event->object);
     }
 
@@ -36,6 +40,8 @@ class WebhookReceivedTest extends TestCase
             eventName: 'subscription.started',
             entityType: 'subscription',
             entityId: 'sub_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
             object: [],
         );
 
@@ -46,6 +52,8 @@ class WebhookReceivedTest extends TestCase
         $this->assertArrayHasKey('eventName', $array);
         $this->assertArrayHasKey('entityType', $array);
         $this->assertArrayHasKey('entityId', $array);
+        $this->assertArrayHasKey('testmode', $array);
+        $this->assertArrayHasKey('createdAt', $array);
         $this->assertArrayHasKey('object', $array);
         $this->assertSame('subscription.started', $array['eventName']);
     }
@@ -58,6 +66,8 @@ class WebhookReceivedTest extends TestCase
             eventName: 'subscription.started',
             entityType: 'subscription',
             entityId: 'sub_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
             object: ['customerId' => 'cus_456'],
         );
 
@@ -72,6 +82,8 @@ class WebhookReceivedTest extends TestCase
             eventName: 'test.event',
             entityType: 'resource',
             entityId: 'res_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
             object: [],
         );
 

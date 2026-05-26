@@ -67,6 +67,8 @@ class WebhookProcessorTest extends TestCase
                 string $eventName,
                 string $entityType,
                 string $entityId,
+                bool $testmode,
+                \DateTimeInterface $createdAt,
                 array $object,
                 ?string $vatlyCustomerId,
             ) {
@@ -75,6 +77,8 @@ class WebhookProcessorTest extends TestCase
                     && $eventName === 'subscription.started'
                     && $entityType === 'subscription'
                     && $entityId === 'sub_123'
+                    && $testmode === false
+                    && $createdAt->format('Y-m-d') === '2024-01-15'
                     && $object['customerId'] === 'cus_456'
                     && $vatlyCustomerId === 'cus_456';
             });
@@ -215,6 +219,8 @@ class WebhookProcessorTest extends TestCase
         string $entityId,
         array $object = [],
         string $resource = 'webhook_event',
+        bool $testmode = false,
+        string $createdAt = '2024-01-15T10:00:00Z',
     ): string {
         return (string) json_encode([
             'id' => $id,
@@ -222,6 +228,8 @@ class WebhookProcessorTest extends TestCase
             'eventName' => $eventName,
             'entityType' => $entityType,
             'entityId' => $entityId,
+            'testmode' => $testmode,
+            'createdAt' => $createdAt,
             'object' => (object) $object,
         ]);
     }
