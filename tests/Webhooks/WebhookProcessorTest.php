@@ -64,7 +64,7 @@ class WebhookProcessorTest extends TestCase
             'testmode' => false,
         ]);
 
-        $signature = hash_hmac('sha256', $payload, $this->secret);
+        $signature = $this->makeSignatureHeader($payload, $this->secret);
 
         $this->repository
             ->shouldReceive('record')
@@ -118,7 +118,7 @@ class WebhookProcessorTest extends TestCase
             'testmode' => false,
         ]);
 
-        $signature = hash_hmac('sha256', $payload, $this->secret);
+        $signature = $this->makeSignatureHeader($payload, $this->secret);
 
         $this->repository->shouldReceive('record')->once();
         $this->dispatcher->shouldReceive('dispatch')->once();
@@ -194,7 +194,7 @@ class WebhookProcessorTest extends TestCase
             'testmode' => false,
         ]);
 
-        $signature = hash_hmac('sha256', $payload, $this->secret);
+        $signature = $this->makeSignatureHeader($payload, $this->secret);
 
         $this->repository->shouldReceive('record')->once();
 
@@ -227,7 +227,7 @@ class WebhookProcessorTest extends TestCase
             'testmode' => true,
         ]);
 
-        $signature = hash_hmac('sha256', $payload, $this->secret);
+        $signature = $this->makeSignatureHeader($payload, $this->secret);
 
         $this->repository
             ->shouldReceive('record')
@@ -247,5 +247,13 @@ class WebhookProcessorTest extends TestCase
         $this->dispatcher->shouldReceive('dispatch')->once();
 
         $this->processor->handle($payload, $signature);
+    }
+
+    private function makeSignatureHeader(string $payload, string $secret, ?int $timestamp = null): string
+    {
+        $timestamp ??= time();
+        $signature = hash_hmac('sha256', $timestamp.'.'.$payload, $secret);
+
+        return "t={$timestamp},v1={$signature}";
     }
 }
