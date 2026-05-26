@@ -27,9 +27,9 @@ class SubscriptionCanceledImmediately
     public static function fromWebhook(WebhookReceived $webhook): self
     {
         return new self(
-            customerId: $webhook->getCustomerId(),
+            customerId: $webhook->object['customerId'],
             subscriptionId: $webhook->entityId,
-            endsAt: new DateTimeImmutable($webhook->createdAt),
+            endsAt: new DateTimeImmutable($webhook->object['endedAt']),
         );
     }
 }

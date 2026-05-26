@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Webhooks;
 
-use DateTimeImmutable;
+use InvalidArgumentException;
+use Vatly\API\Exceptions\InvalidSignatureException;
+use Vatly\API\Webhooks\Webhook;
 use Vatly\Fluent\Contracts\EventDispatcherInterface;
 use Vatly\Fluent\Contracts\WebhookCallRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
+use Vatly\Fluent\Exceptions\InvalidWebhookSignatureException;
 
 /**
  * @immutable
@@ -18,7 +21,6 @@ class WebhookProcessor
      * @param  WebhookReactionInterface[]  $reactions
      */
     public function __construct(
-        private SignatureVerifier $signatureVerifier,
         private WebhookEventFactory $eventFactory,
         private WebhookCallRepositoryInterface $repository,
         private EventDispatcherInterface $dispatcher,
@@ -31,28 +33,40 @@ class WebhookProcessor
     /**
      * Handle an incoming webhook request.
      *
-     * Flow: verify → parse → store → react → dispatch
+     * Flow: parse (verify + decode + validate) → store → react → dispatch
      *
-     * Reactions handle core billing logic (storing orders, syncing subscriptions).
-     * The dispatcher fires the event for framework-specific listeners (emails, etc).
+     * Verification and structural validation are delegated to
+     * {@see Webhook::parse()}; this method only deals with the
+     * downstream bookkeeping. Reactions handle core billing logic
+     * (storing orders, syncing subscriptions). The dispatcher fires the
+     * event for framework-specific listeners (emails, etc).
      *
-     * @throws \Vatly\Fluent\Exceptions\InvalidWebhookSignatureException
+     * @throws InvalidWebhookSignatureException When the signature is missing, the
+     *                                          timestamp is outside the replay
+     *                                          window, the HMAC does not match,
+     *                                          or the payload structure is invalid.
      */
     public function handle(string $payload, string $signature): void
     {
-        $this->signatureVerifier->verify($signature, $payload, $this->webhookSecret);
+        if ($signature === '') {
+            throw InvalidWebhookSignatureException::missingSignature();
+        }
 
-        $decoded = json_decode($payload, true, 512, JSON_THROW_ON_ERROR);
+        try {
+            $parsed = Webhook::parse($payload, $signature, $this->webhookSecret);
+        } catch (InvalidSignatureException|InvalidArgumentException) {
+            throw InvalidWebhookSignatureException::invalidSignature();
+        }
 
-        $webhook = $this->eventFactory->parsePayload($decoded);
+        $webhook = $this->eventFactory->fromPayload($parsed);
 
         $this->repository->record(
+            id: $webhook->id,
+            resource: $webhook->resource,
             eventName: $webhook->eventName,
-            entityId: $webhook->entityId,
             entityType: $webhook->entityType,
-            object: $decoded,
-            createdAt: new DateTimeImmutable($webhook->createdAt),
-            testmode: $webhook->testmode,
+            entityId: $webhook->entityId,
+            object: $webhook->object,
             vatlyCustomerId: $webhook->getCustomerId(),
         );
 

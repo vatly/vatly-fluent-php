@@ -36,12 +36,15 @@ class SubscriptionCanceledTest extends TestCase
     public function test_immediately_creates_from_webhook(): void
     {
         $webhook = new WebhookReceived(
+            id: 'webhook_event_abc',
+            resource: 'webhook_event',
             eventName: 'subscription.canceled_immediately',
-            entityId: 'sub_123',
             entityType: 'subscription',
-            object: ['customerId' => 'cus_456'],
-            createdAt: '2024-01-15T10:00:00Z',
-            testmode: false,
+            entityId: 'sub_123',
+            object: [
+                'customerId' => 'cus_456',
+                'endedAt' => '2024-01-15T10:00:00Z',
+            ],
         );
 
         $event = SubscriptionCanceledImmediately::fromWebhook($webhook);
@@ -77,15 +80,15 @@ class SubscriptionCanceledTest extends TestCase
     public function test_with_grace_period_creates_from_webhook_with_parsed_date(): void
     {
         $webhook = new WebhookReceived(
+            id: 'webhook_event_abc',
+            resource: 'webhook_event',
             eventName: 'subscription.canceled_with_grace_period',
-            entityId: 'sub_123',
             entityType: 'subscription',
+            entityId: 'sub_123',
             object: [
                 'customerId' => 'cus_456',
-                'endsAt' => '2024-02-15T10:00:00Z',
+                'endedAt' => '2024-02-15T10:00:00Z',
             ],
-            createdAt: '2024-01-15T10:00:00Z',
-            testmode: false,
         );
 
         $event = SubscriptionCanceledWithGracePeriod::fromWebhook($webhook);

@@ -35,7 +35,6 @@ class WebhookProcessorFactory
         array $additionalReactions = [],
     ): WebhookProcessor {
         return new WebhookProcessor(
-            signatureVerifier: new SignatureVerifier(),
             eventFactory: new WebhookEventFactory($getOrder),
             repository: $webhookCalls,
             dispatcher: $dispatcher,

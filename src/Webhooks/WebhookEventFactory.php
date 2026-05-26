@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Webhooks;
 
+use Vatly\API\Webhooks\WebhookPayload;
 use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Events\OrderPaid;
 use Vatly\Fluent\Events\SubscriptionCanceledImmediately;
@@ -41,19 +42,23 @@ class WebhookEventFactory
     }
 
     /**
-     * Parse raw webhook payload into a WebhookReceived event.
-     *
-     * @param array<string, mixed> $payload
+     * Build the framework-agnostic {@see WebhookReceived} from the upstream
+     * {@see WebhookPayload}. The upstream `object` is a `stdClass`; we deep-
+     * convert to an array so consumers keep using array access.
      */
-    public function parsePayload(array $payload): WebhookReceived
+    public function fromPayload(WebhookPayload $payload): WebhookReceived
     {
+        $object = $payload->object !== null
+            ? (array) json_decode((string) json_encode($payload->object), true)
+            : [];
+
         return new WebhookReceived(
-            eventName: $payload['eventName'] ?? '',
-            entityId: $payload['entityId'] ?? '',
-            entityType: $payload['entityType'] ?? '',
-            object: $payload['object'] ?? [],
-            createdAt: $payload['createdAt'] ?? '',
-            testmode: $payload['testmode'] ?? false,
+            id: $payload->id,
+            resource: $payload->resource,
+            eventName: $payload->eventName,
+            entityType: $payload->entityType,
+            entityId: $payload->entityId,
+            object: $object,
         );
     }
 

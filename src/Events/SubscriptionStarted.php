@@ -29,7 +29,7 @@ class SubscriptionStarted
     public static function fromWebhook(WebhookReceived $webhook): self
     {
         return new self(
-            customerId: $webhook->getCustomerId(),
+            customerId: $webhook->object['customerId'],
             subscriptionId: $webhook->entityId,
             planId: $webhook->object['subscriptionPlanId'],
             type: self::DEFAULT_TYPE,

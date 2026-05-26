@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Contracts;
 
-use DateTimeInterface;
-
 /**
  * Interface for webhook call persistence.
  */
@@ -14,16 +12,16 @@ interface WebhookCallRepositoryInterface
     /**
      * Record a webhook call.
      *
-     * @param array<string, mixed> $object
+     * @param array<string, mixed> $object Raw `object` field from the webhook payload.
      */
     public function record(
+        string $id,
+        string $resource,
         string $eventName,
-        string $entityId,
         string $entityType,
+        string $entityId,
         array $object,
-        DateTimeInterface $createdAt,
-        bool $testmode,
-        ?string $vatlyCustomerId = null
+        ?string $vatlyCustomerId = null,
     ): void;
 
     /**

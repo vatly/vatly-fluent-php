@@ -10,6 +10,7 @@ use Vatly\API\Resources\Order as ApiOrder;
 use Vatly\API\Types\Money;
 use Vatly\API\Types\TaxSummaryCollection;
 use Vatly\API\VatlyApiClient;
+use Vatly\API\Webhooks\WebhookPayload;
 use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Events\OrderPaid;
 use Vatly\Fluent\Events\SubscriptionCanceledImmediately;
@@ -33,41 +34,58 @@ class WebhookEventFactoryTest extends TestCase
         $this->factory = new WebhookEventFactory($this->getOrder);
     }
 
-    public function test_it_parses_webhook_payload_into_webhook_received_event(): void
+    public function test_it_converts_upstream_webhook_payload_into_webhook_received_event(): void
     {
-        $payload = [
-            'eventName' => 'subscription.started',
-            'entityId' => 'sub_123',
-            'entityType' => 'subscription',
-            'object' => ['customerId' => 'cus_456'],
-            'createdAt' => '2024-01-15T10:00:00Z',
-            'testmode' => true,
-        ];
+        $payload = new WebhookPayload(
+            id: 'webhook_event_abc',
+            resource: 'webhook_event',
+            eventName: 'subscription.started',
+            entityType: 'subscription',
+            entityId: 'sub_123',
+            object: (object) ['customerId' => 'cus_456'],
+        );
 
-        $event = $this->factory->parsePayload($payload);
+        $event = $this->factory->fromPayload($payload);
 
         $this->assertInstanceOf(WebhookReceived::class, $event);
+        $this->assertSame('webhook_event_abc', $event->id);
+        $this->assertSame('webhook_event', $event->resource);
         $this->assertSame('subscription.started', $event->eventName);
-        $this->assertSame('sub_123', $event->entityId);
         $this->assertSame('subscription', $event->entityType);
-        $this->assertTrue($event->testmode);
+        $this->assertSame('sub_123', $event->entityId);
         $this->assertSame('cus_456', $event->getCustomerId());
+    }
+
+    public function test_it_converts_payload_with_null_object_into_empty_array(): void
+    {
+        $payload = new WebhookPayload(
+            id: 'webhook_event_abc',
+            resource: 'webhook_event',
+            eventName: 'unknown.event',
+            entityType: 'unknown',
+            entityId: 'res_123',
+            object: null,
+        );
+
+        $event = $this->factory->fromPayload($payload);
+
+        $this->assertSame([], $event->object);
     }
 
     public function test_it_creates_subscription_started_event_from_webhook(): void
     {
         $webhook = new WebhookReceived(
+            id: 'webhook_event_abc',
+            resource: 'webhook_event',
             eventName: 'subscription.started',
-            entityId: 'sub_123',
             entityType: 'subscription',
+            entityId: 'sub_123',
             object: [
                 'customerId' => 'cus_456',
                 'subscriptionPlanId' => 'plan_789',
                 'name' => 'Premium Plan',
                 'quantity' => 1,
             ],
-            createdAt: '2024-01-15T10:00:00Z',
-            testmode: false,
         );
 
         $event = $this->factory->createFromWebhook($webhook);
@@ -83,14 +101,15 @@ class WebhookEventFactoryTest extends TestCase
     public function test_it_creates_subscription_canceled_immediately_event_from_webhook(): void
     {
         $webhook = new WebhookReceived(
+            id: 'webhook_event_abc',
+            resource: 'webhook_event',
             eventName: 'subscription.canceled_immediately',
-            entityId: 'sub_123',
             entityType: 'subscription',
+            entityId: 'sub_123',
             object: [
                 'customerId' => 'cus_456',
+                'endedAt' => '2024-01-15T10:00:00Z',
             ],
-            createdAt: '2024-01-15T10:00:00Z',
-            testmode: false,
         );
 
         $event = $this->factory->createFromWebhook($webhook);
@@ -103,15 +122,15 @@ class WebhookEventFactoryTest extends TestCase
     public function test_it_creates_subscription_canceled_with_grace_period_event_from_webhook(): void
     {
         $webhook = new WebhookReceived(
+            id: 'webhook_event_abc',
+            resource: 'webhook_event',
             eventName: 'subscription.canceled_with_grace_period',
-            entityId: 'sub_123',
             entityType: 'subscription',
+            entityId: 'sub_123',
             object: [
                 'customerId' => 'cus_456',
-                'endsAt' => '2024-02-15T10:00:00Z',
+                'endedAt' => '2024-02-15T10:00:00Z',
             ],
-            createdAt: '2024-01-15T10:00:00Z',
-            testmode: false,
         );
 
         $event = $this->factory->createFromWebhook($webhook);
@@ -142,18 +161,17 @@ class WebhookEventFactoryTest extends TestCase
             ->andReturn($apiOrder);
 
         $webhook = new WebhookReceived(
+            id: 'webhook_event_abc',
+            resource: 'webhook_event',
             eventName: 'order.paid',
-            entityId: 'ord_123',
             entityType: 'order',
+            entityId: 'ord_123',
             object: [
                 'customerId' => 'cus_456',
-                'total' => 9900,
-                'currency' => 'EUR',
+                'total' => ['currency' => 'EUR', 'value' => '99.00'],
                 'invoiceNumber' => 'INV-2024-001',
                 'paymentMethod' => 'credit_card',
             ],
-            createdAt: '2024-01-15T10:00:00Z',
-            testmode: false,
         );
 
         $event = $this->factory->createFromWebhook($webhook);
@@ -176,12 +194,12 @@ class WebhookEventFactoryTest extends TestCase
     public function test_it_creates_unsupported_webhook_received_for_unknown_events(): void
     {
         $webhook = new WebhookReceived(
+            id: 'webhook_event_abc',
+            resource: 'webhook_event',
             eventName: 'unknown.event',
-            entityId: 'res_123',
             entityType: 'unknown',
+            entityId: 'res_123',
             object: [],
-            createdAt: '2024-01-15T10:00:00Z',
-            testmode: false,
         );
 
         $event = $this->factory->createFromWebhook($webhook);
