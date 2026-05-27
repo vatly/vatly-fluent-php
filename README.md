@@ -145,6 +145,8 @@ class User implements BillableInterface
 }
 ```
 
+> Can't modify the owner class? See [docs/recipes/cannot-customize-owner-model.md](docs/recipes/cannot-customize-owner-model.md) for the adapter pattern + two storage options.
+
 ### 3. Implement your `SubscriptionInterface` model
 
 State accessors + the derived predicates. Use `DerivesSubscriptionState` to get the six predicates for free.
@@ -370,6 +372,10 @@ Dispatched by webhook reactions through your `EventDispatcherInterface`. Subscri
 - `SubscriptionCanceledWithGracePeriod`
 - `LocalSubscriptionCreated`
 - `UnsupportedWebhookReceived`
+
+## Recipes
+
+For situational guides (sealed owner models, multi-tenant setups, …) see [docs/recipes/](docs/recipes/).
 
 ## Testing
 
