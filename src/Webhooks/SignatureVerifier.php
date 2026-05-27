@@ -21,6 +21,15 @@ use Vatly\Fluent\Exceptions\InvalidWebhookSignatureException;
 class SignatureVerifier
 {
     /**
+     * HTTP header name carrying the structured Vatly webhook signature.
+     *
+     * Re-exported from the upstream {@see WebhookSignatureValidator} so that
+     * framework drivers (Laravel, etc.) can read it without taking a direct
+     * dependency on `vatly/vatly-api-php`.
+     */
+    public const SIGNATURE_HEADER_NAME = WebhookSignatureValidator::SIGNATURE_HEADER_NAME;
+
+    /**
      * Verify the webhook signature.
      *
      * @param  string  $signatureHeader  Full value of the `Vatly-Signature` header.
