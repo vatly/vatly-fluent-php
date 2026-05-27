@@ -147,11 +147,6 @@ class SubscriptionBuilderTest extends TestCase
             {
                 return 'v1';
             }
-
-            public function getBillableModel(): string
-            {
-                return 'App\\Models\\User';
-            }
         };
     }
 
