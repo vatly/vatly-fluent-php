@@ -57,6 +57,26 @@ interface SubscriptionInterface
     public function isActive(): bool;
 
     /**
+     * Check if the subscription is currently usable.
+     *
+     * Today equivalent to {@see self::isActive()}. Reserved as a broader
+     * umbrella that will also account for trials once those land.
+     */
+    public function isValid(): bool;
+
+    /**
+     * Check if the subscription is recurring — i.e. not (yet) cancelled and
+     * will renew at the next billing cycle.
+     */
+    public function isRecurring(): bool;
+
+    /**
+     * Check if the subscription has fully ended — cancelled and past the
+     * grace period.
+     */
+    public function isEnded(): bool;
+
+    /**
      * Get the owner of this subscription.
      */
     public function getOwner(): BillableInterface;

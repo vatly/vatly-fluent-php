@@ -18,6 +18,17 @@ interface OrderRepositoryInterface
     public function findByVatlyId(string $vatlyId): ?OrderInterface;
 
     /**
+     * Find a single order owned by the given billable.
+     *
+     * Used by {@see \Vatly\Fluent\Billable::order()} to construct an
+     * {@see \Vatly\Fluent\OrderHandle} for a known owner+id pair.
+     *
+     * @throws \Vatly\Fluent\Exceptions\InvalidOrderException When no order
+     *         with the given Vatly id exists for the owner.
+     */
+    public function findForOwnerOrFail(BillableInterface $owner, string $vatlyId): OrderInterface;
+
+    /**
      * Find all orders for an owner.
      *
      * @return OrderInterface[]

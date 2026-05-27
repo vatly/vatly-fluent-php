@@ -12,6 +12,7 @@ use Vatly\Fluent\Actions\CreateCheckout;
 use Vatly\Fluent\Actions\CreateCustomer;
 use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Actions\GetCustomer;
+use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\Fluent\Actions\ResumeSubscription;
 use Vatly\Fluent\Actions\SwapSubscriptionPlan;
@@ -107,6 +108,25 @@ class BillableTest extends TestCase
         $billable = $this->buildBillable(owner: $owner, orders: $orders);
 
         $this->assertSame([$orderA, $orderB], $billable->orders());
+    }
+
+    public function test_order_returns_handle_wrapping_the_found_order(): void
+    {
+        $owner = $this->stubOwner();
+        $found = Mockery::mock(OrderInterface::class);
+
+        $orders = Mockery::mock(OrderRepositoryInterface::class);
+        $orders->shouldReceive('findForOwnerOrFail')
+            ->once()
+            ->with($owner, 'order_abc')
+            ->andReturn($found);
+
+        $billable = $this->buildBillable(owner: $owner, orders: $orders);
+
+        $handle = $billable->order('order_abc');
+
+        $this->assertInstanceOf(\Vatly\Fluent\OrderHandle::class, $handle);
+        $this->assertSame($found, $handle->model());
     }
 
     public function test_create_as_vatly_customer_creates_persists_and_returns_the_customer(): void
@@ -236,6 +256,7 @@ class BillableTest extends TestCase
         ?CreateCheckout $createCheckoutAction = null,
         ?CreateCustomer $createCustomerAction = null,
         ?GetCustomer $getCustomerAction = null,
+        ?GetOrder $getOrderAction = null,
         ?GetSubscription $getSubscriptionAction = null,
         ?SwapSubscriptionPlan $swapSubscriptionPlanAction = null,
         ?CancelSubscription $cancelSubscriptionAction = null,
@@ -251,6 +272,7 @@ class BillableTest extends TestCase
             createCheckoutAction: $createCheckoutAction ?? Mockery::mock(CreateCheckout::class),
             createCustomerAction: $createCustomerAction ?? Mockery::mock(CreateCustomer::class),
             getCustomerAction: $getCustomerAction ?? Mockery::mock(GetCustomer::class),
+            getOrderAction: $getOrderAction ?? Mockery::mock(GetOrder::class),
             getSubscriptionAction: $getSubscriptionAction ?? Mockery::mock(GetSubscription::class),
             swapSubscriptionPlanAction: $swapSubscriptionPlanAction ?? Mockery::mock(SwapSubscriptionPlan::class),
             cancelSubscriptionAction: $cancelSubscriptionAction ?? Mockery::mock(CancelSubscription::class),

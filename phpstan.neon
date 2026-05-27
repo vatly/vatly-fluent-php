@@ -9,3 +9,8 @@ parameters:
         # Intentionally untyped for Laravel Model compatibility
         - '#Method Vatly\\Fluent\\Contracts\\BillableInterface::getKey\(\) has no return type specified#'
         - '#Method Vatly\\Fluent\\Contracts\\BillableInterface::save\(\) has no return type specified#'
+        # Trait is consumed by driver impls (e.g. vatly-laravel's Eloquent Subscription)
+        # and by tests; no in-src consumer is required.
+        -
+            identifier: trait.unused
+            path: src/Concerns/DerivesSubscriptionState.php

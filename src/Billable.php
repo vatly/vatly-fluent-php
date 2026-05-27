@@ -10,6 +10,7 @@ use Vatly\Fluent\Actions\CreateCheckout;
 use Vatly\Fluent\Actions\CreateCustomer;
 use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Actions\GetCustomer;
+use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\Fluent\Actions\ResumeSubscription;
 use Vatly\Fluent\Actions\SwapSubscriptionPlan;
@@ -42,6 +43,7 @@ class Billable
         private CreateCheckout $createCheckoutAction,
         private CreateCustomer $createCustomerAction,
         private GetCustomer $getCustomerAction,
+        private GetOrder $getOrderAction,
         private GetSubscription $getSubscriptionAction,
         private SwapSubscriptionPlan $swapSubscriptionPlanAction,
         private CancelSubscription $cancelSubscriptionAction,
@@ -179,5 +181,19 @@ class Billable
     public function orders(): array
     {
         return $this->orders->findAllByOwner($this->owner);
+    }
+
+    /**
+     * Build an {@see OrderHandle} for one of this owner's orders.
+     *
+     * Throws {@see \Vatly\Fluent\Exceptions\InvalidOrderException} when no
+     * order with the given Vatly id exists for this owner.
+     */
+    public function order(string $vatlyId): OrderHandle
+    {
+        return new OrderHandle(
+            order: $this->orders->findForOwnerOrFail($this->owner, $vatlyId),
+            getOrderAction: $this->getOrderAction,
+        );
     }
 }

@@ -10,6 +10,7 @@ use Vatly\Fluent\Actions\CreateCheckout;
 use Vatly\Fluent\Actions\CreateCustomer;
 use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Actions\GetCustomer;
+use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\Fluent\Actions\ResumeSubscription;
 use Vatly\Fluent\Actions\SwapSubscriptionPlan;
@@ -35,6 +36,7 @@ class BillableFactoryTest extends TestCase
             createCheckoutAction: Mockery::mock(CreateCheckout::class),
             createCustomerAction: Mockery::mock(CreateCustomer::class),
             getCustomerAction: Mockery::mock(GetCustomer::class),
+            getOrderAction: Mockery::mock(GetOrder::class),
             getSubscriptionAction: Mockery::mock(GetSubscription::class),
             swapSubscriptionPlanAction: Mockery::mock(SwapSubscriptionPlan::class),
             cancelSubscriptionAction: Mockery::mock(CancelSubscription::class),
@@ -58,6 +60,7 @@ class BillableFactoryTest extends TestCase
             createCheckoutAction: Mockery::mock(CreateCheckout::class),
             createCustomerAction: Mockery::mock(CreateCustomer::class),
             getCustomerAction: Mockery::mock(GetCustomer::class),
+            getOrderAction: Mockery::mock(GetOrder::class),
             getSubscriptionAction: Mockery::mock(GetSubscription::class),
             swapSubscriptionPlanAction: Mockery::mock(SwapSubscriptionPlan::class),
             cancelSubscriptionAction: Mockery::mock(CancelSubscription::class),

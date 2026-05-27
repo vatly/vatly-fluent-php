@@ -9,6 +9,7 @@ use Vatly\Fluent\Actions\CreateCheckout;
 use Vatly\Fluent\Actions\CreateCustomer;
 use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Actions\GetCustomer;
+use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\Fluent\Actions\ResumeSubscription;
 use Vatly\Fluent\Actions\SwapSubscriptionPlan;
@@ -35,6 +36,7 @@ class BillableFactory
         private CreateCheckout $createCheckoutAction,
         private CreateCustomer $createCustomerAction,
         private GetCustomer $getCustomerAction,
+        private GetOrder $getOrderAction,
         private GetSubscription $getSubscriptionAction,
         private SwapSubscriptionPlan $swapSubscriptionPlanAction,
         private CancelSubscription $cancelSubscriptionAction,
@@ -55,6 +57,7 @@ class BillableFactory
             createCheckoutAction: $this->createCheckoutAction,
             createCustomerAction: $this->createCustomerAction,
             getCustomerAction: $this->getCustomerAction,
+            getOrderAction: $this->getOrderAction,
             getSubscriptionAction: $this->getSubscriptionAction,
             swapSubscriptionPlanAction: $this->swapSubscriptionPlanAction,
             cancelSubscriptionAction: $this->cancelSubscriptionAction,

@@ -16,6 +16,8 @@ use Vatly\Fluent\Actions\SwapSubscriptionPlan;
 use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Configuration\ArrayConfiguration;
 use Vatly\Fluent\Contracts\BillableInterface;
+use Vatly\Fluent\Contracts\OrderInterface;
+use Vatly\Fluent\Contracts\SubscriptionInterface;
 use Vatly\Fluent\Exceptions\IncompleteWiring;
 use Vatly\Fluent\Webhooks\SignatureVerifier;
 use Vatly\Fluent\Webhooks\WebhookEventFactory;
@@ -132,6 +134,7 @@ class Vatly
             createCheckoutAction: $this->createCheckout(),
             createCustomerAction: $this->createCustomer(),
             getCustomerAction: $this->getCustomer(),
+            getOrderAction: $this->getOrder(),
             getSubscriptionAction: $this->getSubscription(),
             swapSubscriptionPlanAction: $this->swapSubscriptionPlan(),
             cancelSubscriptionAction: $this->cancelSubscription(),
@@ -143,6 +146,40 @@ class Vatly
     public function billable(BillableInterface $owner): Billable
     {
         return $this->billableFactory()->forOwner($owner);
+    }
+
+    /**
+     * Build a {@see SubscriptionHandle} wrapping a persistent subscription.
+     *
+     * Drivers use this so their Eloquent (or equivalent) Subscription model
+     * can expose Cashier-style operation methods that delegate here.
+     */
+    public function subscriptionHandle(SubscriptionInterface $subscription): SubscriptionHandle
+    {
+        return new SubscriptionHandle(
+            subscription: $subscription,
+            subscriptions: $this->wiring->subscriptions
+                ?? throw IncompleteWiring::missing('subscriptions', 'SubscriptionHandle'),
+            swapAction: $this->swapSubscriptionPlan(),
+            cancelAction: $this->cancelSubscription(),
+            resumeAction: $this->resumeSubscription(),
+            getSubscriptionAction: $this->getSubscription(),
+            updateBillingAction: $this->updateSubscriptionBilling(),
+        );
+    }
+
+    /**
+     * Build an {@see OrderHandle} wrapping a persistent order.
+     *
+     * Drivers use this so their Eloquent (or equivalent) Order model can
+     * expose operation methods (e.g. `invoiceUrl()`) that delegate here.
+     */
+    public function orderHandle(OrderInterface $order): OrderHandle
+    {
+        return new OrderHandle(
+            order: $order,
+            getOrderAction: $this->getOrder(),
+        );
     }
 
     // --- Action accessors ---

@@ -111,6 +111,36 @@ class SubscriptionHandle
         return $this->subscription->isActive();
     }
 
+    public function isValid(): bool
+    {
+        return $this->subscription->isValid();
+    }
+
+    public function valid(): bool
+    {
+        return $this->subscription->isValid();
+    }
+
+    public function isRecurring(): bool
+    {
+        return $this->subscription->isRecurring();
+    }
+
+    public function recurring(): bool
+    {
+        return $this->subscription->isRecurring();
+    }
+
+    public function isEnded(): bool
+    {
+        return $this->subscription->isEnded();
+    }
+
+    public function ended(): bool
+    {
+        return $this->subscription->isEnded();
+    }
+
     // --- Operations ---
 
     /**

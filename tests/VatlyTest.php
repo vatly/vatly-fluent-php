@@ -12,10 +12,14 @@ use Vatly\Fluent\Configuration\ArrayConfiguration;
 use Vatly\Fluent\Contracts\BillableInterface;
 use Vatly\Fluent\Contracts\CustomerRepositoryInterface;
 use Vatly\Fluent\Contracts\EventDispatcherInterface;
+use Vatly\Fluent\Contracts\OrderInterface;
 use Vatly\Fluent\Contracts\OrderRepositoryInterface;
+use Vatly\Fluent\Contracts\SubscriptionInterface;
 use Vatly\Fluent\Contracts\SubscriptionRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookCallRepositoryInterface;
 use Vatly\Fluent\Exceptions\IncompleteWiring;
+use Vatly\Fluent\OrderHandle;
+use Vatly\Fluent\SubscriptionHandle;
 use Vatly\Fluent\Vatly;
 use Vatly\Fluent\Webhooks\WebhookProcessor;
 use Vatly\Fluent\Wiring;
@@ -159,6 +163,38 @@ class VatlyTest extends TestCase
         $vatly = $this->fullyWiredVatly();
 
         $this->assertInstanceOf(WebhookProcessor::class, $vatly->webhookProcessor());
+    }
+
+    public function test_subscription_handle_wraps_the_given_subscription(): void
+    {
+        $vatly = $this->fullyWiredVatly();
+        $subscription = Mockery::mock(SubscriptionInterface::class);
+
+        $handle = $vatly->subscriptionHandle($subscription);
+
+        $this->assertInstanceOf(SubscriptionHandle::class, $handle);
+        $this->assertSame($subscription, $handle->model());
+    }
+
+    public function test_subscription_handle_throws_when_subscriptions_missing(): void
+    {
+        $vatly = Vatly::apiOnly('test_abcdefghijklmnopqrstuvwxyz');
+
+        $this->expectException(IncompleteWiring::class);
+        $this->expectExceptionMessageMatches("/'SubscriptionHandle'.*'subscriptions'/");
+
+        $vatly->subscriptionHandle(Mockery::mock(SubscriptionInterface::class));
+    }
+
+    public function test_order_handle_wraps_the_given_order(): void
+    {
+        $vatly = Vatly::apiOnly('test_abcdefghijklmnopqrstuvwxyz');
+        $order = Mockery::mock(OrderInterface::class);
+
+        $handle = $vatly->orderHandle($order);
+
+        $this->assertInstanceOf(OrderHandle::class, $handle);
+        $this->assertSame($order, $handle->model());
     }
 
     private function fullyWiredVatly(): Vatly
