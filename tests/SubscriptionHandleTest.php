@@ -12,11 +12,11 @@ use Vatly\API\Types\Link;
 use Vatly\Fluent\Actions\CancelSubscription;
 use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Actions\GetSubscription;
+use Vatly\Fluent\Actions\ResumeSubscription;
 use Vatly\Fluent\Actions\SwapSubscriptionPlan;
 use Vatly\Fluent\Contracts\SubscriptionInterface;
 use Vatly\Fluent\Contracts\SubscriptionRepositoryInterface;
 use Vatly\Fluent\Data\UpdateSubscriptionData;
-use Vatly\Fluent\Exceptions\FeatureUnavailableException;
 use Vatly\Fluent\SubscriptionHandle;
 
 class SubscriptionHandleTest extends TestCase
@@ -192,13 +192,44 @@ class SubscriptionHandleTest extends TestCase
         $this->assertSame($updated, $handle->model());
     }
 
-    public function test_resume_throws_feature_unavailable(): void
+    public function test_resume_calls_the_action_and_clears_ends_at(): void
     {
-        $handle = $this->buildHandle();
+        $subscription = $this->stubSubscription('subscription_abc');
 
-        $this->expectException(FeatureUnavailableException::class);
+        $apiResponse = $this->makeApiSubscription([
+            'subscriptionPlanId' => 'plan_basic',
+            'quantity' => 1,
+        ]);
 
-        $handle->resume();
+        $resumeAction = Mockery::mock(ResumeSubscription::class);
+        $resumeAction->shouldReceive('execute')
+            ->once()
+            ->with('subscription_abc')
+            ->andReturn($apiResponse);
+
+        $updatedSubscription = Mockery::mock(SubscriptionInterface::class);
+
+        $subscriptions = Mockery::mock(SubscriptionRepositoryInterface::class);
+        $subscriptions->shouldReceive('update')
+            ->once()
+            ->with($subscription, Mockery::on(function (UpdateSubscriptionData $data) {
+                return $data->planId === 'plan_basic'
+                    && $data->quantity === 1
+                    && $data->endsAt === null
+                    && $data->clearEndsAt === true;
+            }))
+            ->andReturn($updatedSubscription);
+
+        $handle = $this->buildHandle(
+            subscription: $subscription,
+            subscriptions: $subscriptions,
+            resumeAction: $resumeAction,
+        );
+
+        $returned = $handle->resume();
+
+        $this->assertSame($handle, $returned);
+        $this->assertSame($updatedSubscription, $handle->model());
     }
 
     private function stubSubscription(string $vatlyId): SubscriptionInterface
@@ -229,6 +260,7 @@ class SubscriptionHandleTest extends TestCase
         ?SubscriptionRepositoryInterface $subscriptions = null,
         ?SwapSubscriptionPlan $swapAction = null,
         ?CancelSubscription $cancelAction = null,
+        ?ResumeSubscription $resumeAction = null,
         ?GetSubscription $getSubscriptionAction = null,
         ?UpdateSubscriptionBilling $updateBillingAction = null,
     ): SubscriptionHandle {
@@ -237,6 +269,7 @@ class SubscriptionHandleTest extends TestCase
             subscriptions: $subscriptions ?? Mockery::mock(SubscriptionRepositoryInterface::class),
             swapAction: $swapAction ?? Mockery::mock(SwapSubscriptionPlan::class),
             cancelAction: $cancelAction ?? Mockery::mock(CancelSubscription::class),
+            resumeAction: $resumeAction ?? Mockery::mock(ResumeSubscription::class),
             getSubscriptionAction: $getSubscriptionAction ?? Mockery::mock(GetSubscription::class),
             updateBillingAction: $updateBillingAction
                 ?? Mockery::mock(UpdateSubscriptionBilling::class),

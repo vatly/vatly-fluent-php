@@ -11,6 +11,7 @@ use Vatly\Fluent\Actions\CreateCustomer;
 use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Actions\GetCustomer;
 use Vatly\Fluent\Actions\GetSubscription;
+use Vatly\Fluent\Actions\ResumeSubscription;
 use Vatly\Fluent\Actions\SwapSubscriptionPlan;
 use Vatly\Fluent\Builders\CheckoutBuilder;
 use Vatly\Fluent\Builders\SubscriptionBuilder;
@@ -44,6 +45,7 @@ class Billable
         private GetSubscription $getSubscriptionAction,
         private SwapSubscriptionPlan $swapSubscriptionPlanAction,
         private CancelSubscription $cancelSubscriptionAction,
+        private ResumeSubscription $resumeSubscriptionAction,
         private UpdateSubscriptionBilling $updateBillingAction,
     ) {
         //
@@ -163,6 +165,7 @@ class Billable
             subscriptions: $this->subscriptions,
             swapAction: $this->swapSubscriptionPlanAction,
             cancelAction: $this->cancelSubscriptionAction,
+            resumeAction: $this->resumeSubscriptionAction,
             getSubscriptionAction: $this->getSubscriptionAction,
             updateBillingAction: $this->updateBillingAction,
         );

@@ -11,6 +11,7 @@ use Vatly\Fluent\Actions\CreateCustomer;
 use Vatly\Fluent\Actions\GetCustomer;
 use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Actions\GetSubscription;
+use Vatly\Fluent\Actions\ResumeSubscription;
 use Vatly\Fluent\Actions\SwapSubscriptionPlan;
 use Vatly\API\VatlyApiClient;
 use Vatly\Fluent\Webhooks\SignatureVerifier;
@@ -35,6 +36,7 @@ class Vatly
     private ?CreateCheckout $createCheckout = null;
     private ?GetSubscription $getSubscription = null;
     private ?CancelSubscription $cancelSubscription = null;
+    private ?ResumeSubscription $resumeSubscription = null;
     private ?SwapSubscriptionPlan $swapSubscriptionPlan = null;
     private ?UpdateSubscriptionBilling $updateSubscriptionBilling = null;
 
@@ -101,6 +103,11 @@ class Vatly
     public function cancelSubscription(): CancelSubscription
     {
         return $this->cancelSubscription ??= new CancelSubscription($this->apiClient);
+    }
+
+    public function resumeSubscription(): ResumeSubscription
+    {
+        return $this->resumeSubscription ??= new ResumeSubscription($this->apiClient);
     }
 
     public function swapSubscriptionPlan(): SwapSubscriptionPlan

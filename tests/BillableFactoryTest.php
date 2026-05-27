@@ -11,6 +11,7 @@ use Vatly\Fluent\Actions\CreateCustomer;
 use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Actions\GetCustomer;
 use Vatly\Fluent\Actions\GetSubscription;
+use Vatly\Fluent\Actions\ResumeSubscription;
 use Vatly\Fluent\Actions\SwapSubscriptionPlan;
 use Vatly\Fluent\Billable;
 use Vatly\Fluent\BillableFactory;
@@ -37,6 +38,7 @@ class BillableFactoryTest extends TestCase
             getSubscriptionAction: Mockery::mock(GetSubscription::class),
             swapSubscriptionPlanAction: Mockery::mock(SwapSubscriptionPlan::class),
             cancelSubscriptionAction: Mockery::mock(CancelSubscription::class),
+            resumeSubscriptionAction: Mockery::mock(ResumeSubscription::class),
             updateBillingAction: Mockery::mock(UpdateSubscriptionBilling::class),
         );
 
@@ -59,6 +61,7 @@ class BillableFactoryTest extends TestCase
             getSubscriptionAction: Mockery::mock(GetSubscription::class),
             swapSubscriptionPlanAction: Mockery::mock(SwapSubscriptionPlan::class),
             cancelSubscriptionAction: Mockery::mock(CancelSubscription::class),
+            resumeSubscriptionAction: Mockery::mock(ResumeSubscription::class),
             updateBillingAction: Mockery::mock(UpdateSubscriptionBilling::class),
         );
 

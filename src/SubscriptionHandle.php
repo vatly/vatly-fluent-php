@@ -8,12 +8,12 @@ use DateTimeInterface;
 use Vatly\Fluent\Actions\CancelSubscription;
 use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Actions\GetSubscription;
+use Vatly\Fluent\Actions\ResumeSubscription;
 use Vatly\Fluent\Actions\SwapSubscriptionPlan;
 use Vatly\Fluent\Contracts\BillableInterface;
 use Vatly\Fluent\Contracts\SubscriptionInterface;
 use Vatly\Fluent\Contracts\SubscriptionRepositoryInterface;
 use Vatly\Fluent\Data\UpdateSubscriptionData;
-use Vatly\Fluent\Exceptions\FeatureUnavailableException;
 
 /**
  * Framework-agnostic operations on a subscription.
@@ -29,6 +29,7 @@ class SubscriptionHandle
         private SubscriptionRepositoryInterface $subscriptions,
         private SwapSubscriptionPlan $swapAction,
         private CancelSubscription $cancelAction,
+        private ResumeSubscription $resumeAction,
         private GetSubscription $getSubscriptionAction,
         private UpdateSubscriptionBilling $updateBillingAction,
     ) {
@@ -155,13 +156,27 @@ class SubscriptionHandle
     }
 
     /**
-     * Resume a cancelled subscription.
+     * Resume a subscription that is currently on its grace period.
      *
-     * @throws FeatureUnavailableException Vatly's API does not currently support resuming.
+     * Reverses a pending cancellation while the subscription is still active.
+     * Clears the local end date so the subscription is treated as active again.
      */
     public function resume(): self
     {
-        throw FeatureUnavailableException::notImplementedOnApi();
+        $response = $this->resumeAction->execute($this->subscription->getVatlyId());
+
+        $updated = $this->subscriptions->update(
+            $this->subscription,
+            new UpdateSubscriptionData(
+                planId: $response->subscriptionPlanId,
+                quantity: $response->quantity,
+                clearEndsAt: true,
+            ),
+        );
+
+        $this->subscription = $updated;
+
+        return $this;
     }
 
     /**
