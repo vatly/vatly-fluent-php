@@ -42,9 +42,20 @@ class Vatly
 
     public function __construct(
         string $apiKey,
+        ?string $apiEndpoint = null,
+        ?string $apiVersion = null,
     ) {
         $this->apiClient = new VatlyApiClient();
         $this->apiClient->setApiKey($apiKey);
+
+        if ($apiEndpoint !== null) {
+            $this->apiClient->setApiEndpoint($apiEndpoint);
+        }
+
+        if ($apiVersion !== null) {
+            $this->apiClient->setApiVersion($apiVersion);
+        }
+
         $this->signatureVerifier = new SignatureVerifier();
         $this->webhookEventFactory = new WebhookEventFactory($this->getOrder());
     }

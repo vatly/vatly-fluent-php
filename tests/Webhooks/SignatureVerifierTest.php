@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Tests\Webhooks;
 
+use Vatly\API\Webhooks\WebhookSignatureValidator;
 use Vatly\Fluent\Exceptions\InvalidWebhookSignatureException;
 use Vatly\Fluent\Webhooks\SignatureVerifier;
 use Vatly\Fluent\Tests\TestCase;
@@ -95,6 +96,17 @@ class SignatureVerifierTest extends TestCase
     public function test_is_valid_returns_false_for_empty_signature(): void
     {
         $this->assertFalse($this->verifier->isValid('', $this->payload, $this->secret));
+    }
+
+    public function test_signature_header_name_mirrors_upstream_constant(): void
+    {
+        // The constant is re-exported so framework drivers can read the header
+        // without depending on vatly/vatly-api-php directly.
+        $this->assertSame(
+            WebhookSignatureValidator::SIGNATURE_HEADER_NAME,
+            SignatureVerifier::SIGNATURE_HEADER_NAME,
+        );
+        $this->assertSame('Vatly-Signature', SignatureVerifier::SIGNATURE_HEADER_NAME);
     }
 
     public function test_it_tolerates_unknown_future_scheme_keys(): void
