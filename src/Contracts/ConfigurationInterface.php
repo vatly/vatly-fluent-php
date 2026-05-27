@@ -43,9 +43,4 @@ interface ConfigurationInterface
      * Get the default cancel redirect URL.
      */
     public function getDefaultRedirectUrlCanceled(): string;
-
-    /**
-     * Get the billable model class name.
-     */
-    public function getBillableModel(): string;
 }
