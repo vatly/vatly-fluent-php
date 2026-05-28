@@ -81,6 +81,79 @@ class CustomerServiceTest extends TestCase
         $this->assertSame($apiCustomer, $result);
     }
 
+    public function test_create_for_forwards_additional_payload_keys_to_the_api(): void
+    {
+        $apiCustomer = $this->makeApiCustomer('cus_new');
+
+        $createCustomer = Mockery::mock(CreateCustomer::class);
+        $createCustomer->shouldReceive('execute')
+            ->once()
+            ->with([
+                'email' => 'host@example.test',
+                'name' => 'Host Name',
+                'locale' => 'nl_NL',
+                'metadata' => ['internal_id' => 42],
+            ])
+            ->andReturn($apiCustomer);
+
+        $bindings = Mockery::mock(CustomerBindingRepository::class);
+        $bindings->shouldReceive('vatlyCustomerIdFor')->with('host_1')->once()->andReturnNull();
+        $bindings->shouldReceive('bind')->with('cus_new', 'host_1')->once();
+
+        $customers = new CustomerService($createCustomer, Mockery::mock(GetCustomer::class), $bindings);
+        $profile = new CustomerProfile(email: 'host@example.test', name: 'Host Name');
+
+        $customers->createFor('host_1', $profile, [
+            'locale' => 'nl_NL',
+            'metadata' => ['internal_id' => 42],
+        ]);
+    }
+
+    public function test_create_for_additional_payload_overrides_profile_defaults(): void
+    {
+        $apiCustomer = $this->makeApiCustomer('cus_new');
+
+        $createCustomer = Mockery::mock(CreateCustomer::class);
+        // additionalPayload['email'] wins over profile.email
+        $createCustomer->shouldReceive('execute')
+            ->once()
+            ->with(['email' => 'override@example.test', 'name' => 'Host Name'])
+            ->andReturn($apiCustomer);
+
+        $bindings = Mockery::mock(CustomerBindingRepository::class);
+        $bindings->shouldReceive('vatlyCustomerIdFor')->andReturnNull();
+        $bindings->shouldReceive('bind');
+
+        $customers = new CustomerService($createCustomer, Mockery::mock(GetCustomer::class), $bindings);
+        $profile = new CustomerProfile(email: 'host@example.test', name: 'Host Name');
+
+        $customers->createFor('host_1', $profile, ['email' => 'override@example.test']);
+    }
+
+    public function test_create_unattributed_forwards_additional_payload_keys_to_the_api(): void
+    {
+        $apiCustomer = $this->makeApiCustomer('cus_anon');
+
+        $createCustomer = Mockery::mock(CreateCustomer::class);
+        $createCustomer->shouldReceive('execute')
+            ->once()
+            ->with([
+                'email' => 'anon@example.test',
+                'locale' => 'de_DE',
+            ])
+            ->andReturn($apiCustomer);
+
+        $bindings = Mockery::mock(CustomerBindingRepository::class);
+        $bindings->shouldReceive('record')->with('cus_anon')->once();
+
+        $customers = new CustomerService($createCustomer, Mockery::mock(GetCustomer::class), $bindings);
+
+        $customers->createUnattributed(
+            new CustomerProfile(email: 'anon@example.test'),
+            ['locale' => 'de_DE'],
+        );
+    }
+
     public function test_attribute_binds_when_host_is_unbound(): void
     {
         $bindings = Mockery::mock(CustomerBindingRepository::class);

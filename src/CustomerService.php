@@ -34,24 +34,35 @@ class CustomerService
      * `CustomerProfile` is ignored. Use {@see self::attribute()} to link
      * an existing Vatly customer to a host instead.
      *
+     * `$additionalPayload` keys are merged on top of the profile-derived
+     * payload sent to the API — pass things like `locale`, `metadata`,
+     * or any other field the create-customer endpoint accepts. Keys in
+     * `$additionalPayload` take precedence over the profile defaults.
+     *
+     * @param  array<string, mixed>  $additionalPayload  Extra create-customer API keys.
+     *
      * @throws CustomerAlreadyBoundException When the host customer id is already bound.
      */
-    public function createFor(string $hostCustomerId, CustomerProfile $profile): ApiCustomer
+    public function createFor(string $hostCustomerId, CustomerProfile $profile, array $additionalPayload = []): ApiCustomer
     {
         if (($existing = $this->bindings->vatlyCustomerIdFor($hostCustomerId)) !== null) {
             throw CustomerAlreadyBoundException::onCreate($hostCustomerId, $existing);
         }
 
-        $customer = $this->createCustomer->execute($profile->toPayload());
+        $customer = $this->createCustomer->execute(array_merge($profile->toPayload(), $additionalPayload));
         $this->bindings->bind($customer->id, $hostCustomerId);
 
         return $customer;
     }
 
-    /** Anonymous: create a Vatly customer with no host attribution. */
-    public function createUnattributed(CustomerProfile $profile): ApiCustomer
+    /**
+     * Anonymous: create a Vatly customer with no host attribution.
+     *
+     * @param  array<string, mixed>  $additionalPayload  Extra create-customer API keys (see {@see self::createFor()}).
+     */
+    public function createUnattributed(CustomerProfile $profile, array $additionalPayload = []): ApiCustomer
     {
-        $customer = $this->createCustomer->execute($profile->toPayload());
+        $customer = $this->createCustomer->execute(array_merge($profile->toPayload(), $additionalPayload));
         $this->bindings->record($customer->id);
 
         return $customer;

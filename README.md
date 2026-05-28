@@ -344,6 +344,14 @@ $customer = $vatly->customers()->createFor(
 );
 // $customer->id is now bound to $user->id via your CustomerBindingRepository.
 
+// Forward extra create-customer API keys via $additionalPayload (locale,
+// metadata, or anything else the create-customer endpoint accepts).
+$customer = $vatly->customers()->createFor(
+    hostCustomerId:    (string) $user->id,
+    profile:           new CustomerProfile(email: $user->email, name: $user->name),
+    additionalPayload: ['locale' => 'nl_NL', 'metadata' => ['internal_id' => $user->id]],
+);
+
 // Look up later
 $existing = $vatly->customers()->findByHostCustomerId((string) $user->id);
 ```
