@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Vatly\Fluent\Tests\Exceptions;
 
 use Exception;
-use Vatly\Fluent\Exceptions\CustomerAlreadyBound;
+use Vatly\Fluent\Exceptions\CustomerAlreadyBoundException;
 use Vatly\Fluent\Exceptions\IncompleteInformationException;
 use Vatly\Fluent\Exceptions\InvalidWebhookSignatureException;
 use Vatly\Fluent\Exceptions\VatlyException;
@@ -58,7 +58,7 @@ class ExceptionsTest extends TestCase
 
     public function test_customer_already_bound_on_create_extends_vatly_exception(): void
     {
-        $exception = CustomerAlreadyBound::onCreate('host_123', 'cus_abc');
+        $exception = CustomerAlreadyBoundException::onCreate('host_123', 'cus_abc');
 
         $this->assertInstanceOf(VatlyException::class, $exception);
         $this->assertSame('host_123', $exception->hostCustomerId);
@@ -68,7 +68,7 @@ class ExceptionsTest extends TestCase
 
     public function test_customer_already_bound_on_create_message_includes_host_and_existing_ids(): void
     {
-        $exception = CustomerAlreadyBound::onCreate('host_456', 'cus_def');
+        $exception = CustomerAlreadyBoundException::onCreate('host_456', 'cus_def');
 
         $this->assertStringContainsString('host_456', $exception->getMessage());
         $this->assertStringContainsString('cus_def', $exception->getMessage());
@@ -76,7 +76,7 @@ class ExceptionsTest extends TestCase
 
     public function test_customer_already_bound_on_attribute_carries_attempted_and_existing_ids(): void
     {
-        $exception = CustomerAlreadyBound::onAttribute('host_1', 'cus_new', 'cus_existing');
+        $exception = CustomerAlreadyBoundException::onAttribute('host_1', 'cus_new', 'cus_existing');
 
         $this->assertSame('host_1', $exception->hostCustomerId);
         $this->assertSame('cus_new', $exception->attemptedVatlyCustomerId);

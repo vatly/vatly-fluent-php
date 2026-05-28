@@ -16,7 +16,7 @@ use RuntimeException;
  * when the throw site is {@see \Vatly\Fluent\CustomerService::attribute()},
  * where the caller explicitly proposed a Vatly customer id to link.
  */
-final class CustomerAlreadyBound extends RuntimeException implements VatlyException
+final class CustomerAlreadyBoundException extends RuntimeException implements VatlyException
 {
     private function __construct(
         public readonly string $hostCustomerId,

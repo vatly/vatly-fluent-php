@@ -17,7 +17,7 @@ use Vatly\Fluent\Contracts\WebhookReactionInterface;
  *
  * Only `config` is required. Optional impls (repos, dispatcher) can be
  * omitted for api-only mode; calling a method on `Vatly` that needs an
- * absent dependency raises {@see \Vatly\Fluent\Exceptions\IncompleteWiring}.
+ * absent dependency raises {@see \Vatly\Fluent\Exceptions\IncompleteWiringException}.
  *
  * Drivers (Laravel, WordPress, etc.) construct one of these from their
  * container and pass it to `new Vatly($wiring)` — typically bound as

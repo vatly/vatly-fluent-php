@@ -8,7 +8,7 @@ use Vatly\API\Resources\Customer as ApiCustomer;
 use Vatly\Fluent\Actions\CreateCustomer;
 use Vatly\Fluent\Actions\GetCustomer;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
-use Vatly\Fluent\Exceptions\CustomerAlreadyBound;
+use Vatly\Fluent\Exceptions\CustomerAlreadyBoundException;
 
 /**
  * Customer-related operations: create + bind, fetch, attribute.
@@ -34,12 +34,12 @@ class CustomerService
      * `CustomerProfile` is ignored. Use {@see self::attribute()} to link
      * an existing Vatly customer to a host instead.
      *
-     * @throws CustomerAlreadyBound When the host customer id is already bound.
+     * @throws CustomerAlreadyBoundException When the host customer id is already bound.
      */
     public function createFor(string $hostCustomerId, CustomerProfile $profile): ApiCustomer
     {
         if (($existing = $this->bindings->vatlyCustomerIdFor($hostCustomerId)) !== null) {
-            throw CustomerAlreadyBound::onCreate($hostCustomerId, $existing);
+            throw CustomerAlreadyBoundException::onCreate($hostCustomerId, $existing);
         }
 
         $customer = $this->createCustomer->execute($profile->toPayload());
@@ -65,14 +65,14 @@ class CustomerService
      * a different Vatly customer — silent overwrites have to go through
      * the binding repo directly.
      *
-     * @throws CustomerAlreadyBound When the host is already bound to a different Vatly customer.
+     * @throws CustomerAlreadyBoundException When the host is already bound to a different Vatly customer.
      */
     public function attribute(string $vatlyCustomerId, string $hostCustomerId): void
     {
         $existing = $this->bindings->vatlyCustomerIdFor($hostCustomerId);
 
         if ($existing !== null && $existing !== $vatlyCustomerId) {
-            throw CustomerAlreadyBound::onAttribute($hostCustomerId, $vatlyCustomerId, $existing);
+            throw CustomerAlreadyBoundException::onAttribute($hostCustomerId, $vatlyCustomerId, $existing);
         }
 
         $this->bindings->bind($vatlyCustomerId, $hostCustomerId);

@@ -21,7 +21,7 @@ use Vatly\Fluent\Data\UpdateSubscriptionData;
  * with the actions that operate on it. Drivers expose this via
  * Vatly::subscription().
  */
-class Subscription
+class SubscriptionHandle
 {
     public function __construct(
         private SubscriptionInterface $subscription,

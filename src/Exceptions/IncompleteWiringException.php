@@ -17,7 +17,7 @@ use RuntimeException;
  * The exception names the missing dependency and the feature being requested
  * so the fix is mechanical: add the dependency to your Wiring construction.
  */
-final class IncompleteWiring extends RuntimeException implements VatlyException
+final class IncompleteWiringException extends RuntimeException implements VatlyException
 {
     public static function missing(string $dependency, string $forFeature): self
     {

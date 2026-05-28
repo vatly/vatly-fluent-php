@@ -87,7 +87,7 @@ For one-off scripts that just hit the API. No persistence, no webhook processing
    ));
    ```
 
-Methods that need persistence or event dispatching (`customers()`, `webhookProcessor()`, `subscription()`, `order()`) throw `IncompleteWiring` in api-only mode. Use the driver guide below if you need them.
+Methods that need persistence or event dispatching (`customers()`, `webhookProcessor()`, `subscription()`, `order()`) throw `IncompleteWiringException` in api-only mode. Use the driver guide below if you need them.
 
 ---
 
@@ -426,12 +426,12 @@ $vatly->updateSubscriptionBilling();
 $vatly->customers();                               // CustomerService (lazy, cached)
 $vatly->checkoutBuilder($profile);                 // CheckoutBuilder (per-call)
 $vatly->subscriptionBuilder($profile);             // SubscriptionBuilder (per-call)
-$vatly->subscription($localSubscription);          // Subscription wrapping local state
-$vatly->order($localOrder);                        // Order wrapping local state
+$vatly->subscription($localSubscription);          // SubscriptionHandle wrapping local state
+$vatly->order($localOrder);                        // OrderHandle wrapping local state
 $vatly->webhookProcessor();                        // WebhookProcessor (also needs events dispatcher)
 ```
 
-Calling a composed-services method without the required repos in `Wiring` throws `IncompleteWiring` with a message naming what's missing.
+Calling a composed-services method without the required repos in `Wiring` throws `IncompleteWiringException` with a message naming what's missing.
 
 ## Contracts at a glance
 

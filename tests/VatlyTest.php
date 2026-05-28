@@ -18,9 +18,9 @@ use Vatly\Fluent\Contracts\SubscriptionRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookCallRepositoryInterface;
 use Vatly\Fluent\CustomerService;
 use Vatly\Fluent\CustomerProfile;
-use Vatly\Fluent\Exceptions\IncompleteWiring;
-use Vatly\Fluent\Order;
-use Vatly\Fluent\Subscription;
+use Vatly\Fluent\Exceptions\IncompleteWiringException;
+use Vatly\Fluent\OrderHandle;
+use Vatly\Fluent\SubscriptionHandle;
 use Vatly\Fluent\Vatly;
 use Vatly\Fluent\Webhooks\WebhookProcessor;
 use Vatly\Fluent\Wiring;
@@ -68,13 +68,13 @@ class VatlyTest extends TestCase
         $this->assertSame($vatly->customers(), $vatly->customers());
     }
 
-    // --- IncompleteWiring on missing dependencies ---
+    // --- IncompleteWiringException on missing dependencies ---
 
     public function test_customers_throws_when_bindings_missing(): void
     {
         $vatly = Vatly::apiOnly('test_abcdefghijklmnopqrstuvwxyz');
 
-        $this->expectException(IncompleteWiring::class);
+        $this->expectException(IncompleteWiringException::class);
         $this->expectExceptionMessageMatches("/'CustomerService'.*'customerBindings'/");
 
         $vatly->customers();
@@ -89,7 +89,7 @@ class VatlyTest extends TestCase
             webhookCalls: Mockery::mock(WebhookCallRepositoryInterface::class),
         ));
 
-        $this->expectException(IncompleteWiring::class);
+        $this->expectException(IncompleteWiringException::class);
         $this->expectExceptionMessageMatches("/'WebhookProcessor'.*'events'/");
 
         $vatly->webhookProcessor();
@@ -104,7 +104,7 @@ class VatlyTest extends TestCase
             events: Mockery::mock(EventDispatcherInterface::class),
         ));
 
-        $this->expectException(IncompleteWiring::class);
+        $this->expectException(IncompleteWiringException::class);
         $this->expectExceptionMessageMatches("/'webhookCalls'/");
 
         $vatly->webhookProcessor();
@@ -120,7 +120,7 @@ class VatlyTest extends TestCase
             events: Mockery::mock(EventDispatcherInterface::class),
         ));
 
-        $this->expectException(IncompleteWiring::class);
+        $this->expectException(IncompleteWiringException::class);
         $this->expectExceptionMessageMatches("/'WebhookProcessor'.*'customerBindings'/");
 
         $vatly->webhookProcessor();
@@ -198,7 +198,7 @@ class VatlyTest extends TestCase
 
         $handle = $vatly->subscription($subscription);
 
-        $this->assertInstanceOf(Subscription::class, $handle);
+        $this->assertInstanceOf(SubscriptionHandle::class, $handle);
         $this->assertSame($subscription, $handle->model());
     }
 
@@ -206,8 +206,8 @@ class VatlyTest extends TestCase
     {
         $vatly = Vatly::apiOnly('test_abcdefghijklmnopqrstuvwxyz');
 
-        $this->expectException(IncompleteWiring::class);
-        $this->expectExceptionMessageMatches("/'Subscription'.*'subscriptions'/");
+        $this->expectException(IncompleteWiringException::class);
+        $this->expectExceptionMessageMatches("/'SubscriptionHandle'.*'subscriptions'/");
 
         $vatly->subscription(Mockery::mock(SubscriptionInterface::class));
     }
@@ -219,7 +219,7 @@ class VatlyTest extends TestCase
 
         $handle = $vatly->order($order);
 
-        $this->assertInstanceOf(Order::class, $handle);
+        $this->assertInstanceOf(OrderHandle::class, $handle);
         $this->assertSame($order, $handle->model());
     }
 

@@ -12,7 +12,7 @@ use Vatly\Fluent\Actions\GetCustomer;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
 use Vatly\Fluent\CustomerProfile;
 use Vatly\Fluent\CustomerService;
-use Vatly\Fluent\Exceptions\CustomerAlreadyBound;
+use Vatly\Fluent\Exceptions\CustomerAlreadyBoundException;
 
 class CustomerServiceTest extends TestCase
 {
@@ -50,8 +50,8 @@ class CustomerServiceTest extends TestCase
 
         try {
             $customers->createFor('host_1', new CustomerProfile(email: 'host@example.test'));
-            $this->fail('Expected CustomerAlreadyBound');
-        } catch (CustomerAlreadyBound $e) {
+            $this->fail('Expected CustomerAlreadyBoundException');
+        } catch (CustomerAlreadyBoundException $e) {
             $this->assertSame('host_1', $e->hostCustomerId);
             $this->assertSame('cus_existing', $e->existingVatlyCustomerId);
             $this->assertNull($e->attemptedVatlyCustomerId);
@@ -125,8 +125,8 @@ class CustomerServiceTest extends TestCase
 
         try {
             $customers->attribute('cus_new', 'host_x');
-            $this->fail('Expected CustomerAlreadyBound');
-        } catch (CustomerAlreadyBound $e) {
+            $this->fail('Expected CustomerAlreadyBoundException');
+        } catch (CustomerAlreadyBoundException $e) {
             $this->assertSame('host_x', $e->hostCustomerId);
             $this->assertSame('cus_new', $e->attemptedVatlyCustomerId);
             $this->assertSame('cus_other', $e->existingVatlyCustomerId);

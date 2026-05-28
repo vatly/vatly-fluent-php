@@ -19,7 +19,7 @@ use Vatly\Fluent\Builders\SubscriptionBuilder;
 use Vatly\Fluent\Configuration\ArrayConfiguration;
 use Vatly\Fluent\Contracts\OrderInterface;
 use Vatly\Fluent\Contracts\SubscriptionInterface;
-use Vatly\Fluent\Exceptions\IncompleteWiring;
+use Vatly\Fluent\Exceptions\IncompleteWiringException;
 use Vatly\Fluent\Webhooks\SignatureVerifier;
 use Vatly\Fluent\Webhooks\WebhookEventFactory;
 use Vatly\Fluent\Webhooks\WebhookProcessor;
@@ -31,7 +31,7 @@ use Vatly\Fluent\Webhooks\WebhookProcessorFactory;
  * Drivers (Laravel, etc.) construct a single instance — typically a singleton
  * — from a {@see Wiring} DTO that supplies the configuration and the driver's
  * concrete contract implementations (repositories, event dispatcher). Every
- * other fluent service (`CustomerService`, `Subscription`, `Order`,
+ * other fluent service (`CustomerService`, `SubscriptionHandle`, `OrderHandle`,
  * `WebhookProcessor`, etc.) resolves lazily through methods on this class.
  *
  * For non-driver scripts that only need to hit the API, see {@see self::apiOnly()}.
@@ -73,7 +73,7 @@ class Vatly
      * hit the API. Equivalent to `new Vatly(new Wiring(new ArrayConfiguration(...)))`.
      *
      * Calling repository-dependent methods on the returned instance throws
-     * {@see IncompleteWiring}.
+     * {@see IncompleteWiringException}.
      */
     public static function apiOnly(string $apiKey): self
     {
@@ -109,15 +109,15 @@ class Vatly
         return $this->webhookProcessor ??= WebhookProcessorFactory::create(
             config: $this->wiring->config,
             subscriptions: $this->wiring->subscriptions
-                ?? throw IncompleteWiring::missing('subscriptions', 'WebhookProcessor'),
+                ?? throw IncompleteWiringException::missing('subscriptions', 'WebhookProcessor'),
             orders: $this->wiring->orders
-                ?? throw IncompleteWiring::missing('orders', 'WebhookProcessor'),
+                ?? throw IncompleteWiringException::missing('orders', 'WebhookProcessor'),
             webhookCalls: $this->wiring->webhookCalls
-                ?? throw IncompleteWiring::missing('webhookCalls', 'WebhookProcessor'),
+                ?? throw IncompleteWiringException::missing('webhookCalls', 'WebhookProcessor'),
             dispatcher: $this->wiring->events
-                ?? throw IncompleteWiring::missing('events', 'WebhookProcessor'),
+                ?? throw IncompleteWiringException::missing('events', 'WebhookProcessor'),
             bindings: $this->wiring->customerBindings
-                ?? throw IncompleteWiring::missing('customerBindings', 'WebhookProcessor'),
+                ?? throw IncompleteWiringException::missing('customerBindings', 'WebhookProcessor'),
             getOrder: $this->getOrder(),
             additionalReactions: $this->wiring->additionalWebhookReactions,
         );
@@ -131,7 +131,7 @@ class Vatly
             createCustomer: $this->createCustomer(),
             getCustomer: $this->getCustomer(),
             bindings: $this->wiring->customerBindings
-                ?? throw IncompleteWiring::missing('customerBindings', 'CustomerService'),
+                ?? throw IncompleteWiringException::missing('customerBindings', 'CustomerService'),
         );
     }
 
@@ -155,17 +155,17 @@ class Vatly
     }
 
     /**
-     * Build a {@see Subscription} wrapping a persistent subscription.
+     * Build a {@see SubscriptionHandle} wrapping a persistent subscription.
      *
      * Drivers use this so their Eloquent (or equivalent) Subscription model
      * can expose Cashier-style operation methods that delegate here.
      */
-    public function subscription(SubscriptionInterface $subscription): Subscription
+    public function subscription(SubscriptionInterface $subscription): SubscriptionHandle
     {
-        return new Subscription(
+        return new SubscriptionHandle(
             subscription: $subscription,
             subscriptions: $this->wiring->subscriptions
-                ?? throw IncompleteWiring::missing('subscriptions', 'Subscription'),
+                ?? throw IncompleteWiringException::missing('subscriptions', 'SubscriptionHandle'),
             swapAction: $this->swapSubscriptionPlan(),
             cancelAction: $this->cancelSubscription(),
             resumeAction: $this->resumeSubscription(),
@@ -175,14 +175,14 @@ class Vatly
     }
 
     /**
-     * Build an {@see Order} wrapping a persistent order.
+     * Build an {@see OrderHandle} wrapping a persistent order.
      *
      * Drivers use this so their Eloquent (or equivalent) Order model can
      * expose operation methods (e.g. `invoiceUrl()`) that delegate here.
      */
-    public function order(OrderInterface $order): Order
+    public function order(OrderInterface $order): OrderHandle
     {
-        return new Order(
+        return new OrderHandle(
             order: $order,
             getOrderAction: $this->getOrder(),
         );

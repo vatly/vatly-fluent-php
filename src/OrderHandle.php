@@ -14,11 +14,11 @@ use Vatly\Fluent\Contracts\OrderInterface;
  * with the actions that operate on it. Drivers expose this via
  * {@see Vatly::order()}.
  *
- * Mirrors {@see Subscription} for orders. State accessors delegate to
- * the underlying {@see OrderInterface}; operations (e.g. `invoiceUrl()`)
+ * Mirrors {@see SubscriptionHandle} for orders. State accessors delegate
+ * to the underlying {@see OrderInterface}; operations (e.g. `invoiceUrl()`)
  * reach the Vatly API through injected actions.
  */
-class Order
+class OrderHandle
 {
     public function __construct(
         private readonly OrderInterface $order,
