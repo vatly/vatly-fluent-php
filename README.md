@@ -397,6 +397,21 @@ $checkout = $vatly
 // Operate on a stored Subscription / Order
 $vatly->subscription($localSubscription)->cancel();
 $vatly->order($localOrder)->invoiceUrl();
+
+// Billing address / VAT / company name changes go through a hosted Vatly
+// flow. Returns a fresh redirect URL per call — don't cache.
+// `redirectUrlSuccess` and `redirectUrlCanceled` are required; the SDK
+// does not fall back to the config defaults here. `billingAddress` is
+// an optional prefill.
+$url = $vatly->subscription($localSubscription)->updateBilling([
+    'redirectUrlSuccess'  => 'https://app.example.com/billing/updated',
+    'redirectUrlCanceled' => 'https://app.example.com/billing',
+    'billingAddress' => [
+        'streetAndNumber' => 'Damrak 1',
+        'city'            => 'Amsterdam',
+        'country'         => 'NL',
+    ],
+]);
 ```
 
 **Customer helper.** For host-first flows where you create a Vatly customer for a known host entity and want the link recorded automatically:
@@ -472,6 +487,13 @@ class Subscription implements SubscriptionInterface
     {
         $container->get(Vatly::class)->subscription($this)->swap($planId);
         return $this;
+    }
+
+    public function billingUpdateUrl(array $prefillData = []): string
+    {
+        return $container->get(Vatly::class)
+            ->subscription($this)
+            ->updateBilling($prefillData);
     }
 }
 ```
