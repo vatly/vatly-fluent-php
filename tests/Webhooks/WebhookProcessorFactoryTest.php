@@ -16,6 +16,7 @@ use Vatly\Fluent\Contracts\WebhookReactionInterface;
 use Vatly\Fluent\Tests\TestCase;
 use Vatly\Fluent\Webhooks\Reactions\CancelSubscriptionOnCanceled;
 use Vatly\Fluent\Webhooks\Reactions\StoreOrderOnPaid;
+use Vatly\Fluent\Webhooks\Reactions\StoreOrderOnPaymentFailed;
 use Vatly\Fluent\Webhooks\Reactions\SyncSubscriptionOnStarted;
 use Vatly\Fluent\Webhooks\WebhookProcessor;
 use Vatly\Fluent\Webhooks\WebhookProcessorFactory;
@@ -38,10 +39,11 @@ class WebhookProcessorFactoryTest extends TestCase
 
         $reactions = $processor->getReactions();
 
-        $this->assertCount(3, $reactions);
+        $this->assertCount(4, $reactions);
         $this->assertInstanceOf(SyncSubscriptionOnStarted::class, $reactions[0]);
         $this->assertInstanceOf(CancelSubscriptionOnCanceled::class, $reactions[1]);
         $this->assertInstanceOf(StoreOrderOnPaid::class, $reactions[2]);
+        $this->assertInstanceOf(StoreOrderOnPaymentFailed::class, $reactions[3]);
     }
 
     public function test_it_appends_additional_reactions_after_the_standard_ones(): void
@@ -61,8 +63,8 @@ class WebhookProcessorFactoryTest extends TestCase
 
         $reactions = $processor->getReactions();
 
-        $this->assertCount(4, $reactions);
-        $this->assertSame($custom, $reactions[3]);
+        $this->assertCount(5, $reactions);
+        $this->assertSame($custom, $reactions[4]);
     }
 
     public function test_it_tolerates_a_null_webhook_secret(): void

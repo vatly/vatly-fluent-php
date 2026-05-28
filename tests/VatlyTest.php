@@ -187,8 +187,8 @@ class VatlyTest extends TestCase
         $reactions = $ref->getValue($processor);
 
         $this->assertContains($customReaction, $reactions);
-        // The 3 standard reactions stay on top, plus our extra one = 4.
-        $this->assertCount(4, $reactions);
+        // The 4 standard reactions stay on top, plus our extra one = 5.
+        $this->assertCount(5, $reactions);
     }
 
     public function test_subscription_handle_wraps_the_given_subscription(): void

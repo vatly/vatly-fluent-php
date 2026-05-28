@@ -1,0 +1,168 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Vatly\Fluent\Tests\Webhooks\Reactions;
+
+use Mockery;
+use Vatly\Fluent\Contracts\CustomerBindingRepository;
+use Vatly\Fluent\Contracts\OrderInterface;
+use Vatly\Fluent\Contracts\OrderRepositoryInterface;
+use Vatly\Fluent\Data\StoreOrderData;
+use Vatly\Fluent\Data\UpdateOrderData;
+use Vatly\Fluent\Events\OrderPaid;
+use Vatly\Fluent\Events\PaymentFailed;
+use Vatly\Fluent\Tests\TestCase;
+use Vatly\Fluent\Types\TaxSummary;
+use Vatly\Fluent\Types\TaxSummaryItem;
+use Vatly\Fluent\Types\TaxSummaryRate;
+use Vatly\Fluent\Webhooks\Reactions\StoreOrderOnPaymentFailed;
+
+class StoreOrderOnPaymentFailedTest extends TestCase
+{
+    public function test_it_supports_payment_failed_events(): void
+    {
+        $reaction = new StoreOrderOnPaymentFailed(
+            Mockery::mock(OrderRepositoryInterface::class),
+            Mockery::mock(CustomerBindingRepository::class),
+        );
+
+        $this->assertTrue($reaction->supports($this->makeEvent()));
+    }
+
+    public function test_it_does_not_support_order_paid_or_other_events(): void
+    {
+        $reaction = new StoreOrderOnPaymentFailed(
+            Mockery::mock(OrderRepositoryInterface::class),
+            Mockery::mock(CustomerBindingRepository::class),
+        );
+
+        $orderPaid = new OrderPaid(
+            customerId: 'cus_1',
+            orderId: 'ord_1',
+            total: 9900,
+            subtotal: 8182,
+            taxSummary: TaxSummary::empty(),
+            currency: 'EUR',
+            invoiceNumber: null,
+            paymentMethod: null,
+        );
+
+        $this->assertFalse($reaction->supports($orderPaid));
+    }
+
+    public function test_it_stores_a_failed_order_with_host_customer_id_from_bindings_when_none_exists(): void
+    {
+        $taxSummary = $this->makeTaxSummary();
+        $event = $this->makeEvent(taxSummary: $taxSummary);
+
+        $repo = Mockery::mock(OrderRepositoryInterface::class);
+        $repo->shouldReceive('findByVatlyId')->with('ord_1')->once()->andReturnNull();
+        $repo->shouldReceive('store')->once()->with(Mockery::on(function (StoreOrderData $data) use ($taxSummary) {
+            return $data->vatlyId === 'ord_1'
+                && $data->customerId === 'cus_1'
+                && $data->status === 'failed'
+                && $data->total === 4900
+                && $data->subtotal === 4050
+                && $data->taxSummary === $taxSummary
+                && $data->currency === 'EUR'
+                && $data->invoiceNumber === null
+                && $data->paymentMethod === 'sepa_direct_debit'
+                && $data->hostCustomerId === 'host_7';
+        }))->andReturn(Mockery::mock(OrderInterface::class));
+
+        $bindings = Mockery::mock(CustomerBindingRepository::class);
+        $bindings->shouldReceive('hostCustomerIdFor')->with('cus_1')->once()->andReturn('host_7');
+        $bindings->shouldReceive('record')->with('cus_1')->once();
+
+        $reaction = new StoreOrderOnPaymentFailed($repo, $bindings);
+        $reaction->handle($event);
+    }
+
+    public function test_it_updates_an_existing_order_to_failed_without_consulting_bindings(): void
+    {
+        $taxSummary = $this->makeTaxSummary();
+        $event = $this->makeEvent(taxSummary: $taxSummary);
+
+        $existing = Mockery::mock(OrderInterface::class);
+        $repo = Mockery::mock(OrderRepositoryInterface::class);
+        $repo->shouldReceive('findByVatlyId')->with('ord_1')->once()->andReturn($existing);
+        $repo->shouldReceive('update')->once()->with($existing, Mockery::on(function (UpdateOrderData $data) use ($taxSummary) {
+            return $data->status === 'failed'
+                && $data->total === 4900
+                && $data->subtotal === 4050
+                && $data->taxSummary === $taxSummary
+                && $data->paymentMethod === 'sepa_direct_debit';
+        }))->andReturn($existing);
+        $repo->shouldNotReceive('store');
+
+        $bindings = Mockery::mock(CustomerBindingRepository::class);
+        $bindings->shouldNotReceive('hostCustomerIdFor');
+        $bindings->shouldNotReceive('record');
+
+        $reaction = new StoreOrderOnPaymentFailed($repo, $bindings);
+        $reaction->handle($event);
+    }
+
+    public function test_it_plumbs_metadata_through_store_and_update_paths(): void
+    {
+        $metadata = ['fluentcart_transaction_id' => 'tx_42'];
+        $event = new PaymentFailed(
+            customerId: 'cus_1',
+            orderId: 'ord_1',
+            total: 4900,
+            subtotal: 4050,
+            taxSummary: TaxSummary::empty(),
+            currency: 'EUR',
+            invoiceNumber: null,
+            paymentMethod: 'sepa_direct_debit',
+            metadata: $metadata,
+        );
+
+        $repo = Mockery::mock(OrderRepositoryInterface::class);
+        $repo->shouldReceive('findByVatlyId')->with('ord_1')->once()->andReturnNull();
+        $repo->shouldReceive('store')->once()->with(Mockery::on(
+            fn (StoreOrderData $data) => $data->metadata === $metadata,
+        ))->andReturn(Mockery::mock(OrderInterface::class));
+
+        $bindings = Mockery::mock(CustomerBindingRepository::class);
+        $bindings->shouldReceive('hostCustomerIdFor')->andReturn(null);
+        $bindings->shouldReceive('record')->once();
+
+        (new StoreOrderOnPaymentFailed($repo, $bindings))->handle($event);
+
+        $existing = Mockery::mock(OrderInterface::class);
+        $updateRepo = Mockery::mock(OrderRepositoryInterface::class);
+        $updateRepo->shouldReceive('findByVatlyId')->with('ord_1')->once()->andReturn($existing);
+        $updateRepo->shouldReceive('update')->once()->with($existing, Mockery::on(
+            fn (UpdateOrderData $data) => $data->metadata === $metadata,
+        ))->andReturn($existing);
+
+        (new StoreOrderOnPaymentFailed($updateRepo, Mockery::mock(CustomerBindingRepository::class)))->handle($event);
+    }
+
+    private function makeEvent(?TaxSummary $taxSummary = null): PaymentFailed
+    {
+        return new PaymentFailed(
+            customerId: 'cus_1',
+            orderId: 'ord_1',
+            total: 4900,
+            subtotal: 4050,
+            taxSummary: $taxSummary ?? TaxSummary::empty(),
+            currency: 'EUR',
+            invoiceNumber: null,
+            paymentMethod: 'sepa_direct_debit',
+        );
+    }
+
+    private function makeTaxSummary(): TaxSummary
+    {
+        return new TaxSummary([
+            new TaxSummaryItem(
+                rate: new TaxSummaryRate('VAT', 21.0, 100.0),
+                amount: 850,
+                currency: 'EUR',
+            ),
+        ]);
+    }
+}
