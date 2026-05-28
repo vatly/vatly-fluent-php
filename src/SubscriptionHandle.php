@@ -209,7 +209,13 @@ class SubscriptionHandle
      *
      * Each call returns a fresh time-bounded link.
      *
-     * @param array<string, mixed> $prefillData Optional pre-fill data.
+     * @param array<string, mixed> $prefillData Must include `redirectUrlSuccess`
+     *                                          and `redirectUrlCanceled` (the
+     *                                          API rejects the request without
+     *                                          them; the SDK does not merge in
+     *                                          config defaults here). May
+     *                                          include `billingAddress` as an
+     *                                          optional prefill.
      */
     public function updateBilling(array $prefillData = []): string
     {

@@ -13,8 +13,11 @@ class UpdateSubscriptionBilling extends BaseAction
      * (billing address, VAT number, company name) via a hosted flow.
      *
      * @param string $subscriptionId The subscription ID (e.g., subscription_xxx)
-     * @param array<string, mixed> $prefillData Optional pre-fill data (`redirectUrlSuccess`,
-     *                                          `redirectUrlCanceled`, `billingAddress`)
+     * @param array<string, mixed> $prefillData Must include `redirectUrlSuccess` and
+     *                                          `redirectUrlCanceled` (required by the API; the
+     *                                          SDK does not merge in config defaults here).
+     *                                          May include `billingAddress` as an optional
+     *                                          prefill.
      */
     public function execute(string $subscriptionId, array $prefillData = []): Link
     {
