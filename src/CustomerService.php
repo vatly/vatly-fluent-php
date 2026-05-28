@@ -10,7 +10,15 @@ use Vatly\Fluent\Actions\GetCustomer;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
 use Vatly\Fluent\Exceptions\CustomerAlreadyBound;
 
-class Customers
+/**
+ * Customer-related operations: create + bind, fetch, attribute.
+ *
+ * Reached via {@see Vatly::customers()}. Composes a {@see CreateCustomer}
+ * and {@see GetCustomer} action with a driver-supplied
+ * {@see CustomerBindingRepository} so callers don't have to remember to
+ * record the host ↔ Vatly link after creating a customer.
+ */
+class CustomerService
 {
     public function __construct(
         private CreateCustomer $createCustomer,

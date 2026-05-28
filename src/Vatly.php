@@ -31,7 +31,7 @@ use Vatly\Fluent\Webhooks\WebhookProcessorFactory;
  * Drivers (Laravel, etc.) construct a single instance — typically a singleton
  * — from a {@see Wiring} DTO that supplies the configuration and the driver's
  * concrete contract implementations (repositories, event dispatcher). Every
- * other fluent service (`Customers`, `Subscription`, `Order`,
+ * other fluent service (`CustomerService`, `Subscription`, `Order`,
  * `WebhookProcessor`, etc.) resolves lazily through methods on this class.
  *
  * For non-driver scripts that only need to hit the API, see {@see self::apiOnly()}.
@@ -52,7 +52,7 @@ class Vatly
     private ?UpdateSubscriptionBilling $updateSubscriptionBilling = null;
 
     // Lazy-loaded composed services
-    private ?Customers $customers = null;
+    private ?CustomerService $customers = null;
     private ?WebhookProcessor $webhookProcessor = null;
     private ?WebhookEventFactory $webhookEventFactory = null;
     private ?SignatureVerifier $signatureVerifier = null;
@@ -125,13 +125,13 @@ class Vatly
 
     // --- Customer composition ---
 
-    public function customers(): Customers
+    public function customers(): CustomerService
     {
-        return $this->customers ??= new Customers(
+        return $this->customers ??= new CustomerService(
             createCustomer: $this->createCustomer(),
             getCustomer: $this->getCustomer(),
             bindings: $this->wiring->customerBindings
-                ?? throw IncompleteWiring::missing('customerBindings', 'Customers'),
+                ?? throw IncompleteWiring::missing('customerBindings', 'CustomerService'),
         );
     }
 

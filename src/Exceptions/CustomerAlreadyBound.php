@@ -11,9 +11,9 @@ use RuntimeException;
  * and the requested operation would silently overwrite that binding.
  *
  * `$attemptedVatlyCustomerId` is null when the throw site is
- * {@see \Vatly\Fluent\Customers::createFor()} — no Vatly customer was
+ * {@see \Vatly\Fluent\CustomerService::createFor()} — no Vatly customer was
  * proposed; the caller wanted fluent to create a new one. It is non-null
- * when the throw site is {@see \Vatly\Fluent\Customers::attribute()},
+ * when the throw site is {@see \Vatly\Fluent\CustomerService::attribute()},
  * where the caller explicitly proposed a Vatly customer id to link.
  */
 final class CustomerAlreadyBound extends RuntimeException implements VatlyException

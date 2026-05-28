@@ -24,7 +24,7 @@ Framework-agnostic SDK for [Vatly](https://vatly.com). Sits between `vatly/vatly
 | Concern | `vatly-api-php` | `vatly-fluent-php` |
 | --- | --- | --- |
 | Make API calls | ✓ | ✓ (via `vatly-api-php` underneath) |
-| Domain model (`Subscription`, `Order`, `Customers` helper) | — | ✓ |
+| Domain model (`Subscription`, `Order`, `CustomerService` helper) | — | ✓ |
 | Repository contracts for persisting subscriptions / orders / customer bindings | — | ✓ |
 | Webhook signature verification | ✓ (low-level) | ✓ (full pipeline incl. parsing, reactions, dispatch) |
 | Typed domain events (`OrderPaid`, `SubscriptionStarted`, …) | — | ✓ |
@@ -423,7 +423,7 @@ $vatly->resumeSubscription(); $vatly->swapSubscriptionPlan();
 $vatly->updateSubscriptionBilling();
 
 // Composed services — require repos in Wiring
-$vatly->customers();                               // Customers helper (lazy, cached)
+$vatly->customers();                               // CustomerService (lazy, cached)
 $vatly->checkoutBuilder($profile);                 // CheckoutBuilder (per-call)
 $vatly->subscriptionBuilder($profile);             // SubscriptionBuilder (per-call)
 $vatly->subscription($localSubscription);          // Subscription wrapping local state

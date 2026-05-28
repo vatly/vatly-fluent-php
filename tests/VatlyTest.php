@@ -16,7 +16,7 @@ use Vatly\Fluent\Contracts\OrderRepositoryInterface;
 use Vatly\Fluent\Contracts\SubscriptionInterface;
 use Vatly\Fluent\Contracts\SubscriptionRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookCallRepositoryInterface;
-use Vatly\Fluent\Customers;
+use Vatly\Fluent\CustomerService;
 use Vatly\Fluent\CustomerProfile;
 use Vatly\Fluent\Exceptions\IncompleteWiring;
 use Vatly\Fluent\Order;
@@ -75,7 +75,7 @@ class VatlyTest extends TestCase
         $vatly = Vatly::apiOnly('test_abcdefghijklmnopqrstuvwxyz');
 
         $this->expectException(IncompleteWiring::class);
-        $this->expectExceptionMessageMatches("/'Customers'.*'customerBindings'/");
+        $this->expectExceptionMessageMatches("/'CustomerService'.*'customerBindings'/");
 
         $vatly->customers();
     }
@@ -132,7 +132,7 @@ class VatlyTest extends TestCase
     {
         $vatly = $this->fullyWiredVatly();
 
-        $this->assertInstanceOf(Customers::class, $vatly->customers());
+        $this->assertInstanceOf(CustomerService::class, $vatly->customers());
     }
 
     public function test_checkout_builder_is_constructed_per_call(): void
