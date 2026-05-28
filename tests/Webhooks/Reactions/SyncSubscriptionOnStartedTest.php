@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Vatly\Fluent\Tests\Webhooks\Reactions;
 
 use Mockery;
+use Vatly\Fluent\Contracts\CustomerBindingRepository;
 use Vatly\Fluent\Contracts\EventDispatcherInterface;
 use Vatly\Fluent\Contracts\SubscriptionInterface;
 use Vatly\Fluent\Contracts\SubscriptionRepositoryInterface;
@@ -21,9 +22,11 @@ class SyncSubscriptionOnStartedTest extends TestCase
 {
     public function test_it_supports_subscription_started_events(): void
     {
-        $repo = Mockery::mock(SubscriptionRepositoryInterface::class);
-        $dispatcher = Mockery::mock(EventDispatcherInterface::class);
-        $reaction = new SyncSubscriptionOnStarted($repo, $dispatcher);
+        $reaction = new SyncSubscriptionOnStarted(
+            Mockery::mock(SubscriptionRepositoryInterface::class),
+            Mockery::mock(CustomerBindingRepository::class),
+            Mockery::mock(EventDispatcherInterface::class),
+        );
 
         $event = new SubscriptionStarted('cus_1', 'sub_1', 'plan_1', 'default', 'Monthly', 1);
 
@@ -32,18 +35,21 @@ class SyncSubscriptionOnStartedTest extends TestCase
 
     public function test_it_does_not_support_other_events(): void
     {
-        $repo = Mockery::mock(SubscriptionRepositoryInterface::class);
-        $dispatcher = Mockery::mock(EventDispatcherInterface::class);
-        $reaction = new SyncSubscriptionOnStarted($repo, $dispatcher);
+        $reaction = new SyncSubscriptionOnStarted(
+            Mockery::mock(SubscriptionRepositoryInterface::class),
+            Mockery::mock(CustomerBindingRepository::class),
+            Mockery::mock(EventDispatcherInterface::class),
+        );
 
         $event = new OrderPaid('cus_1', 'ord_1', 9900, 8182, TaxSummary::empty(), 'EUR', null, null);
 
         $this->assertFalse($reaction->supports($event));
     }
 
-    public function test_it_stores_a_subscription_when_none_exists(): void
+    public function test_it_stores_a_subscription_with_host_customer_id_from_bindings_when_none_exists(): void
     {
         $subscription = Mockery::mock(SubscriptionInterface::class);
+
         $repo = Mockery::mock(SubscriptionRepositoryInterface::class);
         $repo->shouldReceive('findByVatlyId')->with('sub_1')->once()->andReturnNull();
         $repo->shouldReceive('store')->once()->with(Mockery::on(function (StoreSubscriptionData $data) {
@@ -52,8 +58,13 @@ class SyncSubscriptionOnStartedTest extends TestCase
                 && $data->type === 'default'
                 && $data->planId === 'plan_1'
                 && $data->name === 'Monthly'
-                && $data->quantity === 1;
+                && $data->quantity === 1
+                && $data->hostCustomerId === 'host_42';
         }))->andReturn($subscription);
+
+        $bindings = Mockery::mock(CustomerBindingRepository::class);
+        $bindings->shouldReceive('hostCustomerIdFor')->with('cus_1')->once()->andReturn('host_42');
+        $bindings->shouldReceive('record')->with('cus_1')->once();
 
         $dispatcher = Mockery::mock(EventDispatcherInterface::class);
         $dispatcher->shouldReceive('dispatch')->once()->with(Mockery::on(function ($event) use ($subscription) {
@@ -61,11 +72,32 @@ class SyncSubscriptionOnStartedTest extends TestCase
                 && $event->subscription === $subscription;
         }));
 
-        $reaction = new SyncSubscriptionOnStarted($repo, $dispatcher);
+        $reaction = new SyncSubscriptionOnStarted($repo, $bindings, $dispatcher);
         $reaction->handle(new SubscriptionStarted('cus_1', 'sub_1', 'plan_1', 'default', 'Monthly', 1));
     }
 
-    public function test_it_updates_an_existing_subscription(): void
+    public function test_it_stores_a_subscription_with_null_host_customer_id_when_no_binding_exists(): void
+    {
+        $subscription = Mockery::mock(SubscriptionInterface::class);
+
+        $repo = Mockery::mock(SubscriptionRepositoryInterface::class);
+        $repo->shouldReceive('findByVatlyId')->with('sub_1')->once()->andReturnNull();
+        $repo->shouldReceive('store')->once()->with(Mockery::on(function (StoreSubscriptionData $data) {
+            return $data->hostCustomerId === null;
+        }))->andReturn($subscription);
+
+        $bindings = Mockery::mock(CustomerBindingRepository::class);
+        $bindings->shouldReceive('hostCustomerIdFor')->with('cus_1')->once()->andReturnNull();
+        $bindings->shouldReceive('record')->with('cus_1')->once();
+
+        $dispatcher = Mockery::mock(EventDispatcherInterface::class);
+        $dispatcher->shouldReceive('dispatch')->once();
+
+        $reaction = new SyncSubscriptionOnStarted($repo, $bindings, $dispatcher);
+        $reaction->handle(new SubscriptionStarted('cus_1', 'sub_1', 'plan_1', 'default', 'Monthly', 1));
+    }
+
+    public function test_it_updates_an_existing_subscription_without_consulting_bindings(): void
     {
         $existing = Mockery::mock(SubscriptionInterface::class);
         $repo = Mockery::mock(SubscriptionRepositoryInterface::class);
@@ -75,10 +107,14 @@ class SyncSubscriptionOnStartedTest extends TestCase
         }))->andReturn($existing);
         $repo->shouldNotReceive('store');
 
+        $bindings = Mockery::mock(CustomerBindingRepository::class);
+        $bindings->shouldNotReceive('hostCustomerIdFor');
+        $bindings->shouldNotReceive('record');
+
         $dispatcher = Mockery::mock(EventDispatcherInterface::class);
         $dispatcher->shouldNotReceive('dispatch');
 
-        $reaction = new SyncSubscriptionOnStarted($repo, $dispatcher);
+        $reaction = new SyncSubscriptionOnStarted($repo, $bindings, $dispatcher);
         $reaction->handle(new SubscriptionStarted('cus_1', 'sub_1', 'plan_1', 'default', 'Monthly', 1));
     }
 }

@@ -6,7 +6,6 @@ namespace Vatly\Fluent\Tests\Events;
 
 use DateTimeInterface;
 use Vatly\Fluent\Concerns\DerivesSubscriptionState;
-use Vatly\Fluent\Contracts\BillableInterface;
 use Vatly\Fluent\Contracts\SubscriptionInterface;
 use Vatly\Fluent\Events\LocalSubscriptionCreated;
 use Vatly\Fluent\Tests\TestCase;
@@ -66,43 +65,6 @@ class LocalSubscriptionCreatedTest extends TestCase
             public function getEndsAt(): ?DateTimeInterface
             {
                 return null;
-            }
-
-            public function getOwner(): BillableInterface
-            {
-                return new class implements BillableInterface {
-                    public function getVatlyId(): ?string
-                    {
-                        return 'cus_123';
-                    }
-
-                    public function setVatlyId(string $id): void {}
-
-                    public function hasVatlyId(): bool
-                    {
-                        return true;
-                    }
-
-                    public function getVatlyEmail(): ?string
-                    {
-                        return 'test@example.com';
-                    }
-
-                    public function getVatlyName(): ?string
-                    {
-                        return 'Test User';
-                    }
-
-                    public function getKey(): string|int
-                    {
-                        return 1;
-                    }
-
-                    public function save(): mixed
-                    {
-                        return true;
-                    }
-                };
             }
         };
     }

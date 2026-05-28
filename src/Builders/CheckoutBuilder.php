@@ -7,7 +7,7 @@ namespace Vatly\Fluent\Builders;
 use Vatly\API\Resources\Checkout;
 use Vatly\Fluent\Actions\CreateCheckout;
 use Vatly\Fluent\Builders\Concerns\ManagesTestmode;
-use Vatly\Fluent\Contracts\BillableInterface;
+use Vatly\Fluent\CustomerProfile;
 use Vatly\Fluent\Exceptions\IncompleteInformationException;
 
 class CheckoutBuilder
@@ -26,7 +26,7 @@ class CheckoutBuilder
 
     public function __construct(
         /** @readonly */
-        protected BillableInterface $owner,
+        protected CustomerProfile $customer,
         /** @readonly */
         protected CreateCheckout $createCheckout,
     ) {
@@ -43,7 +43,7 @@ class CheckoutBuilder
     {
         $payload = array_merge([
             'products' => $this->items,
-            'customerId' => $this->owner->getVatlyId(),
+            'customerId' => $this->customer->vatlyId,
             'redirectUrlSuccess' => $this->redirectUrlSuccess,
             'redirectUrlCanceled' => $this->redirectUrlCanceled,
             'testmode' => $this->testmode,

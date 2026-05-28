@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Vatly\Fluent;
 
 use Vatly\Fluent\Actions\GetOrder;
-use Vatly\Fluent\Contracts\BillableInterface;
 use Vatly\Fluent\Contracts\OrderInterface;
 
 /**
@@ -13,10 +12,10 @@ use Vatly\Fluent\Contracts\OrderInterface;
  *
  * Wraps an {@see OrderInterface} (the persistent state, owned by the driver)
  * with the actions that operate on it. Drivers expose this via
- * {@see Billable::order()}.
+ * {@see Vatly::order()}.
  *
- * Mirrors {@see SubscriptionHandle} for orders. State accessors delegate to
- * the underlying {@see OrderInterface}; operations (e.g. `invoiceUrl()`)
+ * Mirrors {@see SubscriptionHandle} for orders. State accessors delegate
+ * to the underlying {@see OrderInterface}; operations (e.g. `invoiceUrl()`)
  * reach the Vatly API through injected actions.
  */
 class OrderHandle
@@ -66,11 +65,6 @@ class OrderHandle
     public function getPaymentMethod(): ?string
     {
         return $this->order->getPaymentMethod();
-    }
-
-    public function getOwner(): BillableInterface
-    {
-        return $this->order->getOwner();
     }
 
     public function isPaid(): bool

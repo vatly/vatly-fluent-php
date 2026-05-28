@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Webhooks\Reactions;
 
+use Vatly\Fluent\Contracts\CustomerBindingRepository;
 use Vatly\Fluent\Contracts\OrderRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
 use Vatly\Fluent\Data\StoreOrderData;
@@ -17,6 +18,7 @@ class StoreOrderOnPaid implements WebhookReactionInterface
 {
     public function __construct(
         private OrderRepositoryInterface $orders,
+        private CustomerBindingRepository $bindings,
     ) {}
 
     public function supports(object $event): bool
@@ -43,6 +45,9 @@ class StoreOrderOnPaid implements WebhookReactionInterface
             return;
         }
 
+        $hostCustomerId = $this->bindings->hostCustomerIdFor($event->customerId);
+        $this->bindings->record($event->customerId);
+
         $this->orders->store(new StoreOrderData(
             vatlyId: $event->orderId,
             customerId: $event->customerId,
@@ -53,6 +58,7 @@ class StoreOrderOnPaid implements WebhookReactionInterface
             paymentMethod: $event->paymentMethod,
             subtotal: $event->subtotal,
             taxSummary: $event->taxSummary,
+            hostCustomerId: $hostCustomerId,
         ));
     }
 }

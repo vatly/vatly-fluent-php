@@ -18,5 +18,6 @@ class StoreSubscriptionData
         public string $planId,
         public string $name,
         public int $quantity = 1,
+        public ?string $hostCustomerId = null,
     ) {}
 }

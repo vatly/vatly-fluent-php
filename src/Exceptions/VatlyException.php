@@ -11,7 +11,7 @@ use Throwable;
  *
  * `catch (VatlyException $e)` catches every fluent-thrown exception
  * regardless of subclass. Catch a concrete class (e.g.
- * {@see InvalidCustomerException}) to target one failure mode. Each
+ * {@see InvalidOrderException}) to target one failure mode. Each
  * concrete is a `final class` extending one of PHP's SPL exception
  * classes (typically `\RuntimeException` or `\InvalidArgumentException`)
  * and implementing this marker.

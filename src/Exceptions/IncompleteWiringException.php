@@ -11,13 +11,13 @@ use RuntimeException;
  * required dependency was not provided to the {@see \Vatly\Fluent\Wiring} DTO.
  *
  * Examples:
- * - calling `Vatly::billableFactory()` without a repository in the wiring.
+ * - calling `Vatly::customers()` without a `customerBindings` impl in the wiring.
  * - calling `Vatly::webhookProcessor()` without an event dispatcher.
  *
  * The exception names the missing dependency and the feature being requested
  * so the fix is mechanical: add the dependency to your Wiring construction.
  */
-final class IncompleteWiring extends RuntimeException implements VatlyException
+final class IncompleteWiringException extends RuntimeException implements VatlyException
 {
     public static function missing(string $dependency, string $forFeature): self
     {

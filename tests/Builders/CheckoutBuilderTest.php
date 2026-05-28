@@ -7,13 +7,13 @@ namespace Vatly\Fluent\Tests\Builders;
 use Vatly\API\Resources\Checkout;
 use Vatly\Fluent\Actions\CreateCheckout;
 use Vatly\Fluent\Builders\CheckoutBuilder;
-use Vatly\Fluent\Contracts\BillableInterface;
+use Vatly\Fluent\CustomerProfile;
 use Vatly\Fluent\Exceptions\IncompleteInformationException;
 use Vatly\Fluent\Tests\TestCase;
 
 class CheckoutBuilderTest extends TestCase
 {
-    private BillableInterface $owner;
+    private CustomerProfile $customer;
     private CreateCheckout $createCheckout;
     private CheckoutBuilder $builder;
 
@@ -21,12 +21,12 @@ class CheckoutBuilderTest extends TestCase
     {
         parent::setUp();
 
-        $this->owner = $this->createTestBillable('vat_owner_123');
+        $this->customer = new CustomerProfile(vatlyId: 'vat_owner_123', email: 'test@example.com', name: 'Test User');
         $this->createCheckout = $this->createMockCreateCheckout();
-        $this->builder = new CheckoutBuilder($this->owner, $this->createCheckout);
+        $this->builder = new CheckoutBuilder($this->customer, $this->createCheckout);
     }
 
-    public function test_it_builds_payload_with_owner_vatly_id(): void
+    public function test_it_builds_payload_with_customer_vatly_id(): void
     {
         $payload = $this->builder->payload();
 
@@ -159,48 +159,6 @@ class CheckoutBuilderTest extends TestCase
             redirectUrlSuccess: 'https://example.com/success',
             redirectUrlCanceled: 'https://example.com/canceled',
         );
-    }
-
-    private function createTestBillable(string $vatlyId): BillableInterface
-    {
-        return new class($vatlyId) implements BillableInterface {
-            public function __construct(private string $vatlyId) {}
-
-            public function getVatlyId(): string
-            {
-                return $this->vatlyId;
-            }
-
-            public function setVatlyId(string $id): void
-            {
-                $this->vatlyId = $id;
-            }
-
-            public function hasVatlyId(): bool
-            {
-                return $this->vatlyId !== '';
-            }
-
-            public function getVatlyEmail(): ?string
-            {
-                return 'test@example.com';
-            }
-
-            public function getVatlyName(): ?string
-            {
-                return 'Test User';
-            }
-
-            public function getKey(): string|int
-            {
-                return 1;
-            }
-
-            public function save(): mixed
-            {
-                return true;
-            }
-        };
     }
 
     private function createMockCreateCheckout(): CreateCheckout

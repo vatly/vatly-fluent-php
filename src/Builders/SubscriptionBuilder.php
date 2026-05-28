@@ -6,8 +6,8 @@ namespace Vatly\Fluent\Builders;
 
 use Vatly\API\Resources\Checkout;
 use Vatly\Fluent\Builders\Concerns\ManagesTestmode;
-use Vatly\Fluent\Contracts\BillableInterface;
 use Vatly\Fluent\Contracts\ConfigurationInterface;
+use Vatly\Fluent\CustomerProfile;
 
 class SubscriptionBuilder
 {
@@ -25,7 +25,7 @@ class SubscriptionBuilder
         /** @readonly */
         protected ConfigurationInterface $config,
         /** @readonly */
-        protected BillableInterface $owner,
+        protected CustomerProfile $customer,
         /** @readonly */
         protected CheckoutBuilder $checkoutBuilder,
     ) {

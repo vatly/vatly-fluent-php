@@ -23,5 +23,6 @@ class StoreOrderData
         public ?string $paymentMethod = null,
         public ?int $subtotal = null,
         public ?TaxSummary $taxSummary = null,
+        public ?string $hostCustomerId = null,
     ) {}
 }

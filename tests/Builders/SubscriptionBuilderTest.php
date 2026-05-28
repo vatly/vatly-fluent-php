@@ -8,14 +8,14 @@ use Vatly\API\Resources\Checkout;
 use Vatly\Fluent\Actions\CreateCheckout;
 use Vatly\Fluent\Builders\CheckoutBuilder;
 use Vatly\Fluent\Builders\SubscriptionBuilder;
-use Vatly\Fluent\Contracts\BillableInterface;
 use Vatly\Fluent\Contracts\ConfigurationInterface;
+use Vatly\Fluent\CustomerProfile;
 use Vatly\Fluent\Tests\TestCase;
 
 class SubscriptionBuilderTest extends TestCase
 {
     private ConfigurationInterface $config;
-    private BillableInterface $owner;
+    private CustomerProfile $customer;
     private CreateCheckout $createCheckout;
     private CheckoutBuilder $checkoutBuilder;
     private SubscriptionBuilder $builder;
@@ -25,10 +25,10 @@ class SubscriptionBuilderTest extends TestCase
         parent::setUp();
 
         $this->config = $this->createTestConfig();
-        $this->owner = $this->createTestOwner('vat_sub_owner_123');
+        $this->customer = new CustomerProfile(vatlyId: 'vat_sub_owner_123');
         $this->createCheckout = $this->createTestCreateCheckout();
-        $this->checkoutBuilder = new CheckoutBuilder($this->owner, $this->createCheckout);
-        $this->builder = new SubscriptionBuilder($this->config, $this->owner, $this->checkoutBuilder);
+        $this->checkoutBuilder = new CheckoutBuilder($this->customer, $this->createCheckout);
+        $this->builder = new SubscriptionBuilder($this->config, $this->customer, $this->checkoutBuilder);
     }
 
     public function test_to_plan_sets_the_plan_id(): void
@@ -146,48 +146,6 @@ class SubscriptionBuilderTest extends TestCase
             public function getApiVersion(): string
             {
                 return 'v1';
-            }
-        };
-    }
-
-    private function createTestOwner(string $vatlyId): BillableInterface
-    {
-        return new class($vatlyId) implements BillableInterface {
-            public function __construct(private string $vatlyId) {}
-
-            public function getVatlyId(): string
-            {
-                return $this->vatlyId;
-            }
-
-            public function setVatlyId(string $id): void
-            {
-                $this->vatlyId = $id;
-            }
-
-            public function hasVatlyId(): bool
-            {
-                return $this->vatlyId !== '';
-            }
-
-            public function getVatlyEmail(): ?string
-            {
-                return 'owner@example.com';
-            }
-
-            public function getVatlyName(): ?string
-            {
-                return 'Test Owner';
-            }
-
-            public function getKey(): string|int
-            {
-                return 1;
-            }
-
-            public function save(): mixed
-            {
-                return true;
             }
         };
     }

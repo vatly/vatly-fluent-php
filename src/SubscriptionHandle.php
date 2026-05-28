@@ -10,7 +10,6 @@ use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\Fluent\Actions\ResumeSubscription;
 use Vatly\Fluent\Actions\SwapSubscriptionPlan;
-use Vatly\Fluent\Contracts\BillableInterface;
 use Vatly\Fluent\Contracts\SubscriptionInterface;
 use Vatly\Fluent\Contracts\SubscriptionWriter;
 use Vatly\Fluent\Data\UpdateSubscriptionData;
@@ -20,7 +19,7 @@ use Vatly\Fluent\Data\UpdateSubscriptionData;
  *
  * Wraps a SubscriptionInterface (the persistent state, owned by the driver)
  * with the actions that operate on it. Drivers expose this via
- * Billable::subscription().
+ * Vatly::subscription().
  */
 class SubscriptionHandle
 {
@@ -74,11 +73,6 @@ class SubscriptionHandle
     public function getEndsAt(): ?DateTimeInterface
     {
         return $this->subscription->getEndsAt();
-    }
-
-    public function getOwner(): BillableInterface
-    {
-        return $this->subscription->getOwner();
     }
 
     public function isCancelled(): bool

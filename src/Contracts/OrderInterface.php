@@ -40,11 +40,6 @@ interface OrderInterface
     public function getPaymentMethod(): ?string;
 
     /**
-     * Get the owner of this order.
-     */
-    public function getOwner(): BillableInterface;
-
-    /**
      * Check if the order is paid.
      */
     public function isPaid(): bool;

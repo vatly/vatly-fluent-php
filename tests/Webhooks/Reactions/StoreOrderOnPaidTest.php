@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Vatly\Fluent\Tests\Webhooks\Reactions;
 
 use Mockery;
+use Vatly\Fluent\Contracts\CustomerBindingRepository;
 use Vatly\Fluent\Contracts\OrderInterface;
 use Vatly\Fluent\Contracts\OrderRepositoryInterface;
 use Vatly\Fluent\Data\StoreOrderData;
@@ -21,23 +22,27 @@ class StoreOrderOnPaidTest extends TestCase
 {
     public function test_it_supports_order_paid_events(): void
     {
-        $repo = Mockery::mock(OrderRepositoryInterface::class);
-        $reaction = new StoreOrderOnPaid($repo);
+        $reaction = new StoreOrderOnPaid(
+            Mockery::mock(OrderRepositoryInterface::class),
+            Mockery::mock(CustomerBindingRepository::class),
+        );
 
         $this->assertTrue($reaction->supports($this->makeEvent()));
     }
 
     public function test_it_does_not_support_other_events(): void
     {
-        $repo = Mockery::mock(OrderRepositoryInterface::class);
-        $reaction = new StoreOrderOnPaid($repo);
+        $reaction = new StoreOrderOnPaid(
+            Mockery::mock(OrderRepositoryInterface::class),
+            Mockery::mock(CustomerBindingRepository::class),
+        );
 
         $event = new SubscriptionStarted('cus_1', 'sub_1', 'plan_1', 'default', 'Monthly', 1);
 
         $this->assertFalse($reaction->supports($event));
     }
 
-    public function test_it_stores_an_order_with_tax_breakdown_when_none_exists(): void
+    public function test_it_stores_an_order_with_host_customer_id_from_bindings_when_none_exists(): void
     {
         $taxSummary = $this->makeTaxSummary();
         $event = $this->makeEvent(taxSummary: $taxSummary);
@@ -53,14 +58,19 @@ class StoreOrderOnPaidTest extends TestCase
                 && $data->taxSummary === $taxSummary
                 && $data->currency === 'EUR'
                 && $data->invoiceNumber === 'INV-001'
-                && $data->paymentMethod === 'card';
+                && $data->paymentMethod === 'card'
+                && $data->hostCustomerId === 'host_7';
         }))->andReturn(Mockery::mock(OrderInterface::class));
 
-        $reaction = new StoreOrderOnPaid($repo);
+        $bindings = Mockery::mock(CustomerBindingRepository::class);
+        $bindings->shouldReceive('hostCustomerIdFor')->with('cus_1')->once()->andReturn('host_7');
+        $bindings->shouldReceive('record')->with('cus_1')->once();
+
+        $reaction = new StoreOrderOnPaid($repo, $bindings);
         $reaction->handle($event);
     }
 
-    public function test_it_updates_an_existing_order_with_tax_breakdown(): void
+    public function test_it_updates_an_existing_order_without_consulting_bindings(): void
     {
         $taxSummary = $this->makeTaxSummary();
         $event = $this->makeEvent(taxSummary: $taxSummary);
@@ -76,7 +86,11 @@ class StoreOrderOnPaidTest extends TestCase
         }))->andReturn($existing);
         $repo->shouldNotReceive('store');
 
-        $reaction = new StoreOrderOnPaid($repo);
+        $bindings = Mockery::mock(CustomerBindingRepository::class);
+        $bindings->shouldNotReceive('hostCustomerIdFor');
+        $bindings->shouldNotReceive('record');
+
+        $reaction = new StoreOrderOnPaid($repo, $bindings);
         $reaction->handle($event);
     }
 

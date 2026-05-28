@@ -75,9 +75,4 @@ interface SubscriptionInterface
      * grace period.
      */
     public function isEnded(): bool;
-
-    /**
-     * Get the owner of this subscription.
-     */
-    public function getOwner(): BillableInterface;
 }

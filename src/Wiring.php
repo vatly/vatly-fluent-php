@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Vatly\Fluent;
 
 use Vatly\Fluent\Contracts\ConfigurationInterface;
-use Vatly\Fluent\Contracts\CustomerRepositoryInterface;
+use Vatly\Fluent\Contracts\CustomerBindingRepository;
 use Vatly\Fluent\Contracts\EventDispatcherInterface;
 use Vatly\Fluent\Contracts\OrderRepositoryInterface;
 use Vatly\Fluent\Contracts\SubscriptionRepositoryInterface;
@@ -17,7 +17,7 @@ use Vatly\Fluent\Contracts\WebhookReactionInterface;
  *
  * Only `config` is required. Optional impls (repos, dispatcher) can be
  * omitted for api-only mode; calling a method on `Vatly` that needs an
- * absent dependency raises {@see \Vatly\Fluent\Exceptions\IncompleteWiring}.
+ * absent dependency raises {@see \Vatly\Fluent\Exceptions\IncompleteWiringException}.
  *
  * Drivers (Laravel, WordPress, etc.) construct one of these from their
  * container and pass it to `new Vatly($wiring)` — typically bound as
@@ -33,10 +33,10 @@ final class Wiring
     public function __construct(
         public readonly ConfigurationInterface $config,
         public readonly ?SubscriptionRepositoryInterface $subscriptions = null,
-        public readonly ?CustomerRepositoryInterface $customers = null,
         public readonly ?OrderRepositoryInterface $orders = null,
         public readonly ?WebhookCallRepositoryInterface $webhookCalls = null,
         public readonly ?EventDispatcherInterface $events = null,
+        public readonly ?CustomerBindingRepository $customerBindings = null,
         public readonly array $additionalWebhookReactions = [],
     ) {
         //
