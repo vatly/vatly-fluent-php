@@ -25,6 +25,7 @@ class PaymentFailedTest extends TestCase
         $event = new PaymentFailed(
             customerId: 'cus_123',
             orderId: 'ord_456',
+            status: 'pending',
             total: 9900,
             subtotal: 8182,
             taxSummary: TaxSummary::empty(),
@@ -35,6 +36,7 @@ class PaymentFailedTest extends TestCase
 
         $this->assertSame('cus_123', $event->customerId);
         $this->assertSame('ord_456', $event->orderId);
+        $this->assertSame('pending', $event->status);
         $this->assertSame(9900, $event->total);
         $this->assertSame(8182, $event->subtotal);
         $this->assertCount(0, $event->taxSummary);
@@ -52,7 +54,7 @@ class PaymentFailedTest extends TestCase
         $apiOrder->subtotal = new Money('USD', '41.31');
         $apiOrder->invoiceNumber = 'INV-2024-002';
         $apiOrder->paymentMethod = 'ideal';
-        $apiOrder->status = 'open';
+        $apiOrder->status = 'pending';
         $apiOrder->taxSummary = new TaxSummaryCollection([
             [
                 'taxRate' => ['name' => 'VAT', 'percentage' => 21.0, 'taxablePercentage' => 100.0],
@@ -64,6 +66,7 @@ class PaymentFailedTest extends TestCase
 
         $this->assertSame('cus_456', $event->customerId);
         $this->assertSame('ord_123', $event->orderId);
+        $this->assertSame('pending', $event->status);
         $this->assertSame(4999, $event->total);
         $this->assertSame(4131, $event->subtotal);
         $this->assertSame('USD', $event->currency);
@@ -83,13 +86,14 @@ class PaymentFailedTest extends TestCase
         $apiOrder->subtotal = new Money('GBP', '12.40');
         $apiOrder->invoiceNumber = null;
         $apiOrder->paymentMethod = null;
-        $apiOrder->status = 'open';
+        $apiOrder->status = 'pending';
         $apiOrder->taxSummary = new TaxSummaryCollection([]);
 
         $event = PaymentFailed::fromApiOrder($apiOrder);
 
         $this->assertSame('', $event->customerId);
         $this->assertSame('ord_789', $event->orderId);
+        $this->assertSame('pending', $event->status);
         $this->assertSame(1500, $event->total);
         $this->assertSame(1240, $event->subtotal);
         $this->assertSame('GBP', $event->currency);
@@ -131,7 +135,7 @@ class PaymentFailedTest extends TestCase
         $apiOrder->subtotal = new Money('EUR', '8.26');
         $apiOrder->invoiceNumber = null;
         $apiOrder->paymentMethod = null;
-        $apiOrder->status = 'open';
+        $apiOrder->status = 'pending';
         $apiOrder->taxSummary = new TaxSummaryCollection([]);
 
         return $apiOrder;

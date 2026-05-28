@@ -24,6 +24,7 @@ class OrderPaid
     public function __construct(
         public string $customerId,
         public string $orderId,
+        public string $status,
         public int $total,
         public int $subtotal,
         public TaxSummary $taxSummary,
@@ -41,6 +42,7 @@ class OrderPaid
         return new self(
             customerId: $order->customerId ?? '',
             orderId: $order->id,
+            status: $order->status,
             total: Money::fromApiMoneyToCents($order->total),
             subtotal: Money::fromApiMoneyToCents($order->subtotal),
             taxSummary: TaxSummary::fromApiResource($order->taxSummary),

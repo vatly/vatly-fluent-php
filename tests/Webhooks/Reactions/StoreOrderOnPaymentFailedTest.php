@@ -40,6 +40,7 @@ class StoreOrderOnPaymentFailedTest extends TestCase
         $orderPaid = new OrderPaid(
             customerId: 'cus_1',
             orderId: 'ord_1',
+            status: 'paid',
             total: 9900,
             subtotal: 8182,
             taxSummary: TaxSummary::empty(),
@@ -61,7 +62,7 @@ class StoreOrderOnPaymentFailedTest extends TestCase
         $repo->shouldReceive('store')->once()->with(Mockery::on(function (StoreOrderData $data) use ($taxSummary) {
             return $data->vatlyId === 'ord_1'
                 && $data->customerId === 'cus_1'
-                && $data->status === 'failed'
+                && $data->status === 'pending'
                 && $data->total === 4900
                 && $data->subtotal === 4050
                 && $data->taxSummary === $taxSummary
@@ -88,7 +89,7 @@ class StoreOrderOnPaymentFailedTest extends TestCase
         $repo = Mockery::mock(OrderRepositoryInterface::class);
         $repo->shouldReceive('findByVatlyId')->with('ord_1')->once()->andReturn($existing);
         $repo->shouldReceive('update')->once()->with($existing, Mockery::on(function (UpdateOrderData $data) use ($taxSummary) {
-            return $data->status === 'failed'
+            return $data->status === 'pending'
                 && $data->total === 4900
                 && $data->subtotal === 4050
                 && $data->taxSummary === $taxSummary
@@ -104,11 +105,29 @@ class StoreOrderOnPaymentFailedTest extends TestCase
         $reaction->handle($event);
     }
 
+    public function test_it_persists_whatever_status_the_enriched_order_carries(): void
+    {
+        // Regression: an earlier version of this reaction hardcoded `'failed'`,
+        // which diverged from the real Vatly order state ('pending' during
+        // dunning, sometimes 'canceled' after the process ends). We mirror,
+        // not synthesise.
+        $repo = Mockery::mock(OrderRepositoryInterface::class);
+        $existing = Mockery::mock(OrderInterface::class);
+        $repo->shouldReceive('findByVatlyId')->with('ord_1')->once()->andReturn($existing);
+        $repo->shouldReceive('update')->once()->with($existing, Mockery::on(
+            fn (UpdateOrderData $data) => $data->status === 'canceled',
+        ))->andReturn($existing);
+
+        (new StoreOrderOnPaymentFailed($repo, Mockery::mock(CustomerBindingRepository::class)))
+            ->handle($this->makeEvent(status: 'canceled'));
+    }
+
     public function test_it_skips_bindings_when_customer_id_is_empty(): void
     {
         $event = new PaymentFailed(
             customerId: '',
             orderId: 'ord_anon',
+            status: 'pending',
             total: 4900,
             subtotal: 4050,
             taxSummary: TaxSummary::empty(),
@@ -122,7 +141,7 @@ class StoreOrderOnPaymentFailedTest extends TestCase
         $repo->shouldReceive('store')->once()->with(Mockery::on(
             fn (StoreOrderData $data) => $data->customerId === ''
                 && $data->hostCustomerId === null
-                && $data->status === 'failed',
+                && $data->status === 'pending',
         ))->andReturn(Mockery::mock(OrderInterface::class));
 
         $bindings = Mockery::mock(CustomerBindingRepository::class);
@@ -138,6 +157,7 @@ class StoreOrderOnPaymentFailedTest extends TestCase
         $event = new PaymentFailed(
             customerId: 'cus_1',
             orderId: 'ord_1',
+            status: 'pending',
             total: 4900,
             subtotal: 4050,
             taxSummary: TaxSummary::empty(),
@@ -169,11 +189,12 @@ class StoreOrderOnPaymentFailedTest extends TestCase
         (new StoreOrderOnPaymentFailed($updateRepo, Mockery::mock(CustomerBindingRepository::class)))->handle($event);
     }
 
-    private function makeEvent(?TaxSummary $taxSummary = null): PaymentFailed
+    private function makeEvent(?TaxSummary $taxSummary = null, string $status = 'pending'): PaymentFailed
     {
         return new PaymentFailed(
             customerId: 'cus_1',
             orderId: 'ord_1',
+            status: $status,
             total: 4900,
             subtotal: 4050,
             taxSummary: $taxSummary ?? TaxSummary::empty(),

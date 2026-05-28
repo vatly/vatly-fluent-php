@@ -25,6 +25,7 @@ class OrderPaidTest extends TestCase
         $event = new OrderPaid(
             customerId: 'cus_123',
             orderId: 'ord_456',
+            status: 'paid',
             total: 9900,
             subtotal: 8182,
             taxSummary: TaxSummary::empty(),
@@ -35,6 +36,7 @@ class OrderPaidTest extends TestCase
 
         $this->assertSame('cus_123', $event->customerId);
         $this->assertSame('ord_456', $event->orderId);
+        $this->assertSame('paid', $event->status);
         $this->assertSame(9900, $event->total);
         $this->assertSame(8182, $event->subtotal);
         $this->assertCount(0, $event->taxSummary);
@@ -64,6 +66,7 @@ class OrderPaidTest extends TestCase
 
         $this->assertSame('cus_456', $event->customerId);
         $this->assertSame('ord_123', $event->orderId);
+        $this->assertSame('paid', $event->status);
         $this->assertSame(4999, $event->total);
         $this->assertSame(4131, $event->subtotal);
         $this->assertSame('USD', $event->currency);
@@ -90,6 +93,7 @@ class OrderPaidTest extends TestCase
 
         $this->assertSame('', $event->customerId);
         $this->assertSame('ord_789', $event->orderId);
+        $this->assertSame('paid', $event->status);
         $this->assertSame(1500, $event->total);
         $this->assertSame(1240, $event->subtotal);
         $this->assertSame('GBP', $event->currency);

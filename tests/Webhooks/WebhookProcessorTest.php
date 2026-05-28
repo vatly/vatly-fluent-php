@@ -166,7 +166,7 @@ class WebhookProcessorTest extends TestCase
         $apiOrder->subtotal = new Money('EUR', '40.50');
         $apiOrder->invoiceNumber = null;
         $apiOrder->paymentMethod = 'sepa_direct_debit';
-        $apiOrder->status = 'open';
+        $apiOrder->status = 'pending';
         $apiOrder->taxSummary = new TaxSummaryCollection([
             [
                 'taxRate' => ['name' => 'VAT', 'percentage' => 21.0, 'taxablePercentage' => 100.0],
@@ -188,6 +188,7 @@ class WebhookProcessorTest extends TestCase
                 return $event instanceof PaymentFailed
                     && $event->customerId === 'cus_456'
                     && $event->orderId === 'ord_dunning_1'
+                    && $event->status === 'pending'
                     && $event->total === 4900
                     && $event->subtotal === 4050
                     && $event->currency === 'EUR'

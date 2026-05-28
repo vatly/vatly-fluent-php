@@ -99,6 +99,7 @@ class StoreOrderOnPaidTest extends TestCase
         $event = new OrderPaid(
             customerId: '',
             orderId: 'ord_anon',
+            status: 'paid',
             total: 9900,
             subtotal: 8182,
             taxSummary: TaxSummary::empty(),
@@ -128,6 +129,7 @@ class StoreOrderOnPaidTest extends TestCase
         $event = new OrderPaid(
             customerId: 'cus_1',
             orderId: 'ord_1',
+            status: 'paid',
             total: 9900,
             subtotal: 8182,
             taxSummary: TaxSummary::empty(),
@@ -164,6 +166,7 @@ class StoreOrderOnPaidTest extends TestCase
         return new OrderPaid(
             customerId: 'cus_1',
             orderId: 'ord_1',
+            status: 'paid',
             total: 9900,
             subtotal: 8182,
             taxSummary: $taxSummary ?? TaxSummary::empty(),

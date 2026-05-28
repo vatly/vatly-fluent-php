@@ -194,6 +194,7 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertInstanceOf(OrderPaid::class, $event);
         $this->assertSame('cus_456', $event->customerId);
         $this->assertSame('ord_123', $event->orderId);
+        $this->assertSame('paid', $event->status);
         $this->assertSame(9900, $event->total);
         $this->assertSame(8182, $event->subtotal);
         $this->assertSame('EUR', $event->currency);
@@ -218,6 +219,7 @@ class WebhookEventFactoryTest extends TestCase
             ],
             'invoiceNumber' => null,
             'paymentMethod' => 'sepa_direct_debit',
+            'status' => 'pending',
         ]);
 
         $this->getOrder->shouldReceive('execute')
@@ -244,6 +246,7 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertInstanceOf(PaymentFailed::class, $event);
         $this->assertSame('cus_456', $event->customerId);
         $this->assertSame('ord_dunning_1', $event->orderId);
+        $this->assertSame('pending', $event->status);
         $this->assertSame(4900, $event->total);
         $this->assertSame(4050, $event->subtotal);
         $this->assertSame('EUR', $event->currency);
@@ -301,6 +304,7 @@ class WebhookEventFactoryTest extends TestCase
      *   taxRates: array<int, array{name: string, percentage: float, taxablePercentage: float, amount: string}>,
      *   invoiceNumber: ?string,
      *   paymentMethod: ?string,
+     *   status?: string,
      * } $data
      */
     private function buildApiOrder(array $data): ApiOrder
@@ -312,7 +316,7 @@ class WebhookEventFactoryTest extends TestCase
         $order->subtotal = new Money($data['subtotal']['currency'], $data['subtotal']['value']);
         $order->invoiceNumber = $data['invoiceNumber'];
         $order->paymentMethod = $data['paymentMethod'];
-        $order->status = 'paid';
+        $order->status = $data['status'] ?? 'paid';
 
         $taxItems = array_map(
             fn (array $rate) => [

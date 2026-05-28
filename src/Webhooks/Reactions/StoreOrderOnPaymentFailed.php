@@ -13,9 +13,11 @@ use Vatly\Fluent\Events\PaymentFailed;
 
 /**
  * Mirrors {@see StoreOrderOnPaid}: ensures the local order row reflects the
- * upstream `payment.failed` outcome (status `'failed'`). Without this, a
- * driver using the fixed wiring would leave previously-paid renewal orders
- * looking paid locally, and never store a first-time order that fails.
+ * upstream order state after a `payment.failed` webhook. The persisted status
+ * is whatever Vatly's enriched Order resource currently reports (typically
+ * `pending` during dunning) — we deliberately don't synthesise a
+ * driver-specific status like `'failed'`, so `OrderInterface::getStatus()`
+ * stays a faithful mirror of upstream.
  *
  * @immutable
  */
@@ -38,7 +40,7 @@ class StoreOrderOnPaymentFailed implements WebhookReactionInterface
 
         if ($existing !== null) {
             $this->orders->update($existing, new UpdateOrderData(
-                status: 'failed',
+                status: $event->status,
                 total: $event->total,
                 currency: $event->currency,
                 invoiceNumber: $event->invoiceNumber,
@@ -63,7 +65,7 @@ class StoreOrderOnPaymentFailed implements WebhookReactionInterface
         $this->orders->store(new StoreOrderData(
             vatlyId: $event->orderId,
             customerId: $event->customerId,
-            status: 'failed',
+            status: $event->status,
             total: $event->total,
             currency: $event->currency,
             invoiceNumber: $event->invoiceNumber,

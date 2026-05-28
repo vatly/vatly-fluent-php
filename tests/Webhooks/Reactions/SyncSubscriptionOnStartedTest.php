@@ -41,7 +41,7 @@ class SyncSubscriptionOnStartedTest extends TestCase
             Mockery::mock(EventDispatcherInterface::class),
         );
 
-        $event = new OrderPaid('cus_1', 'ord_1', 9900, 8182, TaxSummary::empty(), 'EUR', null, null);
+        $event = new OrderPaid('cus_1', 'ord_1', 'paid', 9900, 8182, TaxSummary::empty(), 'EUR', null, null);
 
         $this->assertFalse($reaction->supports($event));
     }

@@ -33,7 +33,7 @@ class StoreOrderOnPaid implements WebhookReactionInterface
 
         if ($existing !== null) {
             $this->orders->update($existing, new UpdateOrderData(
-                status: 'paid',
+                status: $event->status,
                 total: $event->total,
                 currency: $event->currency,
                 invoiceNumber: $event->invoiceNumber,
@@ -58,7 +58,7 @@ class StoreOrderOnPaid implements WebhookReactionInterface
         $this->orders->store(new StoreOrderData(
             vatlyId: $event->orderId,
             customerId: $event->customerId,
-            status: 'paid',
+            status: $event->status,
             total: $event->total,
             currency: $event->currency,
             invoiceNumber: $event->invoiceNumber,
