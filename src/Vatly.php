@@ -232,6 +232,9 @@ class Vatly
 
     public function updateSubscriptionBilling(): UpdateSubscriptionBilling
     {
-        return $this->updateSubscriptionBilling ??= new UpdateSubscriptionBilling($this->apiClient);
+        return $this->updateSubscriptionBilling ??= new UpdateSubscriptionBilling(
+            $this->apiClient,
+            $this->wiring->config,
+        );
     }
 }

@@ -400,12 +400,12 @@ $vatly->order($localOrder)->invoiceUrl();
 
 // Billing address / VAT / company name changes go through a hosted Vatly
 // flow. Returns a fresh redirect URL per call — don't cache.
-// `redirectUrlSuccess` and `redirectUrlCanceled` are required; the SDK
-// does not fall back to the config defaults here. `billingAddress` is
-// an optional prefill.
+// `redirectUrlSuccess` and `redirectUrlCanceled` are filled in from the
+// config defaults when omitted; pass them in $prefillData to override.
+$url = $vatly->subscription($localSubscription)->updateBilling();
+
+// Optionally prefill the billing address:
 $url = $vatly->subscription($localSubscription)->updateBilling([
-    'redirectUrlSuccess'  => 'https://app.example.com/billing/updated',
-    'redirectUrlCanceled' => 'https://app.example.com/billing',
     'billingAddress' => [
         'streetAndNumber' => 'Damrak 1',
         'city'            => 'Amsterdam',

@@ -13,6 +13,7 @@ use Vatly\Fluent\Actions\SwapSubscriptionPlan;
 use Vatly\Fluent\Contracts\SubscriptionInterface;
 use Vatly\Fluent\Contracts\SubscriptionWriter;
 use Vatly\Fluent\Data\UpdateSubscriptionData;
+use Vatly\Fluent\Exceptions\IncompleteInformationException;
 
 /**
  * Framework-agnostic operations on a subscription.
@@ -209,13 +210,18 @@ class SubscriptionHandle
      *
      * Each call returns a fresh time-bounded link.
      *
-     * @param array<string, mixed> $prefillData Must include `redirectUrlSuccess`
-     *                                          and `redirectUrlCanceled` (the
-     *                                          API rejects the request without
-     *                                          them; the SDK does not merge in
-     *                                          config defaults here). May
-     *                                          include `billingAddress` as an
-     *                                          optional prefill.
+     * Missing `redirectUrlSuccess` / `redirectUrlCanceled` keys are filled in
+     * from the configured defaults
+     * ({@see \Vatly\Fluent\Contracts\ConfigurationInterface::getDefaultRedirectUrlSuccess()}
+     * and `getDefaultRedirectUrlCanceled()`); caller-supplied values always win.
+     * If neither the caller nor the config provides a value, an
+     * {@see IncompleteInformationException} is thrown.
+     *
+     * @param array<string, mixed> $prefillData May override `redirectUrlSuccess` /
+     *                                          `redirectUrlCanceled`, and may include
+     *                                          `billingAddress` as an optional prefill.
+     *
+     * @throws IncompleteInformationException When a required redirect URL resolves to an empty string.
      */
     public function updateBilling(array $prefillData = []): string
     {
