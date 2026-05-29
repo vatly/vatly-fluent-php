@@ -274,8 +274,8 @@ class SubscriptionHandle
             return new \DateTimeImmutable($response->endedAt);
         }
 
-        if ($response->cancelledAt !== null && $this->subscription->getEndsAt() === null) {
-            return new \DateTimeImmutable($response->cancelledAt);
+        if ($response->canceledAt !== null && $this->subscription->getEndsAt() === null) {
+            return new \DateTimeImmutable($response->canceledAt);
         }
 
         return $this->subscription->getEndsAt();

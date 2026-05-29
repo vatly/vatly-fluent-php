@@ -103,7 +103,7 @@ For incoming Vatly webhooks, fluent dispatches a typed event and runs a built-in
 |--------------------------|-------------------------------------------------------------------|--------------------------------|------------------------------------------------------|
 | `order.paid`             | `OrderPaid`                                                       | `StoreOrderOnPaid`             | `OrderWriter::store` (new) / `OrderWriter::update` (existing) |
 | `subscription.started`   | `SubscriptionStarted`                                             | `SyncSubscriptionOnStarted`    | `SubscriptionWriter::store` (new) / `::update` (existing) |
-| `subscription.cancelled` | `SubscriptionCanceledImmediately` / `SubscriptionCanceledWithGracePeriod` | `CancelSubscriptionOnCanceled` | `SubscriptionWriter::update`                         |
+| `subscription.canceled`  | `SubscriptionCanceledImmediately` / `SubscriptionCanceledWithGracePeriod` | `CancelSubscriptionOnCanceled` | `SubscriptionWriter::update`                         |
 
 Both `OrderWriter::store` and `SubscriptionWriter::store` may return `null` if your driver can't route the data (see the adapter recipe below). Built-in reactions tolerate null — `SyncSubscriptionOnStarted` skips its follow-up `LocalSubscriptionCreated` dispatch when store returns null.
 

@@ -159,7 +159,7 @@ class SubscriptionHandleTest extends TestCase
             'name' => 'Basic',
             'quantity' => 1,
             'endedAt' => '2026-06-01T00:00:00+00:00',
-            'cancelledAt' => null,
+            'canceledAt' => null,
             'trialUntil' => null,
         ]);
 
