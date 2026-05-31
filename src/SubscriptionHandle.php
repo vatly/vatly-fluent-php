@@ -253,6 +253,17 @@ class SubscriptionHandle
 
         $endsAt = $this->resolveEndsAt($response);
 
+        // Distinguish real mandate removal from the transient "no mandate yet"
+        // state freshly-subscribed customers can be in (per
+        // Vatly\API\Types\Mandate::$maskedIdentifier's docblock):
+        //   - local had a mandate + API says null  → real removal, clear it
+        //   - local had no mandate + API says null → transient, leave alone
+        // Always-clear would wipe fresh mandates; never-clear would leave
+        // removed mandates stale forever. The heuristic handles both.
+        $localHasMandate = $this->subscription->getMandateMethod() !== null;
+        $apiHasMandate = $response->mandate !== null;
+        $shouldClearMandate = $localHasMandate && ! $apiHasMandate;
+
         $updated = $this->subscriptions->update(
             $this->subscription,
             new UpdateSubscriptionData(
@@ -262,6 +273,7 @@ class SubscriptionHandle
                 endsAt: $endsAt,
                 mandateMethod: $response->mandate?->method,
                 mandateMaskedIdentifier: $response->mandate?->maskedIdentifier,
+                clearMandate: $shouldClearMandate,
             ),
         );
 

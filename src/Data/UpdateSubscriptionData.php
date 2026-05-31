@@ -42,14 +42,13 @@ class UpdateSubscriptionData
          * wins over this flag, so passing fresh mandate values is always
          * a replacement.
          *
-         * Use this to explicitly remove a stored mandate (e.g. on a
-         * `subscription.billing_updated` webhook where the API returns
-         * `mandate: null` for a customer who revoked their payment method).
-         * `SubscriptionHandle::sync()` deliberately does NOT set this when
-         * the live API returns `mandate: null` — that's a known transient
-         * state for freshly-subscribed customers per
-         * {@see \Vatly\API\Types\Mandate::$maskedIdentifier}'s docblock,
-         * and auto-clearing would wipe a freshly-stored mandate.
+         * Set by {@see \Vatly\Fluent\SubscriptionHandle::sync()} when the
+         * live API returns `mandate: null` *and* the local copy has a
+         * stored mandate — i.e. an observable removal. When local mandate
+         * is already null, sync() leaves the clear flag false so a
+         * freshly-subscribed customer's transient API null doesn't get
+         * mistaken for a removal (see
+         * {@see \Vatly\API\Types\Mandate::$maskedIdentifier}'s docblock).
          */
         public bool $clearMandate = false,
     ) {}
