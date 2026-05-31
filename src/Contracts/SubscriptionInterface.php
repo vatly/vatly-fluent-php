@@ -75,4 +75,24 @@ interface SubscriptionInterface
      * grace period.
      */
     public function isEnded(): bool;
+
+    /**
+     * Get the payment method category on file for this subscription.
+     *
+     * Normalized per {@see \Vatly\API\Types\Mandate::$method}:
+     * `card`, `sepa_debit`, `paypal`, `bacs_debit`, etc.
+     *
+     * Returns `null` when the subscription has no mandate yet (e.g.
+     * ended-before-payment) or when the driver hasn't synced from Vatly.
+     */
+    public function getMandateMethod(): ?string;
+
+    /**
+     * Get the customer-facing masked identifier for the payment method on
+     * file — e.g. `4242` (card last 4) or `NL91****4300` (masked IBAN).
+     *
+     * Returns `null` when no mandate exists, when the mandate type has no
+     * identifier (e.g. PayPal), or when the driver hasn't synced.
+     */
+    public function getMandateMaskedIdentifier(): ?string;
 }

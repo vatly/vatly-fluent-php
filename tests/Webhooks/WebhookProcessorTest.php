@@ -6,10 +6,12 @@ namespace Vatly\Fluent\Tests\Webhooks;
 
 use Mockery;
 use Vatly\API\Resources\Order as ApiOrder;
+use Vatly\API\Resources\Subscription as ApiSubscription;
 use Vatly\API\Types\Money;
 use Vatly\API\Types\TaxSummaryCollection;
 use Vatly\API\VatlyApiClient;
 use Vatly\Fluent\Actions\GetOrder;
+use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\Fluent\Contracts\EventDispatcherInterface;
 use Vatly\Fluent\Contracts\WebhookCallRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
@@ -25,6 +27,7 @@ class WebhookProcessorTest extends TestCase
 {
     private string $secret;
     private GetOrder $getOrder;
+    private GetSubscription $getSubscription;
     private WebhookEventFactory $eventFactory;
     private WebhookCallRepositoryInterface $repository;
     private EventDispatcherInterface $dispatcher;
@@ -36,7 +39,8 @@ class WebhookProcessorTest extends TestCase
 
         $this->secret = 'test-webhook-secret';
         $this->getOrder = Mockery::mock(GetOrder::class);
-        $this->eventFactory = new WebhookEventFactory($this->getOrder);
+        $this->getSubscription = Mockery::mock(GetSubscription::class);
+        $this->eventFactory = new WebhookEventFactory($this->getOrder, $this->getSubscription);
         $this->repository = Mockery::mock(WebhookCallRepositoryInterface::class);
         $this->dispatcher = Mockery::mock(EventDispatcherInterface::class);
 
@@ -64,6 +68,17 @@ class WebhookProcessorTest extends TestCase
         );
 
         $signature = $this->makeSignatureHeader($payload, $this->secret);
+
+        $this->getSubscription->shouldReceive('execute')
+            ->with('sub_123')
+            ->andReturn($this->makeApiSubscription([
+                'id' => 'sub_123',
+                'customerId' => 'cus_456',
+                'subscriptionPlanId' => 'plan_789',
+                'name' => 'Premium Plan',
+                'quantity' => 1,
+                'mandate' => null,
+            ]));
 
         $this->repository
             ->shouldReceive('record')
@@ -119,6 +134,16 @@ class WebhookProcessorTest extends TestCase
         );
 
         $signature = $this->makeSignatureHeader($payload, $this->secret);
+
+        $this->getSubscription->shouldReceive('execute')
+            ->andReturn($this->makeApiSubscription([
+                'id' => 'sub_123',
+                'customerId' => 'cus_456',
+                'subscriptionPlanId' => 'plan_789',
+                'name' => 'Premium Plan',
+                'quantity' => 1,
+                'mandate' => null,
+            ]));
 
         $this->repository->shouldReceive('record')->once();
         $this->dispatcher->shouldReceive('dispatch')->once();
@@ -302,5 +327,20 @@ class WebhookProcessorTest extends TestCase
         $signature = hash_hmac('sha256', $timestamp.'.'.$payload, $secret);
 
         return "t={$timestamp},v1={$signature}";
+    }
+
+    /**
+     * Build a minimal API Subscription resource for enrichment-path tests.
+     *
+     * @param array<string, mixed> $fields
+     */
+    private function makeApiSubscription(array $fields): ApiSubscription
+    {
+        $subscription = new ApiSubscription(Mockery::mock(VatlyApiClient::class));
+        foreach ($fields as $key => $value) {
+            $subscription->{$key} = $value;
+        }
+
+        return $subscription;
     }
 }

@@ -66,6 +66,16 @@ class LocalSubscriptionCreatedTest extends TestCase
             {
                 return null;
             }
+
+            public function getMandateMethod(): ?string
+            {
+                return null;
+            }
+
+            public function getMandateMaskedIdentifier(): ?string
+            {
+                return null;
+            }
         };
     }
 }

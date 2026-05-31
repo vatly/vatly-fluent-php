@@ -220,6 +220,11 @@ class Subscription implements SubscriptionInterface
     public function getName(): string { /* ... */ }
     public function getQuantity(): int { /* ... */ }
     public function getEndsAt(): ?DateTimeInterface { /* ... */ }
+
+    // Mandate summary on file — persist these alongside the rest so portals
+    // render "card ending in 4242" without a per-request API roundtrip.
+    public function getMandateMethod(): ?string { /* 'card', 'sepa_debit', null, ... */ }
+    public function getMandateMaskedIdentifier(): ?string { /* '4242', 'NL91****4300', null */ }
 }
 ```
 
@@ -476,7 +481,7 @@ For Cashier-style ergonomics, give your Eloquent / Doctrine entities operation m
 ```php
 class Subscription implements SubscriptionInterface
 {
-    // ... interface methods ...
+    // ... interface state accessors (getVatlyId, getMandateMethod, etc.) ...
 
     public function cancel(): void
     {

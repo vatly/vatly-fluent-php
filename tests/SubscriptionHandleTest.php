@@ -153,6 +153,7 @@ class SubscriptionHandleTest extends TestCase
         $subscription = Mockery::mock(SubscriptionInterface::class);
         $subscription->shouldReceive('getVatlyId')->andReturn('subscription_abc');
         $subscription->shouldReceive('getEndsAt')->andReturn(null);
+        $subscription->shouldReceive('getMandateMethod')->andReturn(null);
 
         $apiResponse = $this->makeApiSubscription([
             'subscriptionPlanId' => 'plan_basic',
@@ -190,6 +191,171 @@ class SubscriptionHandleTest extends TestCase
         $handle->sync();
 
         $this->assertSame($updated, $handle->model());
+    }
+
+    public function test_sync_clears_mandate_when_local_had_one_and_api_returns_null(): void
+    {
+        // Real removal: previously-bound mandate has been removed at Vatly.
+        // Local copy must be cleared so portals stop showing a card that
+        // no longer exists.
+        $subscription = Mockery::mock(SubscriptionInterface::class);
+        $subscription->shouldReceive('getVatlyId')->andReturn('subscription_abc');
+        $subscription->shouldReceive('getEndsAt')->andReturn(null);
+        $subscription->shouldReceive('getMandateMethod')->andReturn('card');
+
+        $apiResponse = $this->makeApiSubscription([
+            'subscriptionPlanId' => 'plan_basic',
+            'name' => 'Basic',
+            'quantity' => 1,
+            'endedAt' => null,
+            'canceledAt' => null,
+            'mandate' => null,
+        ]);
+
+        $getAction = Mockery::mock(GetSubscription::class);
+        $getAction->shouldReceive('execute')->andReturn($apiResponse);
+
+        $subscriptions = Mockery::mock(SubscriptionRepositoryInterface::class);
+        $subscriptions->shouldReceive('update')
+            ->once()
+            ->with($subscription, Mockery::on(function (UpdateSubscriptionData $data) {
+                return $data->mandate === null
+                    && $data->clearMandate === true;
+            }))
+            ->andReturn(Mockery::mock(SubscriptionInterface::class));
+
+        $handle = $this->buildHandle(
+            subscription: $subscription,
+            subscriptions: $subscriptions,
+            getSubscriptionAction: $getAction,
+        );
+
+        $handle->sync();
+    }
+
+    public function test_sync_does_not_clear_mandate_when_local_already_null_and_api_returns_null(): void
+    {
+        // Transient post-subscription state: API briefly returns mandate:null
+        // for a freshly-subscribed customer who hasn't completed payment yet.
+        // Conservative: only clear when we observably had something to clear.
+        $subscription = Mockery::mock(SubscriptionInterface::class);
+        $subscription->shouldReceive('getVatlyId')->andReturn('subscription_abc');
+        $subscription->shouldReceive('getEndsAt')->andReturn(null);
+        $subscription->shouldReceive('getMandateMethod')->andReturn(null);
+
+        $apiResponse = $this->makeApiSubscription([
+            'subscriptionPlanId' => 'plan_basic',
+            'name' => 'Basic',
+            'quantity' => 1,
+            'endedAt' => null,
+            'canceledAt' => null,
+            'mandate' => null,
+        ]);
+
+        $getAction = Mockery::mock(GetSubscription::class);
+        $getAction->shouldReceive('execute')->andReturn($apiResponse);
+
+        $subscriptions = Mockery::mock(SubscriptionRepositoryInterface::class);
+        $subscriptions->shouldReceive('update')
+            ->once()
+            ->with($subscription, Mockery::on(function (UpdateSubscriptionData $data) {
+                return $data->mandate === null
+                    && $data->clearMandate === false;
+            }))
+            ->andReturn(Mockery::mock(SubscriptionInterface::class));
+
+        $handle = $this->buildHandle(
+            subscription: $subscription,
+            subscriptions: $subscriptions,
+            getSubscriptionAction: $getAction,
+        );
+
+        $handle->sync();
+    }
+
+    public function test_sync_replaces_mandate_when_api_returns_a_new_one(): void
+    {
+        // Customer changed their card via hosted billing-update flow; sync
+        // should overwrite the local copy with the fresh mandate.
+        $subscription = Mockery::mock(SubscriptionInterface::class);
+        $subscription->shouldReceive('getVatlyId')->andReturn('subscription_abc');
+        $subscription->shouldReceive('getEndsAt')->andReturn(null);
+        $subscription->shouldReceive('getMandateMethod')->andReturn('card');
+
+        $apiResponse = $this->makeApiSubscription([
+            'subscriptionPlanId' => 'plan_basic',
+            'name' => 'Basic',
+            'quantity' => 1,
+            'endedAt' => null,
+            'canceledAt' => null,
+            'mandate' => new \Vatly\API\Types\Mandate('sepa_debit', 'NL91****4300'),
+        ]);
+
+        $getAction = Mockery::mock(GetSubscription::class);
+        $getAction->shouldReceive('execute')->andReturn($apiResponse);
+
+        $subscriptions = Mockery::mock(SubscriptionRepositoryInterface::class);
+        $subscriptions->shouldReceive('update')
+            ->once()
+            ->with($subscription, Mockery::on(function (UpdateSubscriptionData $data) {
+                return $data->mandate instanceof \Vatly\API\Types\Mandate
+                    && $data->mandate->method === 'sepa_debit'
+                    && $data->mandate->maskedIdentifier === 'NL91****4300'
+                    && $data->clearMandate === false;
+            }))
+            ->andReturn(Mockery::mock(SubscriptionInterface::class));
+
+        $handle = $this->buildHandle(
+            subscription: $subscription,
+            subscriptions: $subscriptions,
+            getSubscriptionAction: $getAction,
+        );
+
+        $handle->sync();
+    }
+
+    public function test_sync_atomically_replaces_card_with_paypal_clearing_stale_last4(): void
+    {
+        // Regression: card → paypal switch. PayPal mandates legitimately have
+        // no maskedIdentifier. With the old two-field DTO, null identifier
+        // was interpreted as "no change", leaving the old card last4 stored
+        // alongside method=paypal — mixed local state like "paypal / 4242".
+        // The Mandate object is now atomic so both parts swap together.
+        $subscription = Mockery::mock(SubscriptionInterface::class);
+        $subscription->shouldReceive('getVatlyId')->andReturn('subscription_abc');
+        $subscription->shouldReceive('getEndsAt')->andReturn(null);
+        $subscription->shouldReceive('getMandateMethod')->andReturn('card');
+
+        $apiResponse = $this->makeApiSubscription([
+            'subscriptionPlanId' => 'plan_basic',
+            'name' => 'Basic',
+            'quantity' => 1,
+            'endedAt' => null,
+            'canceledAt' => null,
+            'mandate' => new \Vatly\API\Types\Mandate('paypal', null),
+        ]);
+
+        $getAction = Mockery::mock(GetSubscription::class);
+        $getAction->shouldReceive('execute')->andReturn($apiResponse);
+
+        $subscriptions = Mockery::mock(SubscriptionRepositoryInterface::class);
+        $subscriptions->shouldReceive('update')
+            ->once()
+            ->with($subscription, Mockery::on(function (UpdateSubscriptionData $data) {
+                return $data->mandate instanceof \Vatly\API\Types\Mandate
+                    && $data->mandate->method === 'paypal'
+                    && $data->mandate->maskedIdentifier === null
+                    && $data->clearMandate === false;
+            }))
+            ->andReturn(Mockery::mock(SubscriptionInterface::class));
+
+        $handle = $this->buildHandle(
+            subscription: $subscription,
+            subscriptions: $subscriptions,
+            getSubscriptionAction: $getAction,
+        );
+
+        $handle->sync();
     }
 
     public function test_resume_calls_the_action_and_clears_ends_at(): void

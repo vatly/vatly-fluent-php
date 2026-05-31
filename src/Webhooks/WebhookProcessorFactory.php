@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Vatly\Fluent\Webhooks;
 
 use Vatly\Fluent\Actions\GetOrder;
+use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\Fluent\Contracts\ConfigurationInterface;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
 use Vatly\Fluent\Contracts\EventDispatcherInterface;
@@ -35,10 +36,11 @@ class WebhookProcessorFactory
         EventDispatcherInterface $dispatcher,
         CustomerBindingRepository $bindings,
         GetOrder $getOrder,
+        GetSubscription $getSubscription,
         array $additionalReactions = [],
     ): WebhookProcessor {
         return new WebhookProcessor(
-            eventFactory: new WebhookEventFactory($getOrder),
+            eventFactory: new WebhookEventFactory($getOrder, $getSubscription),
             repository: $webhookCalls,
             dispatcher: $dispatcher,
             webhookSecret: $config->getWebhookSecret() ?? '',

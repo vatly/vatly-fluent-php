@@ -6,6 +6,7 @@ namespace Vatly\Fluent\Tests\Webhooks;
 
 use Mockery;
 use Vatly\Fluent\Actions\GetOrder;
+use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\Fluent\Contracts\ConfigurationInterface;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
 use Vatly\Fluent\Contracts\EventDispatcherInterface;
@@ -33,6 +34,7 @@ class WebhookProcessorFactoryTest extends TestCase
             dispatcher: Mockery::mock(EventDispatcherInterface::class),
             bindings: Mockery::mock(CustomerBindingRepository::class),
             getOrder: Mockery::mock(GetOrder::class),
+            getSubscription: Mockery::mock(GetSubscription::class),
         );
 
         $this->assertInstanceOf(WebhookProcessor::class, $processor);
@@ -58,6 +60,7 @@ class WebhookProcessorFactoryTest extends TestCase
             dispatcher: Mockery::mock(EventDispatcherInterface::class),
             bindings: Mockery::mock(CustomerBindingRepository::class),
             getOrder: Mockery::mock(GetOrder::class),
+            getSubscription: Mockery::mock(GetSubscription::class),
             additionalReactions: [$custom],
         );
 
@@ -77,6 +80,7 @@ class WebhookProcessorFactoryTest extends TestCase
             dispatcher: Mockery::mock(EventDispatcherInterface::class),
             bindings: Mockery::mock(CustomerBindingRepository::class),
             getOrder: Mockery::mock(GetOrder::class),
+            getSubscription: Mockery::mock(GetSubscription::class),
         );
 
         $this->assertInstanceOf(WebhookProcessor::class, $processor);

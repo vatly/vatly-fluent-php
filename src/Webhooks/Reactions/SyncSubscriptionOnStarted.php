@@ -39,6 +39,7 @@ class SyncSubscriptionOnStarted implements WebhookReactionInterface
                 planId: $event->planId,
                 name: $event->name,
                 quantity: $event->quantity,
+                mandate: $event->mandate,
             ));
 
             return;
@@ -55,6 +56,7 @@ class SyncSubscriptionOnStarted implements WebhookReactionInterface
             name: $event->name,
             quantity: $event->quantity,
             hostCustomerId: $hostCustomerId,
+            mandate: $event->mandate,
         ));
 
         if ($subscription === null) {

@@ -7,11 +7,14 @@ namespace Vatly\Fluent\Tests\Webhooks;
 use DateTimeInterface;
 use Mockery;
 use Vatly\API\Resources\Order as ApiOrder;
+use Vatly\API\Resources\Subscription as ApiSubscription;
+use Vatly\API\Types\Mandate;
 use Vatly\API\Types\Money;
 use Vatly\API\Types\TaxSummaryCollection;
 use Vatly\API\VatlyApiClient;
 use Vatly\API\Webhooks\WebhookPayload;
 use Vatly\Fluent\Actions\GetOrder;
+use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\Fluent\Events\OrderPaid;
 use Vatly\Fluent\Events\PaymentFailed;
 use Vatly\Fluent\Events\SubscriptionCanceledImmediately;
@@ -26,13 +29,15 @@ class WebhookEventFactoryTest extends TestCase
 {
     private WebhookEventFactory $factory;
     private GetOrder $getOrder;
+    private GetSubscription $getSubscription;
 
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->getOrder = Mockery::mock(GetOrder::class);
-        $this->factory = new WebhookEventFactory($this->getOrder);
+        $this->getSubscription = Mockery::mock(GetSubscription::class);
+        $this->factory = new WebhookEventFactory($this->getOrder, $this->getSubscription);
     }
 
     public function test_it_converts_upstream_webhook_payload_into_webhook_received_event(): void
@@ -79,7 +84,7 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertSame([], $event->object);
     }
 
-    public function test_it_creates_subscription_started_event_from_webhook(): void
+    public function test_it_creates_subscription_started_event_from_enriched_api_subscription(): void
     {
         $webhook = new WebhookReceived(
             id: 'webhook_event_abc',
@@ -87,6 +92,49 @@ class WebhookEventFactoryTest extends TestCase
             eventName: 'subscription.started',
             entityType: 'subscription',
             entityId: 'sub_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            object: [],
+        );
+
+        $apiSubscription = $this->makeApiSubscription([
+            'id' => 'sub_123',
+            'customerId' => 'cus_456',
+            'subscriptionPlanId' => 'plan_789',
+            'name' => 'Premium Plan',
+            'quantity' => 1,
+            'mandate' => new Mandate('card', '4242'),
+        ]);
+
+        $this->getSubscription->shouldReceive('execute')
+            ->with('sub_123')
+            ->andReturn($apiSubscription);
+
+        $event = $this->factory->createFromWebhook($webhook);
+
+        $this->assertInstanceOf(SubscriptionStarted::class, $event);
+        $this->assertSame('cus_456', $event->customerId);
+        $this->assertSame('sub_123', $event->subscriptionId);
+        $this->assertSame('plan_789', $event->planId);
+        $this->assertSame('Premium Plan', $event->name);
+        $this->assertSame(1, $event->quantity);
+        $this->assertNotNull($event->mandate);
+        $this->assertSame('card', $event->mandate->method);
+        $this->assertSame('4242', $event->mandate->maskedIdentifier);
+    }
+
+    public function test_subscription_started_falls_back_to_webhook_payload_when_enrichment_fails(): void
+    {
+        // GetSubscription failure (network blip, rate limit, transient 5xx) must
+        // not block the webhook flow. The webhook payload itself carries enough
+        // to persist the subscription; mandate stays null and is backfilled on
+        // the next sync() or subscription.billing_updated event.
+        $webhook = new WebhookReceived(
+            id: 'webhook_event_abc',
+            resource: 'webhook_event',
+            eventName: 'subscription.started',
+            entityType: 'subscription',
+            entityId: 'sub_transient_fail',
             testmode: false,
             createdAt: '2024-01-15T10:00:00Z',
             object: [
@@ -97,14 +145,49 @@ class WebhookEventFactoryTest extends TestCase
             ],
         );
 
+        $this->getSubscription->shouldReceive('execute')
+            ->andThrow(new \RuntimeException('Transient API failure'));
+
         $event = $this->factory->createFromWebhook($webhook);
 
         $this->assertInstanceOf(SubscriptionStarted::class, $event);
         $this->assertSame('cus_456', $event->customerId);
-        $this->assertSame('sub_123', $event->subscriptionId);
+        $this->assertSame('sub_transient_fail', $event->subscriptionId);
         $this->assertSame('plan_789', $event->planId);
         $this->assertSame('Premium Plan', $event->name);
         $this->assertSame(1, $event->quantity);
+        // Fallback path can't enrich mandate from the webhook payload.
+        $this->assertNull($event->mandate);
+    }
+
+    public function test_subscription_started_event_carries_null_mandate_when_api_returns_none(): void
+    {
+        $webhook = new WebhookReceived(
+            id: 'webhook_event_abc',
+            resource: 'webhook_event',
+            eventName: 'subscription.started',
+            entityType: 'subscription',
+            entityId: 'sub_no_mandate',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            object: [],
+        );
+
+        $apiSubscription = $this->makeApiSubscription([
+            'id' => 'sub_no_mandate',
+            'customerId' => 'cus_456',
+            'subscriptionPlanId' => 'plan_789',
+            'name' => 'Premium Plan',
+            'quantity' => 1,
+            'mandate' => null,
+        ]);
+
+        $this->getSubscription->shouldReceive('execute')->andReturn($apiSubscription);
+
+        $event = $this->factory->createFromWebhook($webhook);
+
+        $this->assertInstanceOf(SubscriptionStarted::class, $event);
+        $this->assertNull($event->mandate);
     }
 
     public function test_it_creates_subscription_canceled_immediately_event_from_webhook(): void
@@ -305,6 +388,31 @@ class WebhookEventFactoryTest extends TestCase
      *   invoiceNumber: ?string,
      *   paymentMethod: ?string,
      *   status?: string,
+     * Build a minimal API Subscription resource for enrichment-path tests.
+     *
+     * @param array{
+     *     id: string,
+     *     customerId: string,
+     *     subscriptionPlanId: string,
+     *     name: string,
+     *     quantity: int,
+     *     mandate: ?Mandate,
+     * } $data
+     */
+    private function makeApiSubscription(array $data): ApiSubscription
+    {
+        $subscription = new ApiSubscription(Mockery::mock(VatlyApiClient::class));
+        $subscription->id = $data['id'];
+        $subscription->customerId = $data['customerId'];
+        $subscription->subscriptionPlanId = $data['subscriptionPlanId'];
+        $subscription->name = $data['name'];
+        $subscription->quantity = $data['quantity'];
+        $subscription->mandate = $data['mandate'];
+
+        return $subscription;
+    }
+
+    /**
      * } $data
      */
     private function buildApiOrder(array $data): ApiOrder
