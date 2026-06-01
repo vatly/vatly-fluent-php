@@ -6,6 +6,7 @@ namespace Vatly\Fluent\Events;
 
 use Vatly\API\Resources\Subscription as ApiSubscription;
 use Vatly\API\Types\Mandate;
+use Vatly\API\Types\WebhookEventName;
 
 /**
  * Event representing a subscription being started at Vatly.
@@ -18,7 +19,7 @@ use Vatly\API\Types\Mandate;
  */
 class SubscriptionStarted
 {
-    public const VATLY_EVENT_NAME = 'subscription.started';
+    public const VATLY_EVENT_NAME = WebhookEventName::SUBSCRIPTION_STARTED;
 
     public const DEFAULT_TYPE = 'default';
 

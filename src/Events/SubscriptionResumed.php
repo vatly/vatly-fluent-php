@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Events;
 
+use Vatly\API\Types\WebhookEventName;
+
 /**
  * Event representing a previously-canceled subscription being resumed at Vatly.
  *
@@ -19,7 +21,7 @@ namespace Vatly\Fluent\Events;
  */
 class SubscriptionResumed
 {
-    public const VATLY_EVENT_NAME = 'subscription.resumed';
+    public const VATLY_EVENT_NAME = WebhookEventName::SUBSCRIPTION_RESUMED;
 
     public function __construct(
         public string $customerId,
