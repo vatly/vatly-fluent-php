@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Events;
 
+use Vatly\API\Types\WebhookEventName;
+
 /**
  * Event representing a previously-received chargeback being reversed at Vatly.
  *
@@ -16,7 +18,7 @@ namespace Vatly\Fluent\Events;
  */
 class OrderChargebackReversed
 {
-    public const VATLY_EVENT_NAME = 'order.chargeback_reversed';
+    public const VATLY_EVENT_NAME = WebhookEventName::ORDER_CHARGEBACK_REVERSED;
 
     public function __construct(
         public string $orderId,

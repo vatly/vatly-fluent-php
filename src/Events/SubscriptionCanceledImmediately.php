@@ -6,6 +6,7 @@ namespace Vatly\Fluent\Events;
 
 use DateTimeImmutable;
 use DateTimeInterface;
+use Vatly\API\Types\WebhookEventName;
 
 /**
  * Event representing a subscription being canceled immediately at Vatly.
@@ -14,7 +15,7 @@ use DateTimeInterface;
  */
 class SubscriptionCanceledImmediately
 {
-    public const VATLY_EVENT_NAME = 'subscription.canceled_immediately';
+    public const VATLY_EVENT_NAME = WebhookEventName::SUBSCRIPTION_CANCELED_IMMEDIATELY;
 
     public function __construct(
         public string $customerId,

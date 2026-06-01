@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Events;
 
+use Vatly\API\Types\WebhookEventName;
+
 /**
  * Event representing an order being canceled at Vatly.
  *
@@ -15,7 +17,7 @@ namespace Vatly\Fluent\Events;
  */
 class OrderCanceled
 {
-    public const VATLY_EVENT_NAME = 'order.canceled';
+    public const VATLY_EVENT_NAME = WebhookEventName::ORDER_CANCELED;
 
     public function __construct(
         public string $customerId,

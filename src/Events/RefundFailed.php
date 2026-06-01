@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Vatly\Fluent\Events;
 
 use Vatly\API\Resources\Refund as ApiRefund;
+use Vatly\API\Types\WebhookEventName;
 use Vatly\Fluent\Types\Money;
 use Vatly\Fluent\Types\TaxSummary;
 
@@ -20,7 +21,7 @@ use Vatly\Fluent\Types\TaxSummary;
  */
 class RefundFailed
 {
-    public const VATLY_EVENT_NAME = 'refund.failed';
+    public const VATLY_EVENT_NAME = WebhookEventName::REFUND_FAILED;
 
     public function __construct(
         public string $customerId,

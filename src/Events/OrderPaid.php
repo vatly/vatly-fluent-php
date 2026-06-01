@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Vatly\Fluent\Events;
 
 use Vatly\API\Resources\Order as ApiOrder;
+use Vatly\API\Types\WebhookEventName;
 use Vatly\Fluent\Types\Money;
 use Vatly\Fluent\Types\TaxSummary;
 
@@ -19,7 +20,7 @@ use Vatly\Fluent\Types\TaxSummary;
  */
 class OrderPaid
 {
-    public const VATLY_EVENT_NAME = 'order.paid';
+    public const VATLY_EVENT_NAME = WebhookEventName::ORDER_PAID;
 
     public function __construct(
         public string $customerId,

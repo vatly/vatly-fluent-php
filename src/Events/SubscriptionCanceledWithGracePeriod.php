@@ -6,6 +6,7 @@ namespace Vatly\Fluent\Events;
 
 use DateTimeImmutable;
 use DateTimeInterface;
+use Vatly\API\Types\WebhookEventName;
 
 /**
  * Event representing a subscription being canceled with a grace period at Vatly.
@@ -14,7 +15,7 @@ use DateTimeInterface;
  */
 class SubscriptionCanceledWithGracePeriod
 {
-    public const VATLY_EVENT_NAME = 'subscription.canceled_with_grace_period';
+    public const VATLY_EVENT_NAME = WebhookEventName::SUBSCRIPTION_CANCELED_WITH_GRACE_PERIOD;
 
     public function __construct(
         public string $customerId,
