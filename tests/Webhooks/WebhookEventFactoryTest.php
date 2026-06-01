@@ -7,6 +7,7 @@ namespace Vatly\Fluent\Tests\Webhooks;
 use DateTimeInterface;
 use Mockery;
 use Vatly\API\Resources\Order as ApiOrder;
+use Vatly\API\Resources\Refund as ApiRefund;
 use Vatly\API\Resources\Subscription as ApiSubscription;
 use Vatly\API\Types\Mandate;
 use Vatly\API\Types\Money;
@@ -14,11 +15,20 @@ use Vatly\API\Types\TaxSummaryCollection;
 use Vatly\API\VatlyApiClient;
 use Vatly\API\Webhooks\WebhookPayload;
 use Vatly\Fluent\Actions\GetOrder;
+use Vatly\Fluent\Actions\GetRefund;
 use Vatly\Fluent\Actions\GetSubscription;
+use Vatly\Fluent\Events\OrderCanceled;
+use Vatly\Fluent\Events\OrderChargebackReceived;
+use Vatly\Fluent\Events\OrderChargebackReversed;
 use Vatly\Fluent\Events\OrderPaid;
 use Vatly\Fluent\Events\PaymentFailed;
+use Vatly\Fluent\Events\RefundCanceled;
+use Vatly\Fluent\Events\RefundCompleted;
+use Vatly\Fluent\Events\RefundFailed;
+use Vatly\Fluent\Events\SubscriptionBillingUpdated;
 use Vatly\Fluent\Events\SubscriptionCanceledImmediately;
 use Vatly\Fluent\Events\SubscriptionCanceledWithGracePeriod;
+use Vatly\Fluent\Events\SubscriptionResumed;
 use Vatly\Fluent\Events\SubscriptionStarted;
 use Vatly\Fluent\Events\UnsupportedWebhookReceived;
 use Vatly\Fluent\Events\WebhookReceived;
@@ -30,6 +40,7 @@ class WebhookEventFactoryTest extends TestCase
     private WebhookEventFactory $factory;
     private GetOrder $getOrder;
     private GetSubscription $getSubscription;
+    private GetRefund $getRefund;
 
     protected function setUp(): void
     {
@@ -37,7 +48,8 @@ class WebhookEventFactoryTest extends TestCase
 
         $this->getOrder = Mockery::mock(GetOrder::class);
         $this->getSubscription = Mockery::mock(GetSubscription::class);
-        $this->factory = new WebhookEventFactory($this->getOrder, $this->getSubscription);
+        $this->getRefund = Mockery::mock(GetRefund::class);
+        $this->factory = new WebhookEventFactory($this->getOrder, $this->getSubscription, $this->getRefund);
     }
 
     public function test_it_converts_upstream_webhook_payload_into_webhook_received_event(): void
@@ -237,6 +249,100 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertInstanceOf(DateTimeInterface::class, $event->endsAt);
     }
 
+    public function test_it_creates_subscription_billing_updated_event_from_enriched_api_subscription(): void
+    {
+        $webhook = new WebhookReceived(
+            id: 'webhook_event_abc',
+            resource: 'webhook_event',
+            eventName: 'subscription.billing_updated',
+            entityType: 'subscription',
+            entityId: 'sub_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            object: [],
+        );
+
+        $apiSubscription = $this->makeApiSubscription([
+            'id' => 'sub_123',
+            'customerId' => 'cus_456',
+            'subscriptionPlanId' => 'plan_789',
+            'name' => 'Premium Plan',
+            'quantity' => 1,
+            'mandate' => new Mandate('sepa_debit', 'NL91****4300'),
+        ]);
+
+        $this->getSubscription->shouldReceive('execute')
+            ->with('sub_123')
+            ->andReturn($apiSubscription);
+
+        $event = $this->factory->createFromWebhook($webhook);
+
+        $this->assertInstanceOf(SubscriptionBillingUpdated::class, $event);
+        $this->assertSame('cus_456', $event->customerId);
+        $this->assertSame('sub_123', $event->subscriptionId);
+        $this->assertSame('plan_789', $event->planId);
+        $this->assertSame('Premium Plan', $event->name);
+        $this->assertSame(1, $event->quantity);
+        $this->assertNotNull($event->mandate);
+        $this->assertSame('sepa_debit', $event->mandate->method);
+        $this->assertSame('NL91****4300', $event->mandate->maskedIdentifier);
+    }
+
+    public function test_subscription_billing_updated_falls_back_to_webhook_payload_when_enrichment_fails(): void
+    {
+        // Same resilience contract as subscription.started: a GetSubscription
+        // blip must not block the webhook. Mandate stays null on the fallback
+        // so the reaction makes no mandate change; the next sync() reconciles.
+        $webhook = new WebhookReceived(
+            id: 'webhook_event_abc',
+            resource: 'webhook_event',
+            eventName: 'subscription.billing_updated',
+            entityType: 'subscription',
+            entityId: 'sub_transient_fail',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            object: [
+                'customerId' => 'cus_456',
+                'subscriptionPlanId' => 'plan_789',
+                'name' => 'Premium Plan',
+                'quantity' => 1,
+            ],
+        );
+
+        $this->getSubscription->shouldReceive('execute')
+            ->andThrow(new \RuntimeException('Transient API failure'));
+
+        $event = $this->factory->createFromWebhook($webhook);
+
+        $this->assertInstanceOf(SubscriptionBillingUpdated::class, $event);
+        $this->assertSame('cus_456', $event->customerId);
+        $this->assertSame('sub_transient_fail', $event->subscriptionId);
+        $this->assertSame('plan_789', $event->planId);
+        $this->assertSame('Premium Plan', $event->name);
+        $this->assertSame(1, $event->quantity);
+        $this->assertNull($event->mandate);
+    }
+
+    public function test_it_creates_subscription_resumed_event_from_webhook(): void
+    {
+        $webhook = new WebhookReceived(
+            id: 'webhook_event_abc',
+            resource: 'webhook_event',
+            eventName: 'subscription.resumed',
+            entityType: 'subscription',
+            entityId: 'sub_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            object: ['customerId' => 'cus_456'],
+        );
+
+        $event = $this->factory->createFromWebhook($webhook);
+
+        $this->assertInstanceOf(SubscriptionResumed::class, $event);
+        $this->assertSame('cus_456', $event->customerId);
+        $this->assertSame('sub_123', $event->subscriptionId);
+    }
+
     public function test_it_creates_order_paid_event_from_webhook_with_enriched_tax_data(): void
     {
         $apiOrder = $this->buildApiOrder([
@@ -340,6 +446,192 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertSame(850, $event->taxSummary->items[0]->amount);
     }
 
+    public function test_it_creates_order_canceled_event_from_webhook(): void
+    {
+        $webhook = new WebhookReceived(
+            id: 'webhook_event_oc',
+            resource: 'webhook_event',
+            eventName: 'order.canceled',
+            entityType: 'order',
+            entityId: 'ord_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            object: [
+                'customerId' => 'cus_456',
+                'status' => 'canceled',
+            ],
+        );
+
+        $event = $this->factory->createFromWebhook($webhook);
+
+        $this->assertInstanceOf(OrderCanceled::class, $event);
+        $this->assertSame('cus_456', $event->customerId);
+        $this->assertSame('ord_123', $event->orderId);
+        $this->assertSame('canceled', $event->status);
+    }
+
+    public function test_it_creates_order_chargeback_received_event_from_webhook(): void
+    {
+        $webhook = new WebhookReceived(
+            id: 'webhook_event_cb',
+            resource: 'webhook_event',
+            eventName: 'order.chargeback_received',
+            entityType: 'order',
+            entityId: 'ord_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            object: [
+                'id' => 'chargeback_789',
+                'resource' => 'chargeback',
+                'originalOrderId' => 'ord_original_1',
+                'reason' => 'fraudulent',
+            ],
+        );
+
+        $event = $this->factory->createFromWebhook($webhook);
+
+        $this->assertInstanceOf(OrderChargebackReceived::class, $event);
+        $this->assertSame('ord_123', $event->orderId);
+        $this->assertSame('chargeback_789', $event->chargebackId);
+        $this->assertSame('ord_original_1', $event->originalOrderId);
+        $this->assertSame('fraudulent', $event->reason);
+    }
+
+    public function test_it_creates_order_chargeback_reversed_event_from_webhook(): void
+    {
+        $webhook = new WebhookReceived(
+            id: 'webhook_event_cbr',
+            resource: 'webhook_event',
+            eventName: 'order.chargeback_reversed',
+            entityType: 'order',
+            entityId: 'ord_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            object: [
+                'id' => 'chargeback_789',
+                'resource' => 'chargeback',
+                'originalOrderId' => 'ord_original_1',
+            ],
+        );
+
+        $event = $this->factory->createFromWebhook($webhook);
+
+        $this->assertInstanceOf(OrderChargebackReversed::class, $event);
+        $this->assertSame('ord_123', $event->orderId);
+        $this->assertSame('chargeback_789', $event->chargebackId);
+        $this->assertNull($event->reason);
+    }
+
+    public function test_it_creates_refund_completed_event_from_enriched_api_refund(): void
+    {
+        $apiRefund = $this->buildApiRefund([
+            'id' => 'refund_123',
+            'customerId' => 'cus_456',
+            'status' => 'refunded',
+            'originalOrderId' => 'ord_original_1',
+            'total' => ['currency' => 'EUR', 'value' => '99.00'],
+            'subtotal' => ['currency' => 'EUR', 'value' => '81.82'],
+            'taxRates' => [
+                ['name' => 'VAT', 'percentage' => 21.0, 'taxablePercentage' => 100.0, 'amount' => '17.18'],
+            ],
+        ]);
+
+        $this->getRefund->shouldReceive('execute')
+            ->once()
+            ->with('refund_123')
+            ->andReturn($apiRefund);
+
+        $webhook = new WebhookReceived(
+            id: 'webhook_event_rf',
+            resource: 'webhook_event',
+            eventName: 'refund.completed',
+            entityType: 'refund',
+            entityId: 'refund_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            object: ['customerId' => 'cus_456'],
+        );
+
+        $event = $this->factory->createFromWebhook($webhook);
+
+        $this->assertInstanceOf(RefundCompleted::class, $event);
+        $this->assertSame('cus_456', $event->customerId);
+        $this->assertSame('refund_123', $event->refundId);
+        $this->assertSame('refunded', $event->status);
+        $this->assertSame('ord_original_1', $event->originalOrderId);
+        $this->assertSame(9900, $event->total);
+        $this->assertSame(8182, $event->subtotal);
+        $this->assertSame('EUR', $event->currency);
+        $this->assertCount(1, $event->taxSummary);
+        $this->assertSame('VAT', $event->taxSummary->items[0]->rate->name);
+        $this->assertSame(1718, $event->taxSummary->items[0]->amount);
+    }
+
+    public function test_it_creates_refund_failed_event_from_enriched_api_refund(): void
+    {
+        $apiRefund = $this->buildApiRefund([
+            'id' => 'refund_failed_1',
+            'customerId' => 'cus_456',
+            'status' => 'failed',
+            'originalOrderId' => 'ord_original_1',
+            'total' => ['currency' => 'EUR', 'value' => '49.00'],
+            'subtotal' => ['currency' => 'EUR', 'value' => '40.50'],
+            'taxRates' => [],
+        ]);
+
+        $this->getRefund->shouldReceive('execute')->once()->with('refund_failed_1')->andReturn($apiRefund);
+
+        $webhook = new WebhookReceived(
+            id: 'webhook_event_rff',
+            resource: 'webhook_event',
+            eventName: 'refund.failed',
+            entityType: 'refund',
+            entityId: 'refund_failed_1',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            object: [],
+        );
+
+        $event = $this->factory->createFromWebhook($webhook);
+
+        $this->assertInstanceOf(RefundFailed::class, $event);
+        $this->assertSame('refund_failed_1', $event->refundId);
+        $this->assertSame('failed', $event->status);
+        $this->assertSame(4900, $event->total);
+    }
+
+    public function test_it_creates_refund_canceled_event_from_enriched_api_refund(): void
+    {
+        $apiRefund = $this->buildApiRefund([
+            'id' => 'refund_canceled_1',
+            'customerId' => 'cus_456',
+            'status' => 'canceled',
+            'originalOrderId' => 'ord_original_1',
+            'total' => ['currency' => 'EUR', 'value' => '10.00'],
+            'subtotal' => ['currency' => 'EUR', 'value' => '8.26'],
+            'taxRates' => [],
+        ]);
+
+        $this->getRefund->shouldReceive('execute')->once()->with('refund_canceled_1')->andReturn($apiRefund);
+
+        $webhook = new WebhookReceived(
+            id: 'webhook_event_rfc',
+            resource: 'webhook_event',
+            eventName: 'refund.canceled',
+            entityType: 'refund',
+            entityId: 'refund_canceled_1',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            object: [],
+        );
+
+        $event = $this->factory->createFromWebhook($webhook);
+
+        $this->assertInstanceOf(RefundCanceled::class, $event);
+        $this->assertSame('refund_canceled_1', $event->refundId);
+        $this->assertSame('canceled', $event->status);
+    }
+
     public function test_it_creates_unsupported_webhook_received_for_unknown_events(): void
     {
         $webhook = new WebhookReceived(
@@ -364,17 +656,33 @@ class WebhookEventFactoryTest extends TestCase
         $supported = $this->factory->getSupportedEvents();
 
         $this->assertContains('subscription.started', $supported);
+        $this->assertContains('subscription.billing_updated', $supported);
+        $this->assertContains('subscription.resumed', $supported);
         $this->assertContains('subscription.canceled_immediately', $supported);
         $this->assertContains('subscription.canceled_with_grace_period', $supported);
         $this->assertContains('order.paid', $supported);
+        $this->assertContains('order.canceled', $supported);
+        $this->assertContains('order.chargeback_received', $supported);
+        $this->assertContains('order.chargeback_reversed', $supported);
         $this->assertContains('payment.failed', $supported);
+        $this->assertContains('refund.completed', $supported);
+        $this->assertContains('refund.failed', $supported);
+        $this->assertContains('refund.canceled', $supported);
     }
 
     public function test_it_checks_if_event_is_supported(): void
     {
         $this->assertTrue($this->factory->isSupported('subscription.started'));
+        $this->assertTrue($this->factory->isSupported('subscription.billing_updated'));
+        $this->assertTrue($this->factory->isSupported('subscription.resumed'));
         $this->assertTrue($this->factory->isSupported('order.paid'));
+        $this->assertTrue($this->factory->isSupported('order.canceled'));
+        $this->assertTrue($this->factory->isSupported('order.chargeback_received'));
+        $this->assertTrue($this->factory->isSupported('order.chargeback_reversed'));
         $this->assertTrue($this->factory->isSupported('payment.failed'));
+        $this->assertTrue($this->factory->isSupported('refund.completed'));
+        $this->assertTrue($this->factory->isSupported('refund.failed'));
+        $this->assertTrue($this->factory->isSupported('refund.canceled'));
         $this->assertFalse($this->factory->isSupported('unknown.event'));
     }
 
@@ -440,5 +748,44 @@ class WebhookEventFactoryTest extends TestCase
         $order->taxSummary = new TaxSummaryCollection($taxItems);
 
         return $order;
+    }
+
+    /**
+     * Build a minimal API Refund resource for enrichment-path tests.
+     *
+     * @param array{
+     *   id: string,
+     *   customerId: string,
+     *   status: string,
+     *   originalOrderId: string,
+     *   total: array{currency: string, value: string},
+     *   subtotal: array{currency: string, value: string},
+     *   taxRates: array<int, array{name: string, percentage: float, taxablePercentage: float, amount: string}>,
+     * } $data
+     */
+    private function buildApiRefund(array $data): ApiRefund
+    {
+        $refund = new ApiRefund(Mockery::mock(VatlyApiClient::class));
+        $refund->id = $data['id'];
+        $refund->customerId = $data['customerId'];
+        $refund->status = $data['status'];
+        $refund->originalOrderId = $data['originalOrderId'];
+        $refund->total = new Money($data['total']['currency'], $data['total']['value']);
+        $refund->subtotal = new Money($data['subtotal']['currency'], $data['subtotal']['value']);
+
+        $taxItems = array_map(
+            fn (array $rate) => [
+                'taxRate' => [
+                    'name' => $rate['name'],
+                    'percentage' => $rate['percentage'],
+                    'taxablePercentage' => $rate['taxablePercentage'],
+                ],
+                'amount' => ['currency' => $data['total']['currency'], 'value' => $rate['amount']],
+            ],
+            $data['taxRates'],
+        );
+        $refund->taxSummary = new TaxSummaryCollection($taxItems);
+
+        return $refund;
     }
 }

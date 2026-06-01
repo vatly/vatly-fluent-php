@@ -11,6 +11,7 @@ use Vatly\API\Types\Money;
 use Vatly\API\Types\TaxSummaryCollection;
 use Vatly\API\VatlyApiClient;
 use Vatly\Fluent\Actions\GetOrder;
+use Vatly\Fluent\Actions\GetRefund;
 use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\Fluent\Contracts\EventDispatcherInterface;
 use Vatly\Fluent\Contracts\WebhookCallRepositoryInterface;
@@ -28,6 +29,7 @@ class WebhookProcessorTest extends TestCase
     private string $secret;
     private GetOrder $getOrder;
     private GetSubscription $getSubscription;
+    private GetRefund $getRefund;
     private WebhookEventFactory $eventFactory;
     private WebhookCallRepositoryInterface $repository;
     private EventDispatcherInterface $dispatcher;
@@ -40,7 +42,8 @@ class WebhookProcessorTest extends TestCase
         $this->secret = 'test-webhook-secret';
         $this->getOrder = Mockery::mock(GetOrder::class);
         $this->getSubscription = Mockery::mock(GetSubscription::class);
-        $this->eventFactory = new WebhookEventFactory($this->getOrder, $this->getSubscription);
+        $this->getRefund = Mockery::mock(GetRefund::class);
+        $this->eventFactory = new WebhookEventFactory($this->getOrder, $this->getSubscription, $this->getRefund);
         $this->repository = Mockery::mock(WebhookCallRepositoryInterface::class);
         $this->dispatcher = Mockery::mock(EventDispatcherInterface::class);
 

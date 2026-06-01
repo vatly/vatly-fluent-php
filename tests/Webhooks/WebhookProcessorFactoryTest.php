@@ -6,18 +6,24 @@ namespace Vatly\Fluent\Tests\Webhooks;
 
 use Mockery;
 use Vatly\Fluent\Actions\GetOrder;
+use Vatly\Fluent\Actions\GetRefund;
 use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\Fluent\Contracts\ConfigurationInterface;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
 use Vatly\Fluent\Contracts\EventDispatcherInterface;
 use Vatly\Fluent\Contracts\OrderRepositoryInterface;
+use Vatly\Fluent\Contracts\RefundRepositoryInterface;
 use Vatly\Fluent\Contracts\SubscriptionRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookCallRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
 use Vatly\Fluent\Tests\TestCase;
+use Vatly\Fluent\Webhooks\Reactions\CancelOrderOnCanceled;
 use Vatly\Fluent\Webhooks\Reactions\CancelSubscriptionOnCanceled;
+use Vatly\Fluent\Webhooks\Reactions\ResumeSubscriptionOnResumed;
 use Vatly\Fluent\Webhooks\Reactions\StoreOrderOnPaid;
 use Vatly\Fluent\Webhooks\Reactions\StoreOrderOnPaymentFailed;
+use Vatly\Fluent\Webhooks\Reactions\SyncRefundOnStatusChange;
+use Vatly\Fluent\Webhooks\Reactions\SyncSubscriptionOnBillingUpdated;
 use Vatly\Fluent\Webhooks\Reactions\SyncSubscriptionOnStarted;
 use Vatly\Fluent\Webhooks\WebhookProcessor;
 use Vatly\Fluent\Webhooks\WebhookProcessorFactory;
@@ -35,17 +41,42 @@ class WebhookProcessorFactoryTest extends TestCase
             bindings: Mockery::mock(CustomerBindingRepository::class),
             getOrder: Mockery::mock(GetOrder::class),
             getSubscription: Mockery::mock(GetSubscription::class),
+            getRefund: Mockery::mock(GetRefund::class),
         );
 
         $this->assertInstanceOf(WebhookProcessor::class, $processor);
 
         $reactions = $processor->getReactions();
 
-        $this->assertCount(4, $reactions);
+        $this->assertCount(7, $reactions);
         $this->assertInstanceOf(SyncSubscriptionOnStarted::class, $reactions[0]);
-        $this->assertInstanceOf(CancelSubscriptionOnCanceled::class, $reactions[1]);
-        $this->assertInstanceOf(StoreOrderOnPaid::class, $reactions[2]);
-        $this->assertInstanceOf(StoreOrderOnPaymentFailed::class, $reactions[3]);
+        $this->assertInstanceOf(SyncSubscriptionOnBillingUpdated::class, $reactions[1]);
+        $this->assertInstanceOf(ResumeSubscriptionOnResumed::class, $reactions[2]);
+        $this->assertInstanceOf(CancelSubscriptionOnCanceled::class, $reactions[3]);
+        $this->assertInstanceOf(StoreOrderOnPaid::class, $reactions[4]);
+        $this->assertInstanceOf(StoreOrderOnPaymentFailed::class, $reactions[5]);
+        $this->assertInstanceOf(CancelOrderOnCanceled::class, $reactions[6]);
+    }
+
+    public function test_it_registers_the_refund_reaction_only_when_a_refund_repository_is_supplied(): void
+    {
+        $processor = WebhookProcessorFactory::create(
+            config: $this->config('secret'),
+            subscriptions: Mockery::mock(SubscriptionRepositoryInterface::class),
+            orders: Mockery::mock(OrderRepositoryInterface::class),
+            webhookCalls: Mockery::mock(WebhookCallRepositoryInterface::class),
+            dispatcher: Mockery::mock(EventDispatcherInterface::class),
+            bindings: Mockery::mock(CustomerBindingRepository::class),
+            getOrder: Mockery::mock(GetOrder::class),
+            getSubscription: Mockery::mock(GetSubscription::class),
+            getRefund: Mockery::mock(GetRefund::class),
+            refunds: Mockery::mock(RefundRepositoryInterface::class),
+        );
+
+        $reactions = $processor->getReactions();
+
+        $this->assertCount(8, $reactions);
+        $this->assertInstanceOf(SyncRefundOnStatusChange::class, $reactions[7]);
     }
 
     public function test_it_appends_additional_reactions_after_the_standard_ones(): void
@@ -61,13 +92,14 @@ class WebhookProcessorFactoryTest extends TestCase
             bindings: Mockery::mock(CustomerBindingRepository::class),
             getOrder: Mockery::mock(GetOrder::class),
             getSubscription: Mockery::mock(GetSubscription::class),
+            getRefund: Mockery::mock(GetRefund::class),
             additionalReactions: [$custom],
         );
 
         $reactions = $processor->getReactions();
 
-        $this->assertCount(5, $reactions);
-        $this->assertSame($custom, $reactions[4]);
+        $this->assertCount(8, $reactions);
+        $this->assertSame($custom, $reactions[7]);
     }
 
     public function test_it_tolerates_a_null_webhook_secret(): void
@@ -81,6 +113,7 @@ class WebhookProcessorFactoryTest extends TestCase
             bindings: Mockery::mock(CustomerBindingRepository::class),
             getOrder: Mockery::mock(GetOrder::class),
             getSubscription: Mockery::mock(GetSubscription::class),
+            getRefund: Mockery::mock(GetRefund::class),
         );
 
         $this->assertInstanceOf(WebhookProcessor::class, $processor);

@@ -10,6 +10,7 @@ use Vatly\Fluent\Actions\CreateCheckout;
 use Vatly\Fluent\Actions\CreateCustomer;
 use Vatly\Fluent\Actions\GetCustomer;
 use Vatly\Fluent\Actions\GetOrder;
+use Vatly\Fluent\Actions\GetRefund;
 use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\Fluent\Actions\ResumeSubscription;
 use Vatly\Fluent\Actions\SwapSubscriptionPlan;
@@ -44,6 +45,7 @@ class Vatly
     private ?CreateCustomer $createCustomer = null;
     private ?GetCustomer $getCustomer = null;
     private ?GetOrder $getOrder = null;
+    private ?GetRefund $getRefund = null;
     private ?CreateCheckout $createCheckout = null;
     private ?GetSubscription $getSubscription = null;
     private ?CancelSubscription $cancelSubscription = null;
@@ -101,7 +103,7 @@ class Vatly
 
     public function getWebhookEventFactory(): WebhookEventFactory
     {
-        return $this->webhookEventFactory ??= new WebhookEventFactory($this->getOrder(), $this->getSubscription());
+        return $this->webhookEventFactory ??= new WebhookEventFactory($this->getOrder(), $this->getSubscription(), $this->getRefund());
     }
 
     public function webhookProcessor(): WebhookProcessor
@@ -120,6 +122,8 @@ class Vatly
                 ?? throw IncompleteWiringException::missing('customerBindings', 'WebhookProcessor'),
             getOrder: $this->getOrder(),
             getSubscription: $this->getSubscription(),
+            getRefund: $this->getRefund(),
+            refunds: $this->wiring->refunds,
             additionalReactions: $this->wiring->additionalWebhookReactions,
         );
     }
@@ -204,6 +208,11 @@ class Vatly
     public function getOrder(): GetOrder
     {
         return $this->getOrder ??= new GetOrder($this->apiClient);
+    }
+
+    public function getRefund(): GetRefund
+    {
+        return $this->getRefund ??= new GetRefund($this->apiClient);
     }
 
     public function createCheckout(): CreateCheckout
