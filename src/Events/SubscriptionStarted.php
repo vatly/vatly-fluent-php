@@ -7,18 +7,22 @@ namespace Vatly\Fluent\Events;
 use Vatly\API\Resources\Subscription as ApiSubscription;
 use Vatly\API\Types\Mandate;
 use Vatly\API\Types\WebhookEventName;
+use Vatly\Fluent\Concerns\ParsesWebhookMandate;
 
 /**
  * Event representing a subscription being started at Vatly.
  *
  * Built by {@see \Vatly\Fluent\Webhooks\WebhookEventFactory} via a follow-up
- * `GetSubscription` call against the webhook's `entityId`, so the dispatched
- * event carries the mandate summary that isn't on the webhook payload.
+ * `GetSubscription` call against the webhook's `entityId` (carrying the mandate
+ * summary). On a transient API failure it falls back to the webhook payload,
+ * which itself embeds the mandate inline — so the fallback stays non-lossy.
  *
  * @immutable
  */
 class SubscriptionStarted
 {
+    use ParsesWebhookMandate;
+
     public const VATLY_EVENT_NAME = WebhookEventName::SUBSCRIPTION_STARTED;
 
     public const DEFAULT_TYPE = 'default';
@@ -62,8 +66,10 @@ class SubscriptionStarted
     }
 
     /**
-     * Sparse, webhook-payload-only build kept for tests and callers who don't
-     * want to fetch the full API resource. Mandate stays null.
+     * Webhook-payload-only build (the factory's fallback when `GetSubscription`
+     * enrichment fails, and a convenience for tests). The mandate is read from
+     * the embedded `object.mandate` when present, falling back to `null` only
+     * when the payload genuinely carries none.
      */
     public static function fromWebhook(WebhookReceived $webhook): self
     {
@@ -74,6 +80,7 @@ class SubscriptionStarted
             type: self::DEFAULT_TYPE,
             name: $webhook->object['name'],
             quantity: $webhook->object['quantity'],
+            mandate: self::mandateFromWebhookObject($webhook->object),
         );
     }
 }

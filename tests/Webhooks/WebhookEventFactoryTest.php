@@ -168,8 +168,68 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertSame('plan_789', $event->planId);
         $this->assertSame('Premium Plan', $event->name);
         $this->assertSame(1, $event->quantity);
-        // Fallback path can't enrich mandate from the webhook payload.
+        // This payload carries no `mandate`, so the fallback yields null.
         $this->assertNull($event->mandate);
+    }
+
+    public function test_subscription_started_fallback_parses_mandate_embedded_in_webhook_payload(): void
+    {
+        // Enrichment fails, but the webhook payload embeds the mandate inline —
+        // the fallback must carry it through rather than drop it.
+        $webhook = new WebhookReceived(
+            id: 'webhook_event_abc',
+            resource: 'webhook_event',
+            eventName: 'subscription.started',
+            entityType: 'subscription',
+            entityId: 'sub_fail_with_mandate',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            object: [
+                'customerId' => 'cus_456',
+                'subscriptionPlanId' => 'plan_789',
+                'name' => 'Premium Plan',
+                'quantity' => 1,
+                'mandate' => ['method' => 'card', 'maskedIdentifier' => '4242'],
+            ],
+        );
+
+        $this->getSubscription->shouldReceive('execute')->andThrow(new \RuntimeException('Transient API failure'));
+
+        $event = $this->factory->createFromWebhook($webhook);
+
+        $this->assertInstanceOf(SubscriptionStarted::class, $event);
+        $this->assertNotNull($event->mandate);
+        $this->assertSame('card', $event->mandate->method);
+        $this->assertSame('4242', $event->mandate->maskedIdentifier);
+    }
+
+    public function test_subscription_billing_updated_fallback_parses_mandate_embedded_in_webhook_payload(): void
+    {
+        $webhook = new WebhookReceived(
+            id: 'webhook_event_bu',
+            resource: 'webhook_event',
+            eventName: 'subscription.billing_updated',
+            entityType: 'subscription',
+            entityId: 'sub_fail_with_mandate',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            object: [
+                'customerId' => 'cus_456',
+                'subscriptionPlanId' => 'plan_789',
+                'name' => 'Premium Plan',
+                'quantity' => 1,
+                'mandate' => ['method' => 'sepa_debit', 'maskedIdentifier' => 'NL91****4300'],
+            ],
+        );
+
+        $this->getSubscription->shouldReceive('execute')->andThrow(new \RuntimeException('Transient API failure'));
+
+        $event = $this->factory->createFromWebhook($webhook);
+
+        $this->assertInstanceOf(SubscriptionBillingUpdated::class, $event);
+        $this->assertNotNull($event->mandate);
+        $this->assertSame('sepa_debit', $event->mandate->method);
+        $this->assertSame('NL91****4300', $event->mandate->maskedIdentifier);
     }
 
     public function test_subscription_started_event_carries_null_mandate_when_api_returns_none(): void

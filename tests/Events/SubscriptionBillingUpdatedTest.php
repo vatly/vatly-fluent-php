@@ -89,4 +89,30 @@ class SubscriptionBillingUpdatedTest extends TestCase
         $this->assertSame(1, $event->quantity);
         $this->assertNull($event->mandate);
     }
+
+    public function test_it_parses_the_mandate_embedded_in_the_webhook_payload(): void
+    {
+        $webhook = new WebhookReceived(
+            id: 'webhook_event_abc',
+            resource: 'webhook_event',
+            eventName: 'subscription.billing_updated',
+            entityType: 'subscription',
+            entityId: 'sub_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            object: [
+                'customerId' => 'cus_456',
+                'subscriptionPlanId' => 'plan_789',
+                'name' => 'Basic Plan',
+                'quantity' => 1,
+                'mandate' => ['method' => 'sepa_debit', 'maskedIdentifier' => 'NL91****4300'],
+            ],
+        );
+
+        $event = SubscriptionBillingUpdated::fromWebhook($webhook);
+
+        $this->assertNotNull($event->mandate);
+        $this->assertSame('sepa_debit', $event->mandate->method);
+        $this->assertSame('NL91****4300', $event->mandate->maskedIdentifier);
+    }
 }

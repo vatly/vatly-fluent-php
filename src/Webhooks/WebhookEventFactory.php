@@ -45,8 +45,8 @@ class WebhookEventFactory
      * enrichment pattern fetches the mandate summary so consumers can persist
      * the payment method on file without a separate API roundtrip per portal
      * render. Enrichment is best-effort: a transient `GetSubscription` failure
-     * does not block persistence — the event falls back to the webhook payload
-     * (mandate stays null, backfilled by the next `sync()`).
+     * does not block persistence — the event falls back to the webhook payload,
+     * which embeds the mandate inline, so the fallback stays non-lossy.
      *
      * For `refund.*` events the factory enriches via `GetRefund` for the same
      * reason as `order.paid`: refund tax data is compliance-critical and the
