@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent;
 
+use Vatly\API\Exceptions\ApiException;
 use Vatly\API\VatlyApiClient;
 use Vatly\Fluent\Actions\CancelSubscription;
 use Vatly\Fluent\Actions\CreateCheckout;
 use Vatly\Fluent\Actions\CreateCustomer;
+use Vatly\Fluent\Actions\GetCheckout;
 use Vatly\Fluent\Actions\GetCustomer;
 use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Actions\GetRefund;
@@ -20,6 +22,7 @@ use Vatly\Fluent\Builders\SubscriptionBuilder;
 use Vatly\Fluent\Configuration\ArrayConfiguration;
 use Vatly\Fluent\Contracts\OrderInterface;
 use Vatly\Fluent\Contracts\SubscriptionInterface;
+use Vatly\Fluent\Exceptions\CustomerAlreadyBoundException;
 use Vatly\Fluent\Exceptions\IncompleteWiringException;
 use Vatly\Fluent\Webhooks\SignatureVerifier;
 use Vatly\Fluent\Webhooks\WebhookEventFactory;
@@ -46,6 +49,7 @@ class Vatly
     private ?GetCustomer $getCustomer = null;
     private ?GetOrder $getOrder = null;
     private ?GetRefund $getRefund = null;
+    private ?GetCheckout $getCheckout = null;
     private ?CreateCheckout $createCheckout = null;
     private ?GetSubscription $getSubscription = null;
     private ?CancelSubscription $cancelSubscription = null;
@@ -140,6 +144,57 @@ class Vatly
         );
     }
 
+    /**
+     * Resolve the Vatly customer id associated with a checkout, or null.
+     *
+     * The framework-agnostic core of anonymous-checkout return matching: given
+     * a checkout id (typically read off the redirect URL via the `{CHECKOUT_ID}`
+     * placeholder), it returns the attached `cus_…` id. Returns null — rather
+     * than throwing — when there is nothing to resolve: an unknown / out-of-scope
+     * checkout id, or a checkout with no customer associated yet (e.g. not
+     * completed). That keeps it safe to call straight from a request handler on
+     * the redirect back.
+     */
+    public function customerIdFromCheckout(string $checkoutId): ?string
+    {
+        try {
+            $customerId = $this->getCheckout()->execute($checkoutId)->customerId;
+        } catch (ApiException $e) {
+            if ($e->getCode() === 404) {
+                return null; // Unknown / out-of-scope checkout id — nothing to resolve.
+            }
+
+            throw $e;
+        }
+
+        return ($customerId === null || $customerId === '') ? null : $customerId;
+    }
+
+    /**
+     * Claim the Vatly customer behind a checkout for a host customer id.
+     *
+     * Resolves the checkout's customer id (see {@see self::customerIdFromCheckout()})
+     * and binds it to the given host customer id. Idempotent for the same pair;
+     * throws on a cross-host conflict. Returns false when there is nothing to
+     * claim. Drivers that also need to re-attribute previously-anonymous local
+     * records can resolve the id with {@see self::customerIdFromCheckout()} and
+     * run their own richer claim instead.
+     *
+     * @throws CustomerAlreadyBoundException When the host is already bound to a different Vatly customer.
+     */
+    public function claimCustomerFromCheckout(string $checkoutId, string $hostCustomerId): bool
+    {
+        $customerId = $this->customerIdFromCheckout($checkoutId);
+
+        if ($customerId === null) {
+            return false;
+        }
+
+        $this->customers()->attribute($customerId, $hostCustomerId);
+
+        return true;
+    }
+
     // --- Builders (per-call construction; no caching) ---
 
     public function checkoutBuilder(CustomerProfile $profile): CheckoutBuilder
@@ -213,6 +268,11 @@ class Vatly
     public function getRefund(): GetRefund
     {
         return $this->getRefund ??= new GetRefund($this->apiClient);
+    }
+
+    public function getCheckout(): GetCheckout
+    {
+        return $this->getCheckout ??= new GetCheckout($this->apiClient);
     }
 
     public function createCheckout(): CreateCheckout
