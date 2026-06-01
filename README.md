@@ -110,6 +110,8 @@ For incoming Vatly webhooks, fluent dispatches a typed event and runs a built-in
 | `subscription.billing_updated` | `SubscriptionBillingUpdated`                               | `SyncSubscriptionOnBillingUpdated` | `SubscriptionWriter::update` (refreshes mandate)    |
 | `subscription.resumed`   | `SubscriptionResumed`                                             | `ResumeSubscriptionOnResumed`  | `SubscriptionWriter::update` (clears end date)       |
 | `subscription.canceled`  | `SubscriptionCanceledImmediately` / `SubscriptionCanceledWithGracePeriod` | `CancelSubscriptionOnCanceled` | `SubscriptionWriter::update`                         |
+| `subscription.cancellation_grace_period_completed` | `SubscriptionCancellationGracePeriodCompleted` | — (dispatched only)            | none — driver-handled                                |
+| `checkout.paid` / `checkout.failed` / `checkout.canceled` / `checkout.expired` | `CheckoutPaid` / `CheckoutFailed` / `CheckoutCanceled` / `CheckoutExpired` | — (dispatched only) | none — driver-handled |
 
 `OrderWriter::store`, `SubscriptionWriter::store`, and `RefundWriter::store` may return `null` if your driver can't route the data (see the adapter recipe below). Built-in reactions tolerate null — `SyncSubscriptionOnStarted` skips its follow-up `LocalSubscriptionCreated` dispatch when store returns null.
 
@@ -118,6 +120,10 @@ For incoming Vatly webhooks, fluent dispatches a typed event and runs a built-in
 **Refunds** are opt-in: supply a `RefundRepositoryInterface` via `Wiring(refunds: …)` and the built-in `SyncRefundOnStatusChange` reaction persists `refund.*` webhooks (store-or-update, like orders) — unblocking terminal-state refund reconciliation. Omit it and the typed refund events are still dispatched for you to handle. Refund events are enriched via `GetRefund` so they carry the full tax breakdown, mirroring `order.paid`.
 
 **Chargebacks** ship no built-in reaction: Vatly's public order status doesn't change on a chargeback, so fluent doesn't synthesize one. Instead `OrderChargebackReceived` / `OrderChargebackReversed` are dispatched (with the affected order's ID as `orderId`) for your driver to react to — e.g. suspend access on receipt, reinstate on reversal.
+
+**Checkout events** are dispatched only — no built-in reaction. The `checkout.*` deliveries carry the full Checkout resource (status, `customerId`, `orderId`, `metadata`) with no sparse money/tax fields, so they need no enriching API GET and are built straight from the payload. Use `CheckoutPaid` for an analytics/receipt handoff at the earliest "customer paid" moment — before `order.paid`'s tax-summary enrichment — and `CheckoutFailed` / `CheckoutCanceled` / `CheckoutExpired` for retry and cart-abandonment funnel hooks. `customerId` is nullable: an anonymous checkout only gets a customer attributed once payment completes.
+
+**`subscription.cancellation_grace_period_completed`** is dispatched only. The grace period was already stamped onto the local row by `CancelSubscriptionOnCanceled` when the cancellation arrived, so the derived "ended" state is correct once the clock passes `endsAt`; this event lets a driver flip local state atomically instead of polling `endsAt < now` on a scheduled job. Whether to additionally write a `fully_ended` status is driver-specific (Vatly has no such status to mirror), so it's left to the consumer.
 
 `additionalWebhookReactions` (on `WebhookProcessorFactory::create`) lets you append driver-specific reactions without losing the built-ins.
 
