@@ -17,6 +17,7 @@ use Vatly\Fluent\Contracts\WebhookCallRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
 use Vatly\Fluent\Webhooks\Reactions\CancelOrderOnCanceled;
 use Vatly\Fluent\Webhooks\Reactions\CancelSubscriptionOnCanceled;
+use Vatly\Fluent\Webhooks\Reactions\EndSubscriptionOnGracePeriodCompleted;
 use Vatly\Fluent\Webhooks\Reactions\ResumeSubscriptionOnResumed;
 use Vatly\Fluent\Webhooks\Reactions\StoreOrderOnPaid;
 use Vatly\Fluent\Webhooks\Reactions\StoreOrderOnPaymentFailed;
@@ -60,6 +61,7 @@ class WebhookProcessorFactory
             new SyncSubscriptionOnBillingUpdated($subscriptions),
             new ResumeSubscriptionOnResumed($subscriptions),
             new CancelSubscriptionOnCanceled($subscriptions),
+            new EndSubscriptionOnGracePeriodCompleted($subscriptions),
             new StoreOrderOnPaid($orders, $bindings),
             new StoreOrderOnPaymentFailed($orders, $bindings),
             new CancelOrderOnCanceled($orders),

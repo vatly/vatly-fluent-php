@@ -17,13 +17,16 @@ use Vatly\API\Types\WebhookEventName;
  * direct event lets local state flip atomically and removes a class of
  * "the cron is late so the state is wrong" bugs.
  *
- * fluent ships no built-in reaction: the cancellation that scheduled the grace
- * period already stamped `endsAt` onto the local row (via
- * {@see \Vatly\Fluent\Webhooks\Reactions\CancelSubscriptionOnCanceled}), so the
- * derived "ended" state is already correct once the clock passes. Whether to
- * additionally flip a stored status to a `fully_ended` value is driver-specific
- * — there is no such status in Vatly's own model to mirror — so this is
- * dispatched-only, leaving that decision to the consumer.
+ * The {@see \Vatly\Fluent\Webhooks\Reactions\EndSubscriptionOnGracePeriodCompleted}
+ * reaction stamps the actual `endsAt` onto the local row. In the happy path the
+ * cancellation already stamped the scheduled end (via
+ * {@see \Vatly\Fluent\Webhooks\Reactions\CancelSubscriptionOnCanceled}) so this
+ * is an idempotent re-write, but it self-heals a missed/out-of-order
+ * cancellation webhook (which would otherwise leave `endsAt` null and the
+ * subscription looking active forever) and corrects any drift between the
+ * scheduled and actual end. No driver-specific terminal status is synthesized —
+ * Vatly has no `fully_ended` status to mirror — so this event is still
+ * dispatched for consumers that want to flip such a flag of their own.
  *
  * @immutable
  */

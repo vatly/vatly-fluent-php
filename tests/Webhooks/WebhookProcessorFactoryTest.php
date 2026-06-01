@@ -19,6 +19,7 @@ use Vatly\Fluent\Contracts\WebhookReactionInterface;
 use Vatly\Fluent\Tests\TestCase;
 use Vatly\Fluent\Webhooks\Reactions\CancelOrderOnCanceled;
 use Vatly\Fluent\Webhooks\Reactions\CancelSubscriptionOnCanceled;
+use Vatly\Fluent\Webhooks\Reactions\EndSubscriptionOnGracePeriodCompleted;
 use Vatly\Fluent\Webhooks\Reactions\ResumeSubscriptionOnResumed;
 use Vatly\Fluent\Webhooks\Reactions\StoreOrderOnPaid;
 use Vatly\Fluent\Webhooks\Reactions\StoreOrderOnPaymentFailed;
@@ -48,14 +49,15 @@ class WebhookProcessorFactoryTest extends TestCase
 
         $reactions = $processor->getReactions();
 
-        $this->assertCount(7, $reactions);
+        $this->assertCount(8, $reactions);
         $this->assertInstanceOf(SyncSubscriptionOnStarted::class, $reactions[0]);
         $this->assertInstanceOf(SyncSubscriptionOnBillingUpdated::class, $reactions[1]);
         $this->assertInstanceOf(ResumeSubscriptionOnResumed::class, $reactions[2]);
         $this->assertInstanceOf(CancelSubscriptionOnCanceled::class, $reactions[3]);
-        $this->assertInstanceOf(StoreOrderOnPaid::class, $reactions[4]);
-        $this->assertInstanceOf(StoreOrderOnPaymentFailed::class, $reactions[5]);
-        $this->assertInstanceOf(CancelOrderOnCanceled::class, $reactions[6]);
+        $this->assertInstanceOf(EndSubscriptionOnGracePeriodCompleted::class, $reactions[4]);
+        $this->assertInstanceOf(StoreOrderOnPaid::class, $reactions[5]);
+        $this->assertInstanceOf(StoreOrderOnPaymentFailed::class, $reactions[6]);
+        $this->assertInstanceOf(CancelOrderOnCanceled::class, $reactions[7]);
     }
 
     public function test_it_is_back_compatible_when_called_without_a_get_refund_action(): void
@@ -76,7 +78,7 @@ class WebhookProcessorFactoryTest extends TestCase
         $reactions = $processor->getReactions();
 
         $this->assertInstanceOf(WebhookProcessor::class, $processor);
-        $this->assertCount(7, $reactions); // no refund reaction without a refunds repo
+        $this->assertCount(8, $reactions); // no refund reaction without a refunds repo
         foreach ($reactions as $reaction) {
             $this->assertNotInstanceOf(SyncRefundOnStatusChange::class, $reaction);
         }
@@ -99,8 +101,8 @@ class WebhookProcessorFactoryTest extends TestCase
 
         $reactions = $processor->getReactions();
 
-        $this->assertCount(8, $reactions);
-        $this->assertInstanceOf(SyncRefundOnStatusChange::class, $reactions[7]);
+        $this->assertCount(9, $reactions);
+        $this->assertInstanceOf(SyncRefundOnStatusChange::class, $reactions[8]);
     }
 
     public function test_it_appends_additional_reactions_after_the_standard_ones(): void
@@ -122,8 +124,8 @@ class WebhookProcessorFactoryTest extends TestCase
 
         $reactions = $processor->getReactions();
 
-        $this->assertCount(8, $reactions);
-        $this->assertSame($custom, $reactions[7]);
+        $this->assertCount(9, $reactions);
+        $this->assertSame($custom, $reactions[8]);
     }
 
     public function test_it_tolerates_a_null_webhook_secret(): void
