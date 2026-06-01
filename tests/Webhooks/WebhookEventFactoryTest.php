@@ -17,6 +17,10 @@ use Vatly\API\Webhooks\WebhookPayload;
 use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Actions\GetRefund;
 use Vatly\Fluent\Actions\GetSubscription;
+use Vatly\Fluent\Events\CheckoutCanceled;
+use Vatly\Fluent\Events\CheckoutExpired;
+use Vatly\Fluent\Events\CheckoutFailed;
+use Vatly\Fluent\Events\CheckoutPaid;
 use Vatly\Fluent\Events\OrderCanceled;
 use Vatly\Fluent\Events\OrderChargebackReceived;
 use Vatly\Fluent\Events\OrderChargebackReversed;
@@ -28,6 +32,7 @@ use Vatly\Fluent\Events\RefundFailed;
 use Vatly\Fluent\Events\SubscriptionBillingUpdated;
 use Vatly\Fluent\Events\SubscriptionCanceledImmediately;
 use Vatly\Fluent\Events\SubscriptionCanceledWithGracePeriod;
+use Vatly\Fluent\Events\SubscriptionCancellationGracePeriodCompleted;
 use Vatly\Fluent\Events\SubscriptionResumed;
 use Vatly\Fluent\Events\SubscriptionStarted;
 use Vatly\Fluent\Events\UnsupportedWebhookReceived;
@@ -718,6 +723,123 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertTrue($factory->isSupported('order.paid'));
     }
 
+    public function test_it_creates_checkout_paid_event_from_webhook(): void
+    {
+        $webhook = new WebhookReceived(
+            id: 'webhook_event_cp',
+            resource: 'webhook_event',
+            eventName: 'checkout.paid',
+            entityType: 'checkout',
+            entityId: 'checkout_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            object: [
+                'customerId' => 'cus_456',
+                'orderId' => 'ord_789',
+                'status' => 'paid',
+                'metadata' => ['cart_id' => 'cart_1'],
+            ],
+        );
+
+        $event = $this->factory->createFromWebhook($webhook);
+
+        $this->assertInstanceOf(CheckoutPaid::class, $event);
+        $this->assertSame('checkout_123', $event->checkoutId);
+        $this->assertSame('cus_456', $event->customerId);
+        $this->assertSame('ord_789', $event->orderId);
+        $this->assertSame('paid', $event->status);
+        $this->assertSame(['cart_id' => 'cart_1'], $event->metadata);
+    }
+
+    public function test_it_creates_checkout_failed_event_from_webhook(): void
+    {
+        $webhook = new WebhookReceived(
+            id: 'webhook_event_cf',
+            resource: 'webhook_event',
+            eventName: 'checkout.failed',
+            entityType: 'checkout',
+            entityId: 'checkout_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            object: ['customerId' => 'cus_456', 'status' => 'failed'],
+        );
+
+        $event = $this->factory->createFromWebhook($webhook);
+
+        $this->assertInstanceOf(CheckoutFailed::class, $event);
+        $this->assertSame('checkout_123', $event->checkoutId);
+        $this->assertSame('cus_456', $event->customerId);
+        $this->assertNull($event->orderId);
+        $this->assertSame('failed', $event->status);
+    }
+
+    public function test_it_creates_checkout_canceled_event_from_webhook(): void
+    {
+        $webhook = new WebhookReceived(
+            id: 'webhook_event_cc',
+            resource: 'webhook_event',
+            eventName: 'checkout.canceled',
+            entityType: 'checkout',
+            entityId: 'checkout_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            object: ['customerId' => 'cus_456'],
+        );
+
+        $event = $this->factory->createFromWebhook($webhook);
+
+        $this->assertInstanceOf(CheckoutCanceled::class, $event);
+        $this->assertSame('checkout_123', $event->checkoutId);
+        $this->assertSame('cus_456', $event->customerId);
+        $this->assertSame('canceled', $event->status);
+    }
+
+    public function test_it_creates_checkout_expired_event_from_webhook(): void
+    {
+        $webhook = new WebhookReceived(
+            id: 'webhook_event_ce',
+            resource: 'webhook_event',
+            eventName: 'checkout.expired',
+            entityType: 'checkout',
+            entityId: 'checkout_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            object: [],
+        );
+
+        $event = $this->factory->createFromWebhook($webhook);
+
+        $this->assertInstanceOf(CheckoutExpired::class, $event);
+        $this->assertSame('checkout_123', $event->checkoutId);
+        $this->assertNull($event->customerId);
+        $this->assertSame('expired', $event->status);
+    }
+
+    public function test_it_creates_subscription_cancellation_grace_period_completed_event_from_webhook(): void
+    {
+        $webhook = new WebhookReceived(
+            id: 'webhook_event_gpc',
+            resource: 'webhook_event',
+            eventName: 'subscription.cancellation_grace_period_completed',
+            entityType: 'subscription',
+            entityId: 'sub_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            object: [
+                'customerId' => 'cus_456',
+                'endedAt' => '2024-02-15T10:00:00Z',
+            ],
+        );
+
+        $event = $this->factory->createFromWebhook($webhook);
+
+        $this->assertInstanceOf(SubscriptionCancellationGracePeriodCompleted::class, $event);
+        $this->assertSame('cus_456', $event->customerId);
+        $this->assertSame('sub_123', $event->subscriptionId);
+        $this->assertInstanceOf(DateTimeInterface::class, $event->endsAt);
+        $this->assertSame('2024-02-15T10:00:00+00:00', $event->endsAt->format('c'));
+    }
+
     public function test_it_creates_unsupported_webhook_received_for_unknown_events(): void
     {
         $webhook = new WebhookReceived(
@@ -746,11 +868,16 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertContains('subscription.resumed', $supported);
         $this->assertContains('subscription.canceled_immediately', $supported);
         $this->assertContains('subscription.canceled_with_grace_period', $supported);
+        $this->assertContains('subscription.cancellation_grace_period_completed', $supported);
         $this->assertContains('order.paid', $supported);
         $this->assertContains('order.canceled', $supported);
         $this->assertContains('order.chargeback_received', $supported);
         $this->assertContains('order.chargeback_reversed', $supported);
         $this->assertContains('payment.failed', $supported);
+        $this->assertContains('checkout.paid', $supported);
+        $this->assertContains('checkout.failed', $supported);
+        $this->assertContains('checkout.canceled', $supported);
+        $this->assertContains('checkout.expired', $supported);
         $this->assertContains('refund.completed', $supported);
         $this->assertContains('refund.failed', $supported);
         $this->assertContains('refund.canceled', $supported);
@@ -766,6 +893,11 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertTrue($this->factory->isSupported('order.chargeback_received'));
         $this->assertTrue($this->factory->isSupported('order.chargeback_reversed'));
         $this->assertTrue($this->factory->isSupported('payment.failed'));
+        $this->assertTrue($this->factory->isSupported('checkout.paid'));
+        $this->assertTrue($this->factory->isSupported('checkout.failed'));
+        $this->assertTrue($this->factory->isSupported('checkout.canceled'));
+        $this->assertTrue($this->factory->isSupported('checkout.expired'));
+        $this->assertTrue($this->factory->isSupported('subscription.cancellation_grace_period_completed'));
         $this->assertTrue($this->factory->isSupported('refund.completed'));
         $this->assertTrue($this->factory->isSupported('refund.failed'));
         $this->assertTrue($this->factory->isSupported('refund.canceled'));

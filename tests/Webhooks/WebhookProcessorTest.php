@@ -16,6 +16,7 @@ use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\Fluent\Contracts\EventDispatcherInterface;
 use Vatly\Fluent\Contracts\WebhookCallRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
+use Vatly\Fluent\Events\CheckoutPaid;
 use Vatly\Fluent\Events\PaymentFailed;
 use Vatly\Fluent\Events\SubscriptionStarted;
 use Vatly\Fluent\Events\UnsupportedWebhookReceived;
@@ -222,6 +223,63 @@ class WebhookProcessorTest extends TestCase
                     && $event->currency === 'EUR'
                     && $event->paymentMethod === 'sepa_direct_debit'
                     && $event->taxSummary->items[0]->amount === 850;
+            });
+
+        $this->processor->handle($payload, $signature);
+    }
+
+    public function test_it_processes_a_checkout_paid_webhook_end_to_end(): void
+    {
+        // Checkout events route straight from the payload — no enrichment GET —
+        // so no GetCheckout/GetOrder call is expected here.
+        $payload = $this->makePayload(
+            id: 'webhook_event_cp',
+            eventName: 'checkout.paid',
+            entityType: 'checkout',
+            entityId: 'checkout_123',
+            object: [
+                'customerId' => 'cus_456',
+                'orderId' => 'ord_789',
+                'status' => 'paid',
+                'metadata' => ['cart_id' => 'cart_1'],
+            ],
+        );
+
+        $signature = $this->makeSignatureHeader($payload, $this->secret);
+
+        $this->getOrder->shouldNotReceive('execute');
+
+        $this->repository
+            ->shouldReceive('record')
+            ->once()
+            ->withArgs(function (
+                string $id,
+                string $resource,
+                string $eventName,
+                string $entityType,
+                string $entityId,
+                bool $testmode,
+                \DateTimeInterface $createdAt,
+                array $object,
+                ?string $vatlyCustomerId,
+            ) {
+                return $id === 'webhook_event_cp'
+                    && $eventName === 'checkout.paid'
+                    && $entityType === 'checkout'
+                    && $entityId === 'checkout_123'
+                    && $vatlyCustomerId === 'cus_456';
+            });
+
+        $this->dispatcher
+            ->shouldReceive('dispatch')
+            ->once()
+            ->withArgs(function (object $event) {
+                return $event instanceof CheckoutPaid
+                    && $event->checkoutId === 'checkout_123'
+                    && $event->customerId === 'cus_456'
+                    && $event->orderId === 'ord_789'
+                    && $event->status === 'paid'
+                    && $event->metadata === ['cart_id' => 'cart_1'];
             });
 
         $this->processor->handle($payload, $signature);

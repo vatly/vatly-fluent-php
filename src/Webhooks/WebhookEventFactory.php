@@ -8,6 +8,10 @@ use Vatly\API\Webhooks\WebhookPayload;
 use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Actions\GetRefund;
 use Vatly\Fluent\Actions\GetSubscription;
+use Vatly\Fluent\Events\CheckoutCanceled;
+use Vatly\Fluent\Events\CheckoutExpired;
+use Vatly\Fluent\Events\CheckoutFailed;
+use Vatly\Fluent\Events\CheckoutPaid;
 use Vatly\Fluent\Events\OrderCanceled;
 use Vatly\Fluent\Events\OrderChargebackReceived;
 use Vatly\Fluent\Events\OrderChargebackReversed;
@@ -19,6 +23,7 @@ use Vatly\Fluent\Events\RefundFailed;
 use Vatly\Fluent\Events\SubscriptionBillingUpdated;
 use Vatly\Fluent\Events\SubscriptionCanceledImmediately;
 use Vatly\Fluent\Events\SubscriptionCanceledWithGracePeriod;
+use Vatly\Fluent\Events\SubscriptionCancellationGracePeriodCompleted;
 use Vatly\Fluent\Events\SubscriptionResumed;
 use Vatly\Fluent\Events\SubscriptionStarted;
 use Vatly\Fluent\Events\UnsupportedWebhookReceived;
@@ -61,7 +66,14 @@ class WebhookEventFactory
      * from the webhook payload — a status mirror and dispute signals
      * respectively, neither of which needs enrichment.
      *
-     * @return SubscriptionStarted|SubscriptionBillingUpdated|SubscriptionResumed|SubscriptionCanceledImmediately|SubscriptionCanceledWithGracePeriod|OrderPaid|OrderCanceled|OrderChargebackReceived|OrderChargebackReversed|PaymentFailed|RefundCompleted|RefundFailed|RefundCanceled|UnsupportedWebhookReceived
+     * The `checkout.*` events and `subscription.cancellation_grace_period_completed`
+     * are likewise built straight from the payload: checkout deliveries already
+     * carry the full Checkout resource (no sparse money/tax fields), and the
+     * grace-period-completed transition only needs the customer/subscription IDs
+     * and end timestamp, all present on the wire. They are dispatched-only — no
+     * built-in reaction mutates local state.
+     *
+     * @return SubscriptionStarted|SubscriptionBillingUpdated|SubscriptionResumed|SubscriptionCanceledImmediately|SubscriptionCanceledWithGracePeriod|SubscriptionCancellationGracePeriodCompleted|OrderPaid|OrderCanceled|OrderChargebackReceived|OrderChargebackReversed|PaymentFailed|CheckoutPaid|CheckoutFailed|CheckoutCanceled|CheckoutExpired|RefundCompleted|RefundFailed|RefundCanceled|UnsupportedWebhookReceived
      */
     public function createFromWebhook(WebhookReceived $webhook): object
     {
@@ -71,11 +83,16 @@ class WebhookEventFactory
             SubscriptionResumed::VATLY_EVENT_NAME => SubscriptionResumed::fromWebhook($webhook),
             SubscriptionCanceledImmediately::VATLY_EVENT_NAME => SubscriptionCanceledImmediately::fromWebhook($webhook),
             SubscriptionCanceledWithGracePeriod::VATLY_EVENT_NAME => SubscriptionCanceledWithGracePeriod::fromWebhook($webhook),
+            SubscriptionCancellationGracePeriodCompleted::VATLY_EVENT_NAME => SubscriptionCancellationGracePeriodCompleted::fromWebhook($webhook),
             OrderPaid::VATLY_EVENT_NAME => $this->createOrderPaid($webhook),
             OrderCanceled::VATLY_EVENT_NAME => OrderCanceled::fromWebhook($webhook),
             OrderChargebackReceived::VATLY_EVENT_NAME => OrderChargebackReceived::fromWebhook($webhook),
             OrderChargebackReversed::VATLY_EVENT_NAME => OrderChargebackReversed::fromWebhook($webhook),
             PaymentFailed::VATLY_EVENT_NAME => $this->createPaymentFailed($webhook),
+            CheckoutPaid::VATLY_EVENT_NAME => CheckoutPaid::fromWebhook($webhook),
+            CheckoutFailed::VATLY_EVENT_NAME => CheckoutFailed::fromWebhook($webhook),
+            CheckoutCanceled::VATLY_EVENT_NAME => CheckoutCanceled::fromWebhook($webhook),
+            CheckoutExpired::VATLY_EVENT_NAME => CheckoutExpired::fromWebhook($webhook),
             RefundCompleted::VATLY_EVENT_NAME => $this->getRefund !== null
                 ? RefundCompleted::fromApiRefund($this->getRefund->execute($webhook->entityId))
                 : UnsupportedWebhookReceived::fromWebhook($webhook),
@@ -191,11 +208,16 @@ class WebhookEventFactory
             SubscriptionResumed::VATLY_EVENT_NAME,
             SubscriptionCanceledImmediately::VATLY_EVENT_NAME,
             SubscriptionCanceledWithGracePeriod::VATLY_EVENT_NAME,
+            SubscriptionCancellationGracePeriodCompleted::VATLY_EVENT_NAME,
             OrderPaid::VATLY_EVENT_NAME,
             OrderCanceled::VATLY_EVENT_NAME,
             OrderChargebackReceived::VATLY_EVENT_NAME,
             OrderChargebackReversed::VATLY_EVENT_NAME,
             PaymentFailed::VATLY_EVENT_NAME,
+            CheckoutPaid::VATLY_EVENT_NAME,
+            CheckoutFailed::VATLY_EVENT_NAME,
+            CheckoutCanceled::VATLY_EVENT_NAME,
+            CheckoutExpired::VATLY_EVENT_NAME,
         ];
 
         // Refund events require `GetRefund` enrichment; only report them as
