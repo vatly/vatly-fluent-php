@@ -58,6 +58,30 @@ class WebhookProcessorFactoryTest extends TestCase
         $this->assertInstanceOf(CancelOrderOnCanceled::class, $reactions[6]);
     }
 
+    public function test_it_is_back_compatible_when_called_without_a_get_refund_action(): void
+    {
+        // A pre-refund driver wires only subscriptions/orders and never passes
+        // getRefund/refunds — this must not throw ArgumentCountError.
+        $processor = WebhookProcessorFactory::create(
+            config: $this->config('secret'),
+            subscriptions: Mockery::mock(SubscriptionRepositoryInterface::class),
+            orders: Mockery::mock(OrderRepositoryInterface::class),
+            webhookCalls: Mockery::mock(WebhookCallRepositoryInterface::class),
+            dispatcher: Mockery::mock(EventDispatcherInterface::class),
+            bindings: Mockery::mock(CustomerBindingRepository::class),
+            getOrder: Mockery::mock(GetOrder::class),
+            getSubscription: Mockery::mock(GetSubscription::class),
+        );
+
+        $reactions = $processor->getReactions();
+
+        $this->assertInstanceOf(WebhookProcessor::class, $processor);
+        $this->assertCount(7, $reactions); // no refund reaction without a refunds repo
+        foreach ($reactions as $reaction) {
+            $this->assertNotInstanceOf(SyncRefundOnStatusChange::class, $reaction);
+        }
+    }
+
     public function test_it_registers_the_refund_reaction_only_when_a_refund_repository_is_supplied(): void
     {
         $processor = WebhookProcessorFactory::create(

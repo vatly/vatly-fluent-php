@@ -32,11 +32,13 @@ class WebhookProcessorFactory
      * Drivers call this from their bootstrap to avoid re-deriving the
      * reaction registration list on each install.
      *
-     * `refunds` is optional: when supplied, the built-in
-     * {@see SyncRefundOnStatusChange} reaction persists `refund.*` webhooks.
-     * When omitted, the typed refund events are still dispatched for drivers
-     * to handle themselves — so existing drivers don't have to implement a
-     * refund repository to keep working.
+     * `getRefund` and `refunds` are both optional and back-compatible: a driver
+     * that only wires subscriptions/orders can keep calling this exactly as
+     * before. Pass `getRefund` (and `refunds`) only to opt into refund handling
+     * — when `getRefund` is null, `refund.*` webhooks degrade to
+     * {@see \Vatly\Fluent\Events\UnsupportedWebhookReceived} (the pre-refund
+     * behavior), and the {@see SyncRefundOnStatusChange} reaction is registered
+     * only when `refunds` is supplied.
      *
      * @param WebhookReactionInterface[] $additionalReactions
      */
@@ -49,7 +51,7 @@ class WebhookProcessorFactory
         CustomerBindingRepository $bindings,
         GetOrder $getOrder,
         GetSubscription $getSubscription,
-        GetRefund $getRefund,
+        ?GetRefund $getRefund = null,
         ?RefundRepositoryInterface $refunds = null,
         array $additionalReactions = [],
     ): WebhookProcessor {

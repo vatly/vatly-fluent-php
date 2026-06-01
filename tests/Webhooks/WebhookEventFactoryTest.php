@@ -692,6 +692,32 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertSame('canceled', $event->status);
     }
 
+    public function test_refund_events_degrade_to_unsupported_without_a_get_refund_action(): void
+    {
+        // Back-compat: a factory built without GetRefund (the pre-refund shape)
+        // must treat refund webhooks as unsupported, not fatal.
+        $factory = new WebhookEventFactory($this->getOrder, $this->getSubscription);
+
+        $webhook = new WebhookReceived(
+            id: 'webhook_event_rf',
+            resource: 'webhook_event',
+            eventName: 'refund.completed',
+            entityType: 'refund',
+            entityId: 'refund_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            object: ['customerId' => 'cus_456'],
+        );
+
+        $event = $factory->createFromWebhook($webhook);
+
+        $this->assertInstanceOf(UnsupportedWebhookReceived::class, $event);
+        $this->assertFalse($factory->isSupported('refund.completed'));
+        $this->assertNotContains('refund.completed', $factory->getSupportedEvents());
+        // Non-refund events are unaffected.
+        $this->assertTrue($factory->isSupported('order.paid'));
+    }
+
     public function test_it_creates_unsupported_webhook_received_for_unknown_events(): void
     {
         $webhook = new WebhookReceived(

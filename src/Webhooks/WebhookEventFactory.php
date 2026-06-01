@@ -29,7 +29,12 @@ class WebhookEventFactory
     public function __construct(
         private GetOrder $getOrder,
         private GetSubscription $getSubscription,
-        private GetRefund $getRefund,
+        /**
+         * Optional: only needed to enrich `refund.*` events. When null, refund
+         * webhooks degrade to {@see UnsupportedWebhookReceived} — keeping the
+         * factory back-compatible for drivers that don't wire refunds.
+         */
+        private ?GetRefund $getRefund = null,
     ) {
         //
     }
@@ -71,9 +76,15 @@ class WebhookEventFactory
             OrderChargebackReceived::VATLY_EVENT_NAME => OrderChargebackReceived::fromWebhook($webhook),
             OrderChargebackReversed::VATLY_EVENT_NAME => OrderChargebackReversed::fromWebhook($webhook),
             PaymentFailed::VATLY_EVENT_NAME => $this->createPaymentFailed($webhook),
-            RefundCompleted::VATLY_EVENT_NAME => RefundCompleted::fromApiRefund($this->getRefund->execute($webhook->entityId)),
-            RefundFailed::VATLY_EVENT_NAME => RefundFailed::fromApiRefund($this->getRefund->execute($webhook->entityId)),
-            RefundCanceled::VATLY_EVENT_NAME => RefundCanceled::fromApiRefund($this->getRefund->execute($webhook->entityId)),
+            RefundCompleted::VATLY_EVENT_NAME => $this->getRefund !== null
+                ? RefundCompleted::fromApiRefund($this->getRefund->execute($webhook->entityId))
+                : UnsupportedWebhookReceived::fromWebhook($webhook),
+            RefundFailed::VATLY_EVENT_NAME => $this->getRefund !== null
+                ? RefundFailed::fromApiRefund($this->getRefund->execute($webhook->entityId))
+                : UnsupportedWebhookReceived::fromWebhook($webhook),
+            RefundCanceled::VATLY_EVENT_NAME => $this->getRefund !== null
+                ? RefundCanceled::fromApiRefund($this->getRefund->execute($webhook->entityId))
+                : UnsupportedWebhookReceived::fromWebhook($webhook),
             default => UnsupportedWebhookReceived::fromWebhook($webhook),
         };
     }
@@ -174,7 +185,7 @@ class WebhookEventFactory
      */
     public function getSupportedEvents(): array
     {
-        return [
+        $events = [
             SubscriptionStarted::VATLY_EVENT_NAME,
             SubscriptionBillingUpdated::VATLY_EVENT_NAME,
             SubscriptionResumed::VATLY_EVENT_NAME,
@@ -185,10 +196,18 @@ class WebhookEventFactory
             OrderChargebackReceived::VATLY_EVENT_NAME,
             OrderChargebackReversed::VATLY_EVENT_NAME,
             PaymentFailed::VATLY_EVENT_NAME,
-            RefundCompleted::VATLY_EVENT_NAME,
-            RefundFailed::VATLY_EVENT_NAME,
-            RefundCanceled::VATLY_EVENT_NAME,
         ];
+
+        // Refund events require `GetRefund` enrichment; only report them as
+        // supported when that action is wired (otherwise they degrade to
+        // UnsupportedWebhookReceived, so advertising them would be misleading).
+        if ($this->getRefund !== null) {
+            $events[] = RefundCompleted::VATLY_EVENT_NAME;
+            $events[] = RefundFailed::VATLY_EVENT_NAME;
+            $events[] = RefundCanceled::VATLY_EVENT_NAME;
+        }
+
+        return $events;
     }
 
     /**
