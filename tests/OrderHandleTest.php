@@ -8,9 +8,12 @@ use Mockery;
 use Vatly\API\Resources\Links\OrderLinks;
 use Vatly\API\Resources\Order as ApiOrder;
 use Vatly\API\Types\Link;
+use Vatly\API\Types\Money as ApiMoney;
 use Vatly\API\VatlyApiClient;
 use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Contracts\OrderInterface;
+use Vatly\Fluent\Contracts\RefundInterface;
+use Vatly\Fluent\Contracts\RefundReader;
 use Vatly\Fluent\OrderHandle;
 
 class OrderHandleTest extends TestCase
@@ -71,12 +74,124 @@ class OrderHandleTest extends TestCase
         $this->assertNull($handle->invoiceUrl());
     }
 
-    private function buildApiOrder(?string $invoiceHref): ApiOrder
+    public function test_refunds_returns_local_refunds_for_the_order(): void
     {
+        $refundA = Mockery::mock(RefundInterface::class);
+        $refundB = Mockery::mock(RefundInterface::class);
+
+        $reader = Mockery::mock(RefundReader::class);
+        $reader->shouldReceive('listForOrder')->with('order_abc')->once()->andReturn([$refundA, $refundB]);
+
+        $order = Mockery::mock(OrderInterface::class);
+        $order->shouldReceive('getVatlyId')->andReturn('order_abc');
+
+        $handle = new OrderHandle(
+            order: $order,
+            getOrderAction: Mockery::mock(GetOrder::class),
+            refunds: $reader,
+        );
+
+        $this->assertSame([$refundA, $refundB], $handle->refunds());
+    }
+
+    public function test_refunds_is_empty_when_no_refund_reader_is_wired(): void
+    {
+        $order = Mockery::mock(OrderInterface::class);
+
+        $handle = new OrderHandle(
+            order: $order,
+            getOrderAction: Mockery::mock(GetOrder::class),
+        );
+
+        $this->assertSame([], $handle->refunds());
+    }
+
+    public function test_reversal_helpers_read_the_live_api_order(): void
+    {
+        $apiOrder = $this->buildApiOrder(
+            invoiceHref: null,
+            subtotal: '100.00',
+            reversedSubtotal: '40.00',
+            refundableSubtotal: '60.00',
+        );
+
+        $getOrder = Mockery::mock(GetOrder::class);
+        $getOrder->shouldReceive('execute')->with('order_abc')->andReturn($apiOrder);
+
+        $order = Mockery::mock(OrderInterface::class);
+        $order->shouldReceive('getVatlyId')->andReturn('order_abc');
+
+        $handle = new OrderHandle(order: $order, getOrderAction: $getOrder);
+
+        $this->assertSame(4000, $handle->reversedSubtotal());
+        $this->assertSame(6000, $handle->refundableSubtotal());
+        $this->assertTrue($handle->isReversed());
+        $this->assertTrue($handle->isPartiallyReversed());
+        $this->assertFalse($handle->isFullyReversed());
+    }
+
+    public function test_reversal_helpers_report_a_fully_reversed_order(): void
+    {
+        $apiOrder = $this->buildApiOrder(
+            invoiceHref: null,
+            subtotal: '100.00',
+            reversedSubtotal: '100.00',
+            refundableSubtotal: '0.00',
+        );
+
+        $getOrder = Mockery::mock(GetOrder::class);
+        $getOrder->shouldReceive('execute')->with('order_abc')->andReturn($apiOrder);
+
+        $order = Mockery::mock(OrderInterface::class);
+        $order->shouldReceive('getVatlyId')->andReturn('order_abc');
+
+        $handle = new OrderHandle(order: $order, getOrderAction: $getOrder);
+
+        $this->assertTrue($handle->isReversed());
+        $this->assertFalse($handle->isPartiallyReversed());
+        $this->assertTrue($handle->isFullyReversed());
+    }
+
+    public function test_the_api_order_is_fetched_once_and_memoized_across_helpers(): void
+    {
+        $apiOrder = $this->buildApiOrder(
+            invoiceHref: 'https://invoices.vatly.test/inv_123.pdf',
+            subtotal: '100.00',
+            reversedSubtotal: '40.00',
+            refundableSubtotal: '60.00',
+        );
+
+        $getOrder = Mockery::mock(GetOrder::class);
+        $getOrder->shouldReceive('execute')->with('order_abc')->once()->andReturn($apiOrder);
+
+        $order = Mockery::mock(OrderInterface::class);
+        $order->shouldReceive('getVatlyId')->andReturn('order_abc');
+
+        $handle = new OrderHandle(order: $order, getOrderAction: $getOrder);
+
+        // Multiple helper calls (plus invoiceUrl) share a single API fetch.
+        $handle->invoiceUrl();
+        $handle->reversedSubtotal();
+        $handle->refundableSubtotal();
+        $handle->isReversed();
+        $handle->isPartiallyReversed();
+        $handle->isFullyReversed();
+    }
+
+    private function buildApiOrder(
+        ?string $invoiceHref,
+        string $subtotal = '0.00',
+        string $reversedSubtotal = '0.00',
+        string $refundableSubtotal = '0.00',
+    ): ApiOrder {
         $client = Mockery::mock(VatlyApiClient::class);
 
         $apiOrder = new ApiOrder($client);
         $apiOrder->id = 'order_abc';
+
+        $apiOrder->subtotal = new ApiMoney('EUR', $subtotal);
+        $apiOrder->reversedSubtotal = new ApiMoney('EUR', $reversedSubtotal);
+        $apiOrder->refundableSubtotal = new ApiMoney('EUR', $refundableSubtotal);
 
         $apiOrder->links = new OrderLinks();
         $apiOrder->links->customerInvoice = $invoiceHref !== null

@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent;
 
+use Vatly\API\Resources\Order as ApiOrder;
 use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Contracts\OrderInterface;
+use Vatly\Fluent\Contracts\RefundInterface;
+use Vatly\Fluent\Contracts\RefundReader;
+use Vatly\Fluent\Types\Money;
 
 /**
  * Framework-agnostic operations on an order.
@@ -23,8 +27,27 @@ class OrderHandle
     public function __construct(
         private readonly OrderInterface $order,
         private readonly GetOrder $getOrderAction,
+        /**
+         * Optional: supplied by {@see Vatly::order()} when a refund repository
+         * is wired. Without it, {@see self::refunds()} returns an empty array
+         * rather than reaching into driver internals.
+         */
+        private readonly ?RefundReader $refunds = null,
     ) {
         //
+    }
+
+    private ?ApiOrder $apiOrderCache = null;
+
+    /**
+     * Fetch the live API {@see ApiOrder}, memoized per handle instance.
+     *
+     * The first call hits the Vatly API; subsequent calls (across
+     * `invoiceUrl()` and the reversal helpers) reuse the same fetch.
+     */
+    private function apiOrder(): ApiOrder
+    {
+        return $this->apiOrderCache ??= $this->getOrderAction->execute($this->order->getVatlyId());
     }
 
     /**
@@ -77,14 +100,77 @@ class OrderHandle
     /**
      * Fetch the hosted invoice URL from the Vatly API.
      *
-     * Each call hits the API; cache at the call site if you need to render
-     * many orders. Returns null when the upstream order doesn't (yet) have
-     * an invoice attached.
+     * Reads the live API order, which is fetched once and memoized per handle
+     * instance (shared with the reversal helpers below). Returns null when the
+     * upstream order doesn't (yet) have an invoice attached.
      */
     public function invoiceUrl(): ?string
     {
-        $apiOrder = $this->getOrderAction->execute($this->order->getVatlyId());
+        return $this->apiOrder()->links->customerInvoice?->href;
+    }
 
-        return $apiOrder->links->customerInvoice?->href;
+    // --- API-sourced reversal helpers ---
+    //
+    // These read the live API Order rather than synthesizing a local status:
+    // the order's own `status` stays terminal `paid` even after a reversal.
+    // The API's `reversedSubtotal` combines refunds and chargebacks, so these
+    // surface "did money come back" regardless of how it came back. The
+    // underlying API order is fetched once and memoized per handle instance.
+
+    /**
+     * Subtotal (net of tax, in integer cents) that has been reversed —
+     * refunded and/or charged back — per the live API order.
+     */
+    public function reversedSubtotal(): int
+    {
+        return Money::fromApiMoneyToCents($this->apiOrder()->reversedSubtotal);
+    }
+
+    /**
+     * Subtotal (net of tax, in integer cents) still available to reverse per
+     * the live API order.
+     */
+    public function refundableSubtotal(): int
+    {
+        return Money::fromApiMoneyToCents($this->apiOrder()->refundableSubtotal);
+    }
+
+    /**
+     * Whether any of the order's subtotal has been reversed.
+     */
+    public function isReversed(): bool
+    {
+        return $this->apiOrder()->isReversed();
+    }
+
+    /**
+     * Whether the order is reversed but not in full.
+     */
+    public function isPartiallyReversed(): bool
+    {
+        return $this->apiOrder()->isPartiallyReversed();
+    }
+
+    /**
+     * Whether the order's full subtotal has been reversed.
+     */
+    public function isFullyReversed(): bool
+    {
+        return $this->apiOrder()->isFullyReversed();
+    }
+
+    /**
+     * The refunds recorded locally against this order, newest-first per the
+     * driver's {@see RefundReader} implementation.
+     *
+     * Reads only local state (no API call). Returns an empty array when no
+     * refund repository is wired, so callers can render a refunds section
+     * unconditionally without feature-detecting the wiring.
+     *
+     * @return RefundInterface[]
+     */
+    public function refunds(): array
+    {
+        return $this->refunds?->listForOrder($this->order->getVatlyId()) ?? [];
     }
 }

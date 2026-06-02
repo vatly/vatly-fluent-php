@@ -15,4 +15,20 @@ interface RefundReader
      * Find a refund by its Vatly ID.
      */
     public function findByVatlyId(string $vatlyId): ?RefundInterface;
+
+    /**
+     * List every refund tracked locally for a Vatly customer.
+     *
+     * @return RefundInterface[]
+     */
+    public function listForCustomer(string $customerId): array;
+
+    /**
+     * List every refund tracked locally against a given original order.
+     *
+     * Drives {@see \Vatly\Fluent\OrderHandle::refunds()}.
+     *
+     * @return RefundInterface[]
+     */
+    public function listForOrder(string $vatlyOrderId): array;
 }

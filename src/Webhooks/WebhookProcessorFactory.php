@@ -68,6 +68,9 @@ class WebhookProcessorFactory
         ];
 
         if ($refunds !== null) {
+            // Persistence only: SyncRefundOnStatusChange writes the refund row.
+            // The order's reversal progress is read live from the API via
+            // OrderHandle, so no local order status is synthesized here.
             $reactions[] = new SyncRefundOnStatusChange($refunds, $bindings);
         }
 

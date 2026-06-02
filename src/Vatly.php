@@ -245,6 +245,7 @@ class Vatly
         return new OrderHandle(
             order: $order,
             getOrderAction: $this->getOrder(),
+            refunds: $this->wiring->refunds,
         );
     }
 
