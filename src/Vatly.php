@@ -9,6 +9,7 @@ use Vatly\API\VatlyApiClient;
 use Vatly\Fluent\Actions\CancelSubscription;
 use Vatly\Fluent\Actions\CreateCheckout;
 use Vatly\Fluent\Actions\CreateCustomer;
+use Vatly\Fluent\Actions\GetChargeback;
 use Vatly\Fluent\Actions\GetCheckout;
 use Vatly\Fluent\Actions\GetCustomer;
 use Vatly\Fluent\Actions\GetOrder;
@@ -49,6 +50,7 @@ class Vatly
     private ?GetCustomer $getCustomer = null;
     private ?GetOrder $getOrder = null;
     private ?GetRefund $getRefund = null;
+    private ?GetChargeback $getChargeback = null;
     private ?GetCheckout $getCheckout = null;
     private ?CreateCheckout $createCheckout = null;
     private ?GetSubscription $getSubscription = null;
@@ -107,7 +109,7 @@ class Vatly
 
     public function getWebhookEventFactory(): WebhookEventFactory
     {
-        return $this->webhookEventFactory ??= new WebhookEventFactory($this->getOrder(), $this->getSubscription(), $this->getRefund());
+        return $this->webhookEventFactory ??= new WebhookEventFactory($this->getOrder(), $this->getSubscription(), $this->getRefund(), $this->getChargeback());
     }
 
     public function webhookProcessor(): WebhookProcessor
@@ -128,6 +130,8 @@ class Vatly
             getSubscription: $this->getSubscription(),
             getRefund: $this->getRefund(),
             refunds: $this->wiring->refunds,
+            getChargeback: $this->getChargeback(),
+            chargebacks: $this->wiring->chargebacks,
             additionalReactions: $this->wiring->additionalWebhookReactions,
         );
     }
@@ -246,6 +250,7 @@ class Vatly
             order: $order,
             getOrderAction: $this->getOrder(),
             refunds: $this->wiring->refunds,
+            chargebacks: $this->wiring->chargebacks,
         );
     }
 
@@ -269,6 +274,11 @@ class Vatly
     public function getRefund(): GetRefund
     {
         return $this->getRefund ??= new GetRefund($this->apiClient);
+    }
+
+    public function getChargeback(): GetChargeback
+    {
+        return $this->getChargeback ??= new GetChargeback($this->apiClient);
     }
 
     public function getCheckout(): GetCheckout

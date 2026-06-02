@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Vatly\Fluent\Webhooks;
 
 use Vatly\API\Webhooks\WebhookPayload;
+use Vatly\Fluent\Actions\GetChargeback;
 use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Actions\GetRefund;
 use Vatly\Fluent\Actions\GetSubscription;
@@ -40,6 +41,13 @@ class WebhookEventFactory
          * factory back-compatible for drivers that don't wire refunds.
          */
         private ?GetRefund $getRefund = null,
+        /**
+         * Optional: enriches `order.chargeback_*` events with the customer id,
+         * dispute status, and tax breakdown. When null, those events are built
+         * from the (sparse) webhook payload — still dispatched, just without the
+         * persistence-grade fields.
+         */
+        private ?GetChargeback $getChargeback = null,
     ) {
         //
     }
@@ -62,9 +70,12 @@ class WebhookEventFactory
      * reason as `order.paid`: refund tax data is compliance-critical and the
      * dispatched event must carry the authoritative breakdown.
      *
-     * `order.canceled` and the `order.chargeback_*` events are built straight
-     * from the webhook payload — a status mirror and dispute signals
-     * respectively, neither of which needs enrichment.
+     * `order.canceled` is built straight from the webhook payload — a status
+     * mirror that needs no enrichment. The `order.chargeback_*` events are
+     * enriched via `GetChargeback` when that action is wired (customer id,
+     * status, tax breakdown for persistence) but fall back to the sparse
+     * payload otherwise — best-effort, since the payload already carries the
+     * `originalOrderId` the access-suspension path needs.
      *
      * The `checkout.*` events and `subscription.cancellation_grace_period_completed`
      * are likewise built straight from the payload: checkout deliveries already
@@ -86,8 +97,8 @@ class WebhookEventFactory
             SubscriptionCancellationGracePeriodCompleted::VATLY_EVENT_NAME => SubscriptionCancellationGracePeriodCompleted::fromWebhook($webhook),
             OrderPaid::VATLY_EVENT_NAME => $this->createOrderPaid($webhook),
             OrderCanceled::VATLY_EVENT_NAME => OrderCanceled::fromWebhook($webhook),
-            OrderChargebackReceived::VATLY_EVENT_NAME => OrderChargebackReceived::fromWebhook($webhook),
-            OrderChargebackReversed::VATLY_EVENT_NAME => OrderChargebackReversed::fromWebhook($webhook),
+            OrderChargebackReceived::VATLY_EVENT_NAME => $this->createOrderChargebackReceived($webhook),
+            OrderChargebackReversed::VATLY_EVENT_NAME => $this->createOrderChargebackReversed($webhook),
             PaymentFailed::VATLY_EVENT_NAME => $this->createPaymentFailed($webhook),
             CheckoutPaid::VATLY_EVENT_NAME => CheckoutPaid::fromWebhook($webhook),
             CheckoutFailed::VATLY_EVENT_NAME => CheckoutFailed::fromWebhook($webhook),
@@ -141,6 +152,56 @@ class WebhookEventFactory
             );
         } catch (\Throwable) {
             return SubscriptionBillingUpdated::fromWebhook($webhook);
+        }
+    }
+
+    /**
+     * Build an OrderChargebackReceived event, enriching via `GetChargeback`
+     * when that action is wired so the event carries the customer id, status,
+     * and tax breakdown the persistence reactions need.
+     *
+     * Enrichment is best-effort (unlike `order.paid`): the sparse webhook
+     * payload already carries `originalOrderId`, which is enough for the
+     * access-suspension path, so a transient `GetChargeback` failure falls back
+     * to the payload rather than forcing a redelivery and delaying the
+     * suspension. The chargeback id lives in the webhook `object`, not the
+     * envelope `entityId` (which is the order id).
+     */
+    private function createOrderChargebackReceived(WebhookReceived $webhook): OrderChargebackReceived
+    {
+        $chargebackId = $webhook->object['id'] ?? '';
+
+        if ($this->getChargeback === null || $chargebackId === '') {
+            return OrderChargebackReceived::fromWebhook($webhook);
+        }
+
+        try {
+            return OrderChargebackReceived::fromApiChargeback(
+                $this->getChargeback->execute($chargebackId),
+            );
+        } catch (\Throwable) {
+            return OrderChargebackReceived::fromWebhook($webhook);
+        }
+    }
+
+    /**
+     * Build an OrderChargebackReversed event. Same enrichment + fallback
+     * rationale as {@see self::createOrderChargebackReceived()}.
+     */
+    private function createOrderChargebackReversed(WebhookReceived $webhook): OrderChargebackReversed
+    {
+        $chargebackId = $webhook->object['id'] ?? '';
+
+        if ($this->getChargeback === null || $chargebackId === '') {
+            return OrderChargebackReversed::fromWebhook($webhook);
+        }
+
+        try {
+            return OrderChargebackReversed::fromApiChargeback(
+                $this->getChargeback->execute($chargebackId),
+            );
+        } catch (\Throwable) {
+            return OrderChargebackReversed::fromWebhook($webhook);
         }
     }
 

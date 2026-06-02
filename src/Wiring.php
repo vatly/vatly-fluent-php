@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent;
 
+use Vatly\Fluent\Contracts\ChargebackRepositoryInterface;
 use Vatly\Fluent\Contracts\ConfigurationInterface;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
 use Vatly\Fluent\Contracts\EventDispatcherInterface;
@@ -36,6 +37,7 @@ final class Wiring
         public readonly ?SubscriptionRepositoryInterface $subscriptions = null,
         public readonly ?OrderRepositoryInterface $orders = null,
         public readonly ?RefundRepositoryInterface $refunds = null,
+        public readonly ?ChargebackRepositoryInterface $chargebacks = null,
         public readonly ?WebhookCallRepositoryInterface $webhookCalls = null,
         public readonly ?EventDispatcherInterface $events = null,
         public readonly ?CustomerBindingRepository $customerBindings = null,
