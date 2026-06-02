@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Vatly\Fluent\Tests\Webhooks;
 
 use Mockery;
+use Vatly\Fluent\Actions\GetChargeback;
 use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Actions\GetRefund;
 use Vatly\Fluent\Actions\GetSubscription;
+use Vatly\Fluent\Contracts\ChargebackRepositoryInterface;
 use Vatly\Fluent\Contracts\ConfigurationInterface;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
 use Vatly\Fluent\Contracts\EventDispatcherInterface;
@@ -23,6 +25,7 @@ use Vatly\Fluent\Webhooks\Reactions\EndSubscriptionOnGracePeriodCompleted;
 use Vatly\Fluent\Webhooks\Reactions\ResumeSubscriptionOnResumed;
 use Vatly\Fluent\Webhooks\Reactions\StoreOrderOnPaid;
 use Vatly\Fluent\Webhooks\Reactions\StoreOrderOnPaymentFailed;
+use Vatly\Fluent\Webhooks\Reactions\SyncChargebackOnStatusChange;
 use Vatly\Fluent\Webhooks\Reactions\SyncRefundOnStatusChange;
 use Vatly\Fluent\Webhooks\Reactions\SyncSubscriptionOnBillingUpdated;
 use Vatly\Fluent\Webhooks\Reactions\SyncSubscriptionOnStarted;
@@ -103,6 +106,46 @@ class WebhookProcessorFactoryTest extends TestCase
 
         $this->assertCount(9, $reactions);
         $this->assertInstanceOf(SyncRefundOnStatusChange::class, $reactions[8]);
+    }
+
+    public function test_it_registers_the_chargeback_reactions_only_when_a_chargeback_repository_is_supplied(): void
+    {
+        $processor = WebhookProcessorFactory::create(
+            config: $this->config('secret'),
+            subscriptions: Mockery::mock(SubscriptionRepositoryInterface::class),
+            orders: Mockery::mock(OrderRepositoryInterface::class),
+            webhookCalls: Mockery::mock(WebhookCallRepositoryInterface::class),
+            dispatcher: Mockery::mock(EventDispatcherInterface::class),
+            bindings: Mockery::mock(CustomerBindingRepository::class),
+            getOrder: Mockery::mock(GetOrder::class),
+            getSubscription: Mockery::mock(GetSubscription::class),
+            getChargeback: Mockery::mock(GetChargeback::class),
+            chargebacks: Mockery::mock(ChargebackRepositoryInterface::class),
+        );
+
+        $reactions = $processor->getReactions();
+
+        // 8 standard + 1 chargeback persistence reaction (no refunds wired here).
+        $this->assertCount(9, $reactions);
+        $this->assertInstanceOf(SyncChargebackOnStatusChange::class, $reactions[8]);
+    }
+
+    public function test_it_does_not_register_chargeback_reactions_without_a_repository(): void
+    {
+        $processor = WebhookProcessorFactory::create(
+            config: $this->config('secret'),
+            subscriptions: Mockery::mock(SubscriptionRepositoryInterface::class),
+            orders: Mockery::mock(OrderRepositoryInterface::class),
+            webhookCalls: Mockery::mock(WebhookCallRepositoryInterface::class),
+            dispatcher: Mockery::mock(EventDispatcherInterface::class),
+            bindings: Mockery::mock(CustomerBindingRepository::class),
+            getOrder: Mockery::mock(GetOrder::class),
+            getSubscription: Mockery::mock(GetSubscription::class),
+        );
+
+        foreach ($processor->getReactions() as $reaction) {
+            $this->assertNotInstanceOf(SyncChargebackOnStatusChange::class, $reaction);
+        }
     }
 
     public function test_it_appends_additional_reactions_after_the_standard_ones(): void
