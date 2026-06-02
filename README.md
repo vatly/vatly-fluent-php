@@ -97,7 +97,7 @@ A driver is a thin glue package (e.g. `vatly-laravel`) that supplies fluent with
 
 ### Webhook pipeline at a glance
 
-For incoming Vatly webhooks, fluent dispatches a typed event and runs a built-in reaction that calls back into your repos. A driver author only needs to implement the repo methods — the wiring is fixed:
+For incoming Vatly webhooks, fluent dispatches a typed event and runs a built-in reaction that calls back into your repos. A driver author only needs to implement the repo methods — the wiring is fixed. For the full event → reaction → repo-method matrix **including the fields each `Store*Data` / event carries**, see [docs/webhook-flow.md](docs/webhook-flow.md).
 
 | Vatly event              | Dispatched event class                                            | Built-in reaction              | Repo method(s) called                                |
 |--------------------------|-------------------------------------------------------------------|--------------------------------|------------------------------------------------------|
@@ -313,6 +313,8 @@ public function store(StoreOrderData $data): ?OrderInterface
 
 Same shape for `SubscriptionRepositoryInterface::store`. Built-in reactions tolerate null returns.
 
+**Full walkthrough:** [docs/recipes/host-owns-its-tables.md](docs/recipes/host-owns-its-tables.md) — covers the adapter wrapper, confirming (not duplicating) rows in `store()`, `findByVatlyId` as the idempotency hinge for safe re-deliveries, and discriminating renewal-vs-initial payments inside one `store()`.
+
 </details>
 
 ### 5. Implement the three repository contracts
@@ -349,6 +351,19 @@ public function store(StoreSubscriptionData $data): SubscriptionInterface
 > Each entity-side repo is also exposed as a Reader / Writer pair (`SubscriptionReader` + `SubscriptionWriter`, etc.). The combined interface extends both. Typehint the narrowest role you actually need.
 
 > **If your repo needs to call back into the SDK** — e.g. `GetOrder` to read fresh metadata from a partial webhook payload — don't inject `Vatly` directly. `Vatly` is being constructed *with* your repo, so a direct dependency is circular. Instead, inject a lazy resolver (your host's container, a singleton accessor, or a closure that returns `Vatly`) and resolve at call time.
+>
+> ```php
+> // ✗ Circular — $vatly doesn't exist yet at Wiring-construction time:
+> new Vatly(new Wiring(orders: new MyOrderRepository($vatly), …));
+>
+> // ✓ Closure resolver — the repo only touches Vatly at call time:
+> new Vatly(new Wiring(orders: new MyOrderRepository(fn () => $container->get(Vatly::class)), …));
+>
+> // ✓ Singleton accessor — same idea via a static entry point:
+> new Vatly(new Wiring(orders: new MyOrderRepository(Plugin::vatly(...)), …));
+> ```
+>
+> Inside the repo, resolve lazily: `($this->vatly)()->getOrder()->execute($vatlyId)` for the closure form, or `Plugin::vatly()->getOrder()->execute($vatlyId)` for the accessor form.
 
 ### 6. Implement `EventDispatcherInterface`
 
