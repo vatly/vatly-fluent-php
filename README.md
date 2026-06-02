@@ -602,6 +602,32 @@ Dispatched by webhook reactions through your `EventDispatcherInterface`. Subscri
 composer test
 ```
 
+### Test helpers for consumers
+
+`Vatly\Fluent\Testing` ships fakes so consumers don't hand-roll a Mockery stub for every fluent entry point (which breaks the moment fluent grows a method):
+
+```php
+use Vatly\Fluent\Testing\FakeVatly;
+use Vatly\Fluent\Testing\FakeCheckout;
+
+$fake = (new FakeVatly())->onSubscriptionCreate(
+    fn (string $planId) => FakeCheckout::make('https://checkout.vatly.test/chk_1'),
+);
+$this->app->instance(Vatly::class, $fake); // drop-in: FakeVatly extends Vatly
+
+$this->get('/vatly/subscription-checkout/plan_pro')
+    ->assertRedirect('https://checkout.vatly.test/chk_1');
+
+$fake->assertSubscriptionCreated('plan_pro');
+$fake->assertNothingCanceled();
+```
+
+- **`FakeVatly`** — drop-in `Vatly` that hands out recording builders/handles and returns scriptable `Checkout`s (`onSubscriptionCreate` / `onCheckoutCreate` / `withDefaultCheckout`).
+- **`FakeCheckout::make($url)`** — a minimal `Checkout` with a working `links->checkoutUrl->href`.
+- **Assertions** — `assertSubscriptionCreated($planId)`, `assertCheckoutCreated(productId:)`, `assertSubscriptionSwapped(from:, to:)`, `assertSubscriptionCanceled($id)`, `assertNothingCanceled()`, `assertNothingCreated()`.
+
+Swap/cancel/resume routed through `$fake->subscription($localSub)` are recorded too. Ships in-package (like Cashier's helpers); the PHPUnit dependency is only touched from the `assert*` methods.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
