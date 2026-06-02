@@ -6,6 +6,8 @@ namespace Vatly\Fluent;
 
 use Vatly\API\Resources\Order as ApiOrder;
 use Vatly\Fluent\Actions\GetOrder;
+use Vatly\Fluent\Contracts\ChargebackInterface;
+use Vatly\Fluent\Contracts\ChargebackReader;
 use Vatly\Fluent\Contracts\OrderInterface;
 use Vatly\Fluent\Contracts\RefundInterface;
 use Vatly\Fluent\Contracts\RefundReader;
@@ -33,6 +35,12 @@ class OrderHandle
          * rather than reaching into driver internals.
          */
         private readonly ?RefundReader $refunds = null,
+        /**
+         * Optional: supplied by {@see Vatly::order()} when a chargeback
+         * repository is wired. Without it, {@see self::chargebacks()} returns an
+         * empty array.
+         */
+        private readonly ?ChargebackReader $chargebacks = null,
     ) {
         //
     }
@@ -172,5 +180,19 @@ class OrderHandle
     public function refunds(): array
     {
         return $this->refunds?->listForOrder($this->order->getVatlyId()) ?? [];
+    }
+
+    /**
+     * The chargebacks recorded locally against this order, per the driver's
+     * {@see ChargebackReader} implementation.
+     *
+     * Reads only local state (no API call). Returns an empty array when no
+     * chargeback repository is wired.
+     *
+     * @return ChargebackInterface[]
+     */
+    public function chargebacks(): array
+    {
+        return $this->chargebacks?->listForOrder($this->order->getVatlyId()) ?? [];
     }
 }

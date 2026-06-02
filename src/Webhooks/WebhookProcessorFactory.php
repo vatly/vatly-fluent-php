@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Webhooks;
 
+use Vatly\Fluent\Actions\GetChargeback;
 use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Actions\GetRefund;
 use Vatly\Fluent\Actions\GetSubscription;
+use Vatly\Fluent\Contracts\ChargebackRepositoryInterface;
 use Vatly\Fluent\Contracts\ConfigurationInterface;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
 use Vatly\Fluent\Contracts\EventDispatcherInterface;
@@ -21,6 +23,7 @@ use Vatly\Fluent\Webhooks\Reactions\EndSubscriptionOnGracePeriodCompleted;
 use Vatly\Fluent\Webhooks\Reactions\ResumeSubscriptionOnResumed;
 use Vatly\Fluent\Webhooks\Reactions\StoreOrderOnPaid;
 use Vatly\Fluent\Webhooks\Reactions\StoreOrderOnPaymentFailed;
+use Vatly\Fluent\Webhooks\Reactions\SyncChargebackOnStatusChange;
 use Vatly\Fluent\Webhooks\Reactions\SyncRefundOnStatusChange;
 use Vatly\Fluent\Webhooks\Reactions\SyncSubscriptionOnBillingUpdated;
 use Vatly\Fluent\Webhooks\Reactions\SyncSubscriptionOnStarted;
@@ -41,6 +44,12 @@ class WebhookProcessorFactory
      * behavior), and the {@see SyncRefundOnStatusChange} reaction is registered
      * only when `refunds` is supplied.
      *
+     * `getChargeback` and `chargebacks` follow the same opt-in shape for the
+     * `order.chargeback_*` events: pass `getChargeback` to enrich them (customer
+     * id, status, tax breakdown) and `chargebacks` to register the persistence
+     * reactions. Both default to null, so existing callers are unaffected and
+     * the chargeback events keep dispatching from the (sparse) webhook payload.
+     *
      * @param WebhookReactionInterface[] $additionalReactions
      */
     public static function create(
@@ -54,6 +63,8 @@ class WebhookProcessorFactory
         GetSubscription $getSubscription,
         ?GetRefund $getRefund = null,
         ?RefundRepositoryInterface $refunds = null,
+        ?GetChargeback $getChargeback = null,
+        ?ChargebackRepositoryInterface $chargebacks = null,
         array $additionalReactions = [],
     ): WebhookProcessor {
         $reactions = [
@@ -74,8 +85,16 @@ class WebhookProcessorFactory
             $reactions[] = new SyncRefundOnStatusChange($refunds, $bindings);
         }
 
+        if ($chargebacks !== null) {
+            // Persistence only: SyncChargebackOnStatusChange writes the
+            // chargeback row. The order's reversal progress (incl. chargebacks)
+            // is read live from the API via OrderHandle, so no local order
+            // status is synthesized here.
+            $reactions[] = new SyncChargebackOnStatusChange($chargebacks, $bindings);
+        }
+
         return new WebhookProcessor(
-            eventFactory: new WebhookEventFactory($getOrder, $getSubscription, $getRefund),
+            eventFactory: new WebhookEventFactory($getOrder, $getSubscription, $getRefund, $getChargeback),
             repository: $webhookCalls,
             dispatcher: $dispatcher,
             webhookSecret: $config->getWebhookSecret() ?? '',
