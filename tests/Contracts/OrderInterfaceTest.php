@@ -17,7 +17,6 @@ class OrderInterfaceTest extends TestCase
         $this->assertSame('paid', $order->getStatus());
         $this->assertSame('INV-2024-001', $order->getInvoiceNumber());
         $this->assertSame(9900, $order->getTotal());
-        $this->assertSame(8182, $order->getSubtotal());
         $this->assertSame('EUR', $order->getCurrency());
         $this->assertSame('credit_card', $order->getPaymentMethod());
         $this->assertTrue($order->isPaid());
@@ -44,11 +43,6 @@ class OrderInterfaceTest extends TestCase
             public function getTotal(): int
             {
                 return 9900;
-            }
-
-            public function getSubtotal(): ?int
-            {
-                return 8182;
             }
 
             public function getCurrency(): string

@@ -30,18 +30,6 @@ interface OrderInterface
     public function getTotal(): int;
 
     /**
-     * Get the order subtotal (net of tax), in integer cents.
-     *
-     * Returns `null` when the driver did not persist a subtotal (e.g. rows
-     * written before subtotal tracking landed). The refund-status reaction
-     * ({@see \Vatly\Fluent\Webhooks\Reactions\SyncOrderOnRefundChange}) needs
-     * this to compare cumulative refunded subtotal against the order's own
-     * subtotal; when it is `null` the reaction degrades to a conservative
-     * "partially refunded" rather than claiming a full refund it can't verify.
-     */
-    public function getSubtotal(): ?int;
-
-    /**
      * Get the currency.
      */
     public function getCurrency(): string;

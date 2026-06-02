@@ -106,7 +106,6 @@ For incoming Vatly webhooks, fluent dispatches a typed event and runs a built-in
 | `order.chargeback_received` | `OrderChargebackReceived`                                      | — (dispatched only)            | none — driver-handled                                |
 | `order.chargeback_reversed` | `OrderChargebackReversed`                                      | — (dispatched only)            | none — driver-handled                                |
 | `refund.completed` / `refund.failed` / `refund.canceled` | `RefundCompleted` / `RefundFailed` / `RefundCanceled` | `SyncRefundOnStatusChange` *(opt-in)* | `RefundWriter::store` (new) / `::update` (existing) |
-| `refund.completed` / `refund.canceled` | (same as above) | `SyncOrderOnRefundChange` *(opt-in)* | `RefundReader::sumSubtotalsForOrder` + `OrderWriter::update` (derives local `refunded` / `partially_refunded` / `paid`) |
 | `subscription.started`   | `SubscriptionStarted`                                             | `SyncSubscriptionOnStarted`    | `SubscriptionWriter::store` (new) / `::update` (existing) |
 | `subscription.billing_updated` | `SubscriptionBillingUpdated`                               | `SyncSubscriptionOnBillingUpdated` | `SubscriptionWriter::update` (refreshes mandate)    |
 | `subscription.resumed`   | `SubscriptionResumed`                                             | `ResumeSubscriptionOnResumed`  | `SubscriptionWriter::update` (clears end date)       |
@@ -120,9 +119,9 @@ For incoming Vatly webhooks, fluent dispatches a typed event and runs a built-in
 
 **Refunds** are opt-in: supply a `RefundRepositoryInterface` via `Wiring(refunds: …)` and the built-in `SyncRefundOnStatusChange` reaction persists `refund.*` webhooks (store-or-update, like orders) — unblocking terminal-state refund reconciliation. Omit it and the typed refund events are still dispatched for you to handle. Refund events are enriched via `GetRefund` so they carry the full tax breakdown, mirroring `order.paid`.
 
-When refunds are wired, a second reaction — `SyncOrderOnRefundChange` — runs straight after and propagates the refund onto the original order's **local** status. Vatly never emits an `order.refunded` webhook (its public Order resource always reports `paid`), but the `refund.completed` / `refund.canceled` payload carries the original order id plus the refunded subtotal, so the new status is derived from local state without an API re-fetch: it sums the completed refunds for the order via `RefundReader::sumSubtotalsForOrder` and compares to the order's subtotal — full match → `refunded`, partial → `partially_refunded`, fully backed-out (e.g. a `refund.canceled`) → `paid`. These three synthesized values live on `Vatly\Fluent\Types\LocalOrderStatus` and mirror Vatly's internal vocabulary. To support the comparison, `OrderInterface` now exposes `getSubtotal(): ?int` (drivers already persist the subtotal from `order.paid`).
-
 Read the refunds back idiomatically with `RefundReader::listForOrder` / `listForCustomer`, or via the handle: `$vatly->order($localOrder)->refunds()` returns the `RefundInterface[]` recorded against that order (local read, no API call; empty array when no refund repo is wired).
+
+The order's reversal progress is read live from the Vatly API rather than synthesized into a local status — the order's own `status` stays terminal `paid`. `OrderHandle` exposes `reversedSubtotal()` / `refundableSubtotal()` (integer cents) and `isReversed()` / `isPartiallyReversed()` / `isFullyReversed()`, fetched once and memoized per handle instance. Because the API's `reversedSubtotal` combines refunds **and** chargebacks, these helpers answer "did money come back, and how much" regardless of how it was reversed.
 
 **Chargebacks** ship no built-in reaction: Vatly's public order status doesn't change on a chargeback, so fluent doesn't synthesize one. Instead `OrderChargebackReceived` / `OrderChargebackReversed` are dispatched (with the affected order's ID as `orderId`) for your driver to react to — e.g. suspend access on receipt, reinstate on reversal.
 
@@ -322,7 +321,7 @@ Each entity-side contract has three methods. See [src/Contracts](src/Contracts) 
 
 - `SubscriptionRepositoryInterface` — `findByVatlyId`, `store`, `update`
 - `OrderRepositoryInterface` — `findByVatlyId`, `store`, `update`
-- `RefundRepositoryInterface` — `findByVatlyId`, `listForOrder`, `listForCustomer`, `sumSubtotalsForOrder`, `store`, `update` (**optional** — only needed to persist `refund.*` webhooks)
+- `RefundRepositoryInterface` — `findByVatlyId`, `listForOrder`, `listForCustomer`, `store`, `update` (**optional** — only needed to persist `refund.*` webhooks)
 - `WebhookCallRepositoryInterface` — record received webhook calls (audit log)
 
 `StoreSubscriptionData` and `StoreOrderData` both carry an optional `hostCustomerId` resolved from the binding repo when fluent persists from a webhook reaction. Use it to fill your host-side owner column when it's set, and accept `null` for the anonymous-checkout flow.
@@ -565,7 +564,7 @@ In [src/Contracts](src/Contracts):
 - `CustomerBindingRepository` — bidirectional mapping between Vatly customer ids and host ids
 - `SubscriptionRepositoryInterface` — subscription persistence (3 methods). Splits into `SubscriptionReader` (find) + `SubscriptionWriter` (store/update).
 - `OrderRepositoryInterface` — order persistence (3 methods). Splits into `OrderReader` (find) + `OrderWriter` (store/update).
-- `RefundRepositoryInterface` — refund persistence (optional). Splits into `RefundReader` (find + `listForOrder` / `listForCustomer` / `sumSubtotalsForOrder`) + `RefundWriter` (store/update).
+- `RefundRepositoryInterface` — refund persistence (optional). Splits into `RefundReader` (find + `listForOrder` / `listForCustomer`) + `RefundWriter` (store/update).
 - `WebhookCallRepositoryInterface` — webhook audit log (write-only by nature)
 - `EventDispatcherInterface` — fire domain events
 - `ConfigurationInterface` — API key, URL, version, webhook secret, redirect defaults

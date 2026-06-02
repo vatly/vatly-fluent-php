@@ -21,7 +21,6 @@ use Vatly\Fluent\Webhooks\Reactions\EndSubscriptionOnGracePeriodCompleted;
 use Vatly\Fluent\Webhooks\Reactions\ResumeSubscriptionOnResumed;
 use Vatly\Fluent\Webhooks\Reactions\StoreOrderOnPaid;
 use Vatly\Fluent\Webhooks\Reactions\StoreOrderOnPaymentFailed;
-use Vatly\Fluent\Webhooks\Reactions\SyncOrderOnRefundChange;
 use Vatly\Fluent\Webhooks\Reactions\SyncRefundOnStatusChange;
 use Vatly\Fluent\Webhooks\Reactions\SyncSubscriptionOnBillingUpdated;
 use Vatly\Fluent\Webhooks\Reactions\SyncSubscriptionOnStarted;
@@ -69,11 +68,10 @@ class WebhookProcessorFactory
         ];
 
         if ($refunds !== null) {
-            // Order matters: SyncRefundOnStatusChange writes the refund row
-            // first, then SyncOrderOnRefundChange reads the cumulative subtotal
-            // back out to derive the original order's local refunded status.
+            // Persistence only: SyncRefundOnStatusChange writes the refund row.
+            // The order's reversal progress is read live from the API via
+            // OrderHandle, so no local order status is synthesized here.
             $reactions[] = new SyncRefundOnStatusChange($refunds, $bindings);
-            $reactions[] = new SyncOrderOnRefundChange($orders, $refunds);
         }
 
         return new WebhookProcessor(

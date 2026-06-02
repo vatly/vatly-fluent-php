@@ -23,7 +23,6 @@ use Vatly\Fluent\Webhooks\Reactions\EndSubscriptionOnGracePeriodCompleted;
 use Vatly\Fluent\Webhooks\Reactions\ResumeSubscriptionOnResumed;
 use Vatly\Fluent\Webhooks\Reactions\StoreOrderOnPaid;
 use Vatly\Fluent\Webhooks\Reactions\StoreOrderOnPaymentFailed;
-use Vatly\Fluent\Webhooks\Reactions\SyncOrderOnRefundChange;
 use Vatly\Fluent\Webhooks\Reactions\SyncRefundOnStatusChange;
 use Vatly\Fluent\Webhooks\Reactions\SyncSubscriptionOnBillingUpdated;
 use Vatly\Fluent\Webhooks\Reactions\SyncSubscriptionOnStarted;
@@ -102,9 +101,8 @@ class WebhookProcessorFactoryTest extends TestCase
 
         $reactions = $processor->getReactions();
 
-        $this->assertCount(10, $reactions);
+        $this->assertCount(9, $reactions);
         $this->assertInstanceOf(SyncRefundOnStatusChange::class, $reactions[8]);
-        $this->assertInstanceOf(SyncOrderOnRefundChange::class, $reactions[9]);
     }
 
     public function test_it_appends_additional_reactions_after_the_standard_ones(): void
