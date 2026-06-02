@@ -21,7 +21,6 @@ final class FluentCartOrder implements OrderInterface
     public function getStatus(): string         { return $this->txn->status; }
     public function getInvoiceNumber(): ?string { return $this->txn->invoice_no; }
     public function getTotal(): int             { return (int) $this->txn->total; }
-    public function getSubtotal(): ?int         { return $this->txn->subtotal !== null ? (int) $this->txn->subtotal : null; }
     public function getCurrency(): string       { return $this->txn->currency; }
     public function getPaymentMethod(): ?string { return $this->txn->payment_method; }
     public function isPaid(): bool              { return $this->txn->status === 'paid'; }
