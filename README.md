@@ -422,6 +422,15 @@ $checkout = $vatly
     ->toPlan('plan_premium')
     ->create();
 
+// Subscribe with a free trial. withTrialDays() is the whole-day form;
+// withTrialEndsAt() takes a DateTimeInterface and rounds up to whole days
+// (Vatly's trial input is day-granular) so the trial never ends early.
+$checkout = $vatly
+    ->subscriptionBuilder(new CustomerProfile(vatlyId: $user->vatly_id))
+    ->toPlan('plan_premium')
+    ->withTrialDays(14)
+    ->create();
+
 // Operate on a stored Subscription / Order
 $vatly->subscription($localSubscription)->cancel();
 $vatly->order($localOrder)->invoiceUrl();

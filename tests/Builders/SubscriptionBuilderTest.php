@@ -102,6 +102,49 @@ class SubscriptionBuilderTest extends TestCase
         $this->assertSame(1, $payload['quantity']);
     }
 
+    public function test_with_trial_days_adds_trial_days_to_the_payload(): void
+    {
+        $result = $this->builder->toPlan('plan_pro')->withTrialDays(14);
+
+        $payload = $this->builder->getSubscriptionPayload();
+
+        $this->assertSame($this->builder, $result);
+        $this->assertSame(14, $payload['trialDays']);
+        $this->assertSame('plan_pro', $payload['id']);
+    }
+
+    public function test_trial_days_is_absent_from_payload_when_not_set(): void
+    {
+        $this->builder->toPlan('plan_pro');
+
+        $this->assertArrayNotHasKey('trialDays', $this->builder->getSubscriptionPayload());
+    }
+
+    public function test_with_trial_days_rejects_non_positive_values(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->builder->withTrialDays(0);
+    }
+
+    public function test_with_trial_ends_at_converts_to_whole_days_rounding_up(): void
+    {
+        // 13 days + 1 hour from now rounds up to a 14-day trial so it never
+        // ends earlier than requested.
+        $endsAt = (new \DateTimeImmutable())->modify('+13 days +1 hour');
+
+        $this->builder->toPlan('plan_pro')->withTrialEndsAt($endsAt);
+
+        $this->assertSame(14, $this->builder->getSubscriptionPayload()['trialDays']);
+    }
+
+    public function test_with_trial_ends_at_rejects_a_past_date(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->builder->withTrialEndsAt((new \DateTimeImmutable())->modify('-1 day'));
+    }
+
     public function test_get_checkout_builder_returns_the_checkout_builder_instance(): void
     {
         $checkoutBuilder = $this->builder->getCheckoutBuilder();
