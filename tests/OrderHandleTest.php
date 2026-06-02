@@ -11,6 +11,8 @@ use Vatly\API\Types\Link;
 use Vatly\API\VatlyApiClient;
 use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Contracts\OrderInterface;
+use Vatly\Fluent\Contracts\RefundInterface;
+use Vatly\Fluent\Contracts\RefundReader;
 use Vatly\Fluent\OrderHandle;
 
 class OrderHandleTest extends TestCase
@@ -21,6 +23,7 @@ class OrderHandleTest extends TestCase
         $order->shouldReceive('getVatlyId')->andReturn('order_abc');
         $order->shouldReceive('getStatus')->andReturn('paid');
         $order->shouldReceive('getTotal')->andReturn(1999);
+        $order->shouldReceive('getSubtotal')->andReturn(1652);
         $order->shouldReceive('getCurrency')->andReturn('EUR');
         $order->shouldReceive('getInvoiceNumber')->andReturn('INV-2026-0001');
         $order->shouldReceive('getPaymentMethod')->andReturn('creditcard');
@@ -34,6 +37,7 @@ class OrderHandleTest extends TestCase
         $this->assertSame('order_abc', $handle->getVatlyId());
         $this->assertSame('paid', $handle->getStatus());
         $this->assertSame(1999, $handle->getTotal());
+        $this->assertSame(1652, $handle->getSubtotal());
         $this->assertSame('EUR', $handle->getCurrency());
         $this->assertSame('INV-2026-0001', $handle->getInvoiceNumber());
         $this->assertSame('creditcard', $handle->getPaymentMethod());
@@ -69,6 +73,38 @@ class OrderHandleTest extends TestCase
         $handle = new OrderHandle(order: $order, getOrderAction: $getOrder);
 
         $this->assertNull($handle->invoiceUrl());
+    }
+
+    public function test_refunds_returns_local_refunds_for_the_order(): void
+    {
+        $refundA = Mockery::mock(RefundInterface::class);
+        $refundB = Mockery::mock(RefundInterface::class);
+
+        $reader = Mockery::mock(RefundReader::class);
+        $reader->shouldReceive('listForOrder')->with('order_abc')->once()->andReturn([$refundA, $refundB]);
+
+        $order = Mockery::mock(OrderInterface::class);
+        $order->shouldReceive('getVatlyId')->andReturn('order_abc');
+
+        $handle = new OrderHandle(
+            order: $order,
+            getOrderAction: Mockery::mock(GetOrder::class),
+            refunds: $reader,
+        );
+
+        $this->assertSame([$refundA, $refundB], $handle->refunds());
+    }
+
+    public function test_refunds_is_empty_when_no_refund_reader_is_wired(): void
+    {
+        $order = Mockery::mock(OrderInterface::class);
+
+        $handle = new OrderHandle(
+            order: $order,
+            getOrderAction: Mockery::mock(GetOrder::class),
+        );
+
+        $this->assertSame([], $handle->refunds());
     }
 
     private function buildApiOrder(?string $invoiceHref): ApiOrder

@@ -6,6 +6,8 @@ namespace Vatly\Fluent;
 
 use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Contracts\OrderInterface;
+use Vatly\Fluent\Contracts\RefundInterface;
+use Vatly\Fluent\Contracts\RefundReader;
 
 /**
  * Framework-agnostic operations on an order.
@@ -23,6 +25,12 @@ class OrderHandle
     public function __construct(
         private readonly OrderInterface $order,
         private readonly GetOrder $getOrderAction,
+        /**
+         * Optional: supplied by {@see Vatly::order()} when a refund repository
+         * is wired. Without it, {@see self::refunds()} returns an empty array
+         * rather than reaching into driver internals.
+         */
+        private readonly ?RefundReader $refunds = null,
     ) {
         //
     }
@@ -57,6 +65,11 @@ class OrderHandle
         return $this->order->getTotal();
     }
 
+    public function getSubtotal(): ?int
+    {
+        return $this->order->getSubtotal();
+    }
+
     public function getCurrency(): string
     {
         return $this->order->getCurrency();
@@ -86,5 +99,20 @@ class OrderHandle
         $apiOrder = $this->getOrderAction->execute($this->order->getVatlyId());
 
         return $apiOrder->links->customerInvoice?->href;
+    }
+
+    /**
+     * The refunds recorded locally against this order, newest-first per the
+     * driver's {@see RefundReader} implementation.
+     *
+     * Reads only local state (no API call). Returns an empty array when no
+     * refund repository is wired, so callers can render a refunds section
+     * unconditionally without feature-detecting the wiring.
+     *
+     * @return RefundInterface[]
+     */
+    public function refunds(): array
+    {
+        return $this->refunds?->listForOrder($this->order->getVatlyId()) ?? [];
     }
 }
