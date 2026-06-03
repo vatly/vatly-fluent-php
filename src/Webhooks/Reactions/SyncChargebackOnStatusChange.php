@@ -23,9 +23,9 @@ use Vatly\API\Webhooks\Events\OrderChargebackReversed;
  * {@see ChargebackRepositoryInterface} is wired — without one, the typed
  * chargeback events are still dispatched for drivers to handle.
  *
- * Persistence is only meaningful when the events are enriched (a `GetChargeback`
- * action is wired), since the sparse webhook payload carries no customer id,
- * status, or tax breakdown.
+ * The events carry the full customer id, status, and tax breakdown — the
+ * webhook payload is the fat, signed resource snapshot — so the stored row is
+ * persistence-grade without any follow-up API call.
  *
  * @immutable
  */

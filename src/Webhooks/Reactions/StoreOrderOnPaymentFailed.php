@@ -14,7 +14,7 @@ use Vatly\API\Webhooks\Events\OrderPaymentFailed;
 /**
  * Mirrors {@see StoreOrderOnPaid}: ensures the local order row reflects the
  * upstream order state after an `order.payment_failed` webhook. The persisted status
- * is whatever Vatly's enriched Order resource currently reports (typically
+ * is whatever the signed Order payload reports (typically
  * `pending` during dunning) — we deliberately don't synthesise a
  * driver-specific status like `'failed'`, so `OrderInterface::getStatus()`
  * stays a faithful mirror of upstream.

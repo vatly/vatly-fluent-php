@@ -5,14 +5,7 @@ declare(strict_types=1);
 namespace Vatly\Fluent\Tests\Webhooks;
 
 use Mockery;
-use Vatly\API\Resources\Order as ApiOrder;
-use Vatly\API\Resources\Subscription as ApiSubscription;
-use Vatly\API\Types\Money;
-use Vatly\API\Types\TaxSummaryCollection;
 use Vatly\API\VatlyApiClient;
-use Vatly\Fluent\Actions\GetOrder;
-use Vatly\Fluent\Actions\GetRefund;
-use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\Fluent\Contracts\EventDispatcherInterface;
 use Vatly\Fluent\Contracts\WebhookCallRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
@@ -25,12 +18,16 @@ use Vatly\Fluent\Tests\TestCase;
 use Vatly\Fluent\Webhooks\WebhookEventFactory;
 use Vatly\Fluent\Webhooks\WebhookProcessor;
 
+/**
+ * End-to-end: the processor verifies the HMAC signature, builds a typed event
+ * straight from the signed (fat) webhook payload — no follow-up API GET — runs
+ * matching reactions, then dispatches. The {@see WebhookEventFactory} holds a
+ * real, un-stubbed {@see VatlyApiClient} used only for in-memory hydration; any
+ * HTTP attempt would fail (no API key), proving "zero API calls" by construction.
+ */
 class WebhookProcessorTest extends TestCase
 {
     private string $secret;
-    private GetOrder $getOrder;
-    private GetSubscription $getSubscription;
-    private GetRefund $getRefund;
     private WebhookEventFactory $eventFactory;
     private WebhookCallRepositoryInterface $repository;
     private EventDispatcherInterface $dispatcher;
@@ -41,10 +38,7 @@ class WebhookProcessorTest extends TestCase
         parent::setUp();
 
         $this->secret = 'test-webhook-secret';
-        $this->getOrder = Mockery::mock(GetOrder::class);
-        $this->getSubscription = Mockery::mock(GetSubscription::class);
-        $this->getRefund = Mockery::mock(GetRefund::class);
-        $this->eventFactory = new WebhookEventFactory($this->getOrder, $this->getSubscription, $this->getRefund);
+        $this->eventFactory = new WebhookEventFactory(new VatlyApiClient());
         $this->repository = Mockery::mock(WebhookCallRepositoryInterface::class);
         $this->dispatcher = Mockery::mock(EventDispatcherInterface::class);
 
@@ -63,26 +57,17 @@ class WebhookProcessorTest extends TestCase
             eventName: 'subscription.started',
             entityType: 'subscription',
             entityId: 'sub_123',
-            object: [
-                'customerId' => 'cus_456',
-                'subscriptionPlanId' => 'plan_789',
-                'name' => 'Premium Plan',
-                'quantity' => 1,
-            ],
-        );
-
-        $signature = $this->makeSignatureHeader($payload, $this->secret);
-
-        $this->getSubscription->shouldReceive('execute')
-            ->with('sub_123')
-            ->andReturn($this->makeApiSubscription([
+            object: $this->fatSubscription([
                 'id' => 'sub_123',
                 'customerId' => 'cus_456',
                 'subscriptionPlanId' => 'plan_789',
                 'name' => 'Premium Plan',
                 'quantity' => 1,
                 'mandate' => null,
-            ]));
+            ]),
+        );
+
+        $signature = $this->makeSignatureHeader($payload, $this->secret);
 
         $this->repository
             ->shouldReceive('record')
@@ -129,25 +114,17 @@ class WebhookProcessorTest extends TestCase
             eventName: 'subscription.started',
             entityType: 'subscription',
             entityId: 'sub_123',
-            object: [
-                'customerId' => 'cus_456',
-                'subscriptionPlanId' => 'plan_789',
-                'name' => 'Premium Plan',
-                'quantity' => 1,
-            ],
-        );
-
-        $signature = $this->makeSignatureHeader($payload, $this->secret);
-
-        $this->getSubscription->shouldReceive('execute')
-            ->andReturn($this->makeApiSubscription([
+            object: $this->fatSubscription([
                 'id' => 'sub_123',
                 'customerId' => 'cus_456',
                 'subscriptionPlanId' => 'plan_789',
                 'name' => 'Premium Plan',
                 'quantity' => 1,
                 'mandate' => null,
-            ]));
+            ]),
+        );
+
+        $signature = $this->makeSignatureHeader($payload, $this->secret);
 
         $this->repository->shouldReceive('record')->once();
         $this->dispatcher->shouldReceive('dispatch')->once();
@@ -180,33 +157,20 @@ class WebhookProcessorTest extends TestCase
             eventName: 'order.payment_failed',
             entityType: 'order',
             entityId: 'ord_dunning_1',
-            object: [
+            object: $this->fatOrder([
+                'id' => 'ord_dunning_1',
                 'customerId' => 'cus_456',
+                'status' => 'pending',
                 'total' => ['currency' => 'EUR', 'value' => '49.00'],
-            ],
+                'subtotal' => ['currency' => 'EUR', 'value' => '40.50'],
+                'paymentMethod' => 'sepa_direct_debit',
+                'taxRates' => [
+                    ['name' => 'VAT', 'percentage' => 21.0, 'taxablePercentage' => 100.0, 'amount' => '8.50'],
+                ],
+            ]),
         );
 
         $signature = $this->makeSignatureHeader($payload, $this->secret);
-
-        $apiOrder = new ApiOrder(Mockery::mock(VatlyApiClient::class));
-        $apiOrder->id = 'ord_dunning_1';
-        $apiOrder->customerId = 'cus_456';
-        $apiOrder->total = new Money('EUR', '49.00');
-        $apiOrder->subtotal = new Money('EUR', '40.50');
-        $apiOrder->invoiceNumber = null;
-        $apiOrder->paymentMethod = 'sepa_direct_debit';
-        $apiOrder->status = 'pending';
-        $apiOrder->taxSummary = new TaxSummaryCollection([
-            [
-                'taxRate' => ['name' => 'VAT', 'percentage' => 21.0, 'taxablePercentage' => 100.0],
-                'amount' => ['currency' => 'EUR', 'value' => '8.50'],
-            ],
-        ]);
-
-        $this->getOrder->shouldReceive('execute')
-            ->once()
-            ->with('ord_dunning_1')
-            ->andReturn($apiOrder);
 
         $this->repository->shouldReceive('record')->once();
 
@@ -230,8 +194,8 @@ class WebhookProcessorTest extends TestCase
 
     public function test_it_processes_a_checkout_paid_webhook_end_to_end(): void
     {
-        // Checkout events route straight from the payload — no enrichment GET —
-        // so no GetCheckout/GetOrder call is expected here.
+        // Checkout events route straight from the payload envelope (no money/tax
+        // resource to hydrate), like every other event — no API GET ever.
         $payload = $this->makePayload(
             id: 'webhook_event_cp',
             eventName: 'checkout.paid',
@@ -246,8 +210,6 @@ class WebhookProcessorTest extends TestCase
         );
 
         $signature = $this->makeSignatureHeader($payload, $this->secret);
-
-        $this->getOrder->shouldNotReceive('execute');
 
         $this->repository
             ->shouldReceive('record')
@@ -391,17 +353,73 @@ class WebhookProcessorTest extends TestCase
     }
 
     /**
-     * Build a minimal API Subscription resource for enrichment-path tests.
+     * The fat (signed) `subscription` webhook `object`.
      *
-     * @param array<string, mixed> $fields
+     * @param array<string, mixed> $data
+     *
+     * @return array<string, mixed>
      */
-    private function makeApiSubscription(array $fields): ApiSubscription
+    private function fatSubscription(array $data): array
     {
-        $subscription = new ApiSubscription(Mockery::mock(VatlyApiClient::class));
-        foreach ($fields as $key => $value) {
-            $subscription->{$key} = $value;
-        }
+        return [
+            'id' => $data['id'],
+            'resource' => 'subscription',
+            'customerId' => $data['customerId'],
+            'subscriptionPlanId' => $data['subscriptionPlanId'],
+            'testmode' => false,
+            'name' => $data['name'],
+            'description' => 'A subscription',
+            'quantity' => $data['quantity'],
+            'interval' => '1 month',
+            'intervalCount' => 1,
+            'status' => 'active',
+            'startedAt' => '2024-01-15T10:00:00+00:00',
+            'endedAt' => null,
+            'canceledAt' => null,
+            'renewedAt' => null,
+            'renewedUntil' => null,
+            'nextRenewalAt' => null,
+            'mandate' => $data['mandate'],
+        ];
+    }
 
-        return $subscription;
+    /**
+     * The fat (signed) `order` webhook `object`.
+     *
+     * @param array<string, mixed> $data
+     *
+     * @return array<string, mixed>
+     */
+    private function fatOrder(array $data): array
+    {
+        $currency = $data['total']['currency'];
+
+        return [
+            'id' => $data['id'],
+            'resource' => 'order',
+            'customerId' => $data['customerId'],
+            'createdAt' => '2024-01-15T10:00:00+00:00',
+            'testmode' => false,
+            'status' => $data['status'],
+            'total' => $data['total'],
+            'subtotal' => $data['subtotal'],
+            'reversedSubtotal' => ['currency' => $currency, 'value' => '0.00'],
+            'refundableSubtotal' => $data['subtotal'],
+            'invoiceNumber' => $data['invoiceNumber'] ?? null,
+            'paymentMethod' => $data['paymentMethod'] ?? null,
+            'taxSummary' => array_map(
+                fn (array $rate) => [
+                    'taxRate' => [
+                        'name' => $rate['name'],
+                        'percentage' => $rate['percentage'],
+                        'taxablePercentage' => $rate['taxablePercentage'],
+                    ],
+                    'amount' => ['currency' => $currency, 'value' => $rate['amount']],
+                ],
+                $data['taxRates'],
+            ),
+            'metadata' => null,
+            'lines' => [],
+        ];
     }
 }
