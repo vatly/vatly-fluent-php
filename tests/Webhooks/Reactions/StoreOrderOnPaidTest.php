@@ -9,7 +9,8 @@ use Vatly\Fluent\Contracts\CustomerBindingRepository;
 use Vatly\Fluent\Contracts\EventDispatcherInterface;
 use Vatly\Fluent\Contracts\OrderInterface;
 use Vatly\Fluent\Contracts\OrderRepositoryInterface;
-use Vatly\API\Data\OrderLineData;
+use Vatly\API\Types\Money;
+use Vatly\API\Types\OrderLineData;
 use Vatly\API\Types\TaxSummaryCollection;
 use Vatly\API\Webhooks\Events\OrderPaid;
 use Vatly\API\Webhooks\Events\SubscriptionStarted;
@@ -132,10 +133,9 @@ class StoreOrderOnPaidTest extends TestCase
             customerId: '',
             orderId: 'ord_anon',
             status: 'paid',
-            total: 9900,
-            subtotal: 8182,
+            total: self::money(9900),
+            subtotal: self::money(8182),
             taxSummary: new TaxSummaryCollection([]),
-            currency: 'EUR',
             invoiceNumber: 'INV-001',
             paymentMethod: 'card',
         );
@@ -165,10 +165,9 @@ class StoreOrderOnPaidTest extends TestCase
             customerId: 'cus_1',
             orderId: 'ord_1',
             status: 'paid',
-            total: 9900,
-            subtotal: 8182,
+            total: self::money(9900),
+            subtotal: self::money(8182),
             taxSummary: new TaxSummaryCollection([]),
-            currency: 'EUR',
             invoiceNumber: 'INV-001',
             paymentMethod: 'card',
             metadata: $metadata,
@@ -209,9 +208,9 @@ class StoreOrderOnPaidTest extends TestCase
                 vatlyId: 'order_item_sub',
                 description: 'Pro plan',
                 quantity: 1,
-                basePrice: 2000,
-                total: 2420,
-                subtotal: 2000,
+                basePrice: self::money(2000),
+                total: self::money(2420),
+                subtotal: self::money(2000),
                 taxSummary: new TaxSummaryCollection([]),
                 productType: 'subscription',
                 productId: 'subscription_abc',
@@ -222,10 +221,9 @@ class StoreOrderOnPaidTest extends TestCase
             customerId: 'cus_1',
             orderId: 'ord_1',
             status: 'paid',
-            total: 9900,
-            subtotal: 8182,
+            total: self::money(9900),
+            subtotal: self::money(8182),
             taxSummary: new TaxSummaryCollection([]),
-            currency: 'EUR',
             invoiceNumber: 'INV-001',
             paymentMethod: 'card',
             lines: $lines,
@@ -269,10 +267,9 @@ class StoreOrderOnPaidTest extends TestCase
             customerId: 'cus_1',
             orderId: 'ord_1',
             status: 'paid',
-            total: 9900,
-            subtotal: 8182,
+            total: self::money(9900),
+            subtotal: self::money(8182),
             taxSummary: $taxSummary ?? new TaxSummaryCollection([]),
-            currency: 'EUR',
             invoiceNumber: 'INV-001',
             paymentMethod: 'card',
         );

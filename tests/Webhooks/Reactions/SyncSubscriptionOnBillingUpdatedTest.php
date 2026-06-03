@@ -12,6 +12,7 @@ use Vatly\Fluent\Data\UpdateSubscriptionData;
 use Vatly\API\Webhooks\Events\OrderPaid;
 use Vatly\API\Webhooks\Events\SubscriptionBillingUpdated;
 use Vatly\Fluent\Tests\TestCase;
+use Vatly\API\Types\Money;
 use Vatly\API\Types\TaxSummaryCollection;
 use Vatly\Fluent\Webhooks\Reactions\SyncSubscriptionOnBillingUpdated;
 
@@ -34,7 +35,7 @@ class SyncSubscriptionOnBillingUpdatedTest extends TestCase
             Mockery::mock(SubscriptionRepositoryInterface::class),
         );
 
-        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', 9900, 8182, new TaxSummaryCollection([]), 'EUR', null, null)));
+        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', self::money(9900), self::money(8182), new TaxSummaryCollection([]), null, null)));
     }
 
     public function test_it_updates_the_stored_mandate_for_an_existing_subscription(): void

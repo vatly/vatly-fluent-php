@@ -450,9 +450,9 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertSame('cus_456', $event->customerId);
         $this->assertSame('ord_123', $event->orderId);
         $this->assertSame('paid', $event->status);
-        $this->assertSame(9900, $event->total);
-        $this->assertSame(8182, $event->subtotal);
-        $this->assertSame('EUR', $event->currency);
+        $this->assertSame(9900, $event->total->toCents());
+        $this->assertSame(8182, $event->subtotal->toCents());
+        $this->assertSame('EUR', $event->total->currency);
         $this->assertSame('INV-2024-001', $event->invoiceNumber);
         $this->assertSame('credit_card', $event->paymentMethod);
         $this->assertCount(1, $event->taxSummary->items);
@@ -515,9 +515,9 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertCount(2, $event->lines);
 
         $this->assertSame('order_item_sub', $event->lines[0]->vatlyId);
-        $this->assertSame(2000, $event->lines[0]->basePrice);
-        $this->assertSame(2420, $event->lines[0]->total);
-        $this->assertSame(2000, $event->lines[0]->subtotal);
+        $this->assertSame(2000, $event->lines[0]->basePrice->toCents());
+        $this->assertSame(2420, $event->lines[0]->total->toCents());
+        $this->assertSame(2000, $event->lines[0]->subtotal->toCents());
         $this->assertSame('subscription', $event->lines[0]->productType);
         $this->assertSame('subscription_abc', $event->lines[0]->productId);
 
@@ -567,9 +567,9 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertSame('cus_456', $event->customerId);
         $this->assertSame('ord_dunning_1', $event->orderId);
         $this->assertSame('pending', $event->status);
-        $this->assertSame(4900, $event->total);
-        $this->assertSame(4050, $event->subtotal);
-        $this->assertSame('EUR', $event->currency);
+        $this->assertSame(4900, $event->total->toCents());
+        $this->assertSame(4050, $event->subtotal->toCents());
+        $this->assertSame('EUR', $event->total->currency);
         $this->assertNull($event->invoiceNumber);
         $this->assertSame('sepa_direct_debit', $event->paymentMethod);
         $this->assertCount(1, $event->taxSummary->items);
@@ -690,9 +690,9 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertSame('refund_123', $event->refundId);
         $this->assertSame('refunded', $event->status);
         $this->assertSame('ord_original_1', $event->originalOrderId);
-        $this->assertSame(9900, $event->total);
-        $this->assertSame(8182, $event->subtotal);
-        $this->assertSame('EUR', $event->currency);
+        $this->assertSame(9900, $event->total->toCents());
+        $this->assertSame(8182, $event->subtotal->toCents());
+        $this->assertSame('EUR', $event->total->currency);
         $this->assertCount(1, $event->taxSummary->items);
         $this->assertSame('VAT', $event->taxSummary->items[0]->taxRate->name);
         $this->assertSame(1718, $event->taxSummary->items[0]->amount->toCents());
@@ -728,7 +728,7 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertInstanceOf(RefundFailed::class, $event);
         $this->assertSame('refund_failed_1', $event->refundId);
         $this->assertSame('failed', $event->status);
-        $this->assertSame(4900, $event->total);
+        $this->assertSame(4900, $event->total->toCents());
     }
 
     public function test_it_creates_refund_canceled_event_from_enriched_api_refund(): void

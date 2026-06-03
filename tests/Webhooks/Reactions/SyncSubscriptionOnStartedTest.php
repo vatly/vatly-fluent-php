@@ -15,6 +15,7 @@ use Vatly\Fluent\Events\SubscriptionWasCreatedFromWebhook;
 use Vatly\API\Webhooks\Events\OrderPaid;
 use Vatly\API\Webhooks\Events\SubscriptionStarted;
 use Vatly\Fluent\Tests\TestCase;
+use Vatly\API\Types\Money;
 use Vatly\API\Types\TaxSummaryCollection;
 use Vatly\Fluent\Webhooks\Reactions\SyncSubscriptionOnStarted;
 
@@ -41,7 +42,7 @@ class SyncSubscriptionOnStartedTest extends TestCase
             Mockery::mock(EventDispatcherInterface::class),
         );
 
-        $event = new OrderPaid('cus_1', 'ord_1', 'paid', 9900, 8182, new TaxSummaryCollection([]), 'EUR', null, null);
+        $event = new OrderPaid('cus_1', 'ord_1', 'paid', self::money(9900), self::money(8182), new TaxSummaryCollection([]), null, null);
 
         $this->assertFalse($reaction->supports($event));
     }

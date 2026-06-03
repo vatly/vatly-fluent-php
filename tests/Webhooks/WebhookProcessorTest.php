@@ -218,9 +218,9 @@ class WebhookProcessorTest extends TestCase
                     && $event->customerId === 'cus_456'
                     && $event->orderId === 'ord_dunning_1'
                     && $event->status === 'pending'
-                    && $event->total === 4900
-                    && $event->subtotal === 4050
-                    && $event->currency === 'EUR'
+                    && $event->total->toCents() === 4900
+                    && $event->subtotal->toCents() === 4050
+                    && $event->total->currency === 'EUR'
                     && $event->paymentMethod === 'sepa_direct_debit'
                     && $event->taxSummary->items[0]->amount->toCents() === 850;
             });

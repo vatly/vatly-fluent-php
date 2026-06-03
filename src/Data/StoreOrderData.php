@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Data;
 
-use Vatly\API\Data\OrderLineData;
+use Vatly\API\Types\OrderLineData;
 use Vatly\API\Types\TaxSummaryCollection;
 
 /**

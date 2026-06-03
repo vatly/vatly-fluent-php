@@ -15,6 +15,7 @@ use Vatly\API\Webhooks\Events\RefundCanceled;
 use Vatly\API\Webhooks\Events\RefundCompleted;
 use Vatly\API\Webhooks\Events\RefundFailed;
 use Vatly\Fluent\Tests\TestCase;
+use Vatly\API\Types\Money;
 use Vatly\API\Types\TaxSummaryCollection;
 use Vatly\Fluent\Webhooks\Reactions\SyncRefundOnStatusChange;
 
@@ -39,7 +40,7 @@ class SyncRefundOnStatusChangeTest extends TestCase
             Mockery::mock(CustomerBindingRepository::class),
         );
 
-        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', 9900, 8182, new TaxSummaryCollection([]), 'EUR', null, null)));
+        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', self::money(9900), self::money(8182), new TaxSummaryCollection([]), null, null)));
     }
 
     public function test_it_updates_an_existing_refund_with_the_new_status(): void
@@ -89,10 +90,9 @@ class SyncRefundOnStatusChangeTest extends TestCase
             'cus_1',
             'refund_1',
             $status,
-            9900,
-            8182,
+            self::money(9900),
+            self::money(8182),
             new TaxSummaryCollection([]),
-            'EUR',
             'ord_original_1',
         );
     }

@@ -54,9 +54,13 @@ class SyncChargebackOnStatusChange implements WebhookReactionInterface
         if ($existing !== null) {
             $this->chargebacks->update($existing, new UpdateChargebackData(
                 status: $event->status,
-                total: $event->total,
+                // Chargeback events carry nullable Money — flatten when present,
+                // otherwise leave the field untouched (UpdateChargebackData
+                // treats null as "no change"). Currency is still a standalone
+                // field on these DTOs, so read it directly off the event.
+                total: $event->total?->toCents(),
                 currency: $event->currency,
-                subtotal: $event->subtotal,
+                subtotal: $event->subtotal?->toCents(),
                 taxSummary: $event->taxSummary,
                 reason: $event->reason,
             ));
@@ -74,11 +78,14 @@ class SyncChargebackOnStatusChange implements WebhookReactionInterface
             vatlyId: $event->chargebackId,
             customerId: $event->customerId,
             status: $event->status,
-            total: $event->total,
+            // StoreChargebackData::$total is a non-null int; nullable Money
+            // flattens to 0 when the sparse (un-enriched) webhook carried no
+            // amount. Currency stays a standalone event field here.
+            total: $event->total?->toCents() ?? 0,
             currency: $event->currency,
             originalOrderId: $event->originalOrderId,
             reason: $event->reason,
-            subtotal: $event->subtotal,
+            subtotal: $event->subtotal?->toCents(),
             taxSummary: $event->taxSummary,
             hostCustomerId: $hostCustomerId,
         ));

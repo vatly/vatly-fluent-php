@@ -8,6 +8,7 @@ use Mockery;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
 use Vatly\Fluent\Contracts\OrderInterface;
 use Vatly\Fluent\Contracts\OrderRepositoryInterface;
+use Vatly\API\Types\Money;
 use Vatly\API\Types\TaxSummaryCollection;
 use Vatly\API\Webhooks\Events\OrderPaid;
 use Vatly\API\Webhooks\Events\OrderPaymentFailed;
@@ -39,10 +40,9 @@ class StoreOrderOnPaymentFailedTest extends TestCase
             customerId: 'cus_1',
             orderId: 'ord_1',
             status: 'paid',
-            total: 9900,
-            subtotal: 8182,
+            total: self::money(9900),
+            subtotal: self::money(8182),
             taxSummary: new TaxSummaryCollection([]),
-            currency: 'EUR',
             invoiceNumber: null,
             paymentMethod: null,
         );
@@ -126,10 +126,9 @@ class StoreOrderOnPaymentFailedTest extends TestCase
             customerId: '',
             orderId: 'ord_anon',
             status: 'pending',
-            total: 4900,
-            subtotal: 4050,
+            total: self::money(4900),
+            subtotal: self::money(4050),
             taxSummary: new TaxSummaryCollection([]),
-            currency: 'EUR',
             invoiceNumber: null,
             paymentMethod: 'sepa_direct_debit',
         );
@@ -156,10 +155,9 @@ class StoreOrderOnPaymentFailedTest extends TestCase
             customerId: 'cus_1',
             orderId: 'ord_1',
             status: 'pending',
-            total: 4900,
-            subtotal: 4050,
+            total: self::money(4900),
+            subtotal: self::money(4050),
             taxSummary: new TaxSummaryCollection([]),
-            currency: 'EUR',
             invoiceNumber: null,
             paymentMethod: 'sepa_direct_debit',
             metadata: $metadata,
@@ -193,10 +191,9 @@ class StoreOrderOnPaymentFailedTest extends TestCase
             customerId: 'cus_1',
             orderId: 'ord_1',
             status: $status,
-            total: 4900,
-            subtotal: 4050,
+            total: self::money(4900),
+            subtotal: self::money(4050),
             taxSummary: $taxSummary ?? new TaxSummaryCollection([]),
-            currency: 'EUR',
             invoiceNumber: null,
             paymentMethod: 'sepa_direct_debit',
         );
