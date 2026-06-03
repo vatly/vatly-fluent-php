@@ -10,7 +10,7 @@ use Vatly\Fluent\Contracts\OrderInterface;
 use Vatly\Fluent\Contracts\OrderRepositoryInterface;
 use Vatly\API\Types\TaxSummaryCollection;
 use Vatly\API\Webhooks\Events\OrderPaid;
-use Vatly\API\Webhooks\Events\PaymentFailed;
+use Vatly\API\Webhooks\Events\OrderPaymentFailed;
 use Vatly\Fluent\Data\StoreOrderData;
 use Vatly\Fluent\Data\UpdateOrderData;
 use Vatly\Fluent\Tests\TestCase;
@@ -122,7 +122,7 @@ class StoreOrderOnPaymentFailedTest extends TestCase
 
     public function test_it_skips_bindings_when_customer_id_is_empty(): void
     {
-        $event = new PaymentFailed(
+        $event = new OrderPaymentFailed(
             customerId: '',
             orderId: 'ord_anon',
             status: 'pending',
@@ -152,7 +152,7 @@ class StoreOrderOnPaymentFailedTest extends TestCase
     public function test_it_plumbs_metadata_through_store_and_update_paths(): void
     {
         $metadata = ['fluentcart_transaction_id' => 'tx_42'];
-        $event = new PaymentFailed(
+        $event = new OrderPaymentFailed(
             customerId: 'cus_1',
             orderId: 'ord_1',
             status: 'pending',
@@ -187,9 +187,9 @@ class StoreOrderOnPaymentFailedTest extends TestCase
         (new StoreOrderOnPaymentFailed($updateRepo, Mockery::mock(CustomerBindingRepository::class)))->handle($event);
     }
 
-    private function makeEvent(?TaxSummaryCollection $taxSummary = null, string $status = 'pending'): PaymentFailed
+    private function makeEvent(?TaxSummaryCollection $taxSummary = null, string $status = 'pending'): OrderPaymentFailed
     {
-        return new PaymentFailed(
+        return new OrderPaymentFailed(
             customerId: 'cus_1',
             orderId: 'ord_1',
             status: $status,

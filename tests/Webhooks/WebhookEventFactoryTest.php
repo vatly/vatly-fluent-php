@@ -25,7 +25,7 @@ use Vatly\API\Webhooks\Events\OrderCanceled;
 use Vatly\API\Webhooks\Events\OrderChargebackReceived;
 use Vatly\API\Webhooks\Events\OrderChargebackReversed;
 use Vatly\API\Webhooks\Events\OrderPaid;
-use Vatly\API\Webhooks\Events\PaymentFailed;
+use Vatly\API\Webhooks\Events\OrderPaymentFailed;
 use Vatly\API\Webhooks\Events\RefundCanceled;
 use Vatly\API\Webhooks\Events\RefundCompleted;
 use Vatly\API\Webhooks\Events\RefundFailed;
@@ -37,6 +37,7 @@ use Vatly\API\Webhooks\Events\SubscriptionResumed;
 use Vatly\API\Webhooks\Events\SubscriptionStarted;
 use Vatly\API\Webhooks\Events\UnsupportedWebhookReceived;
 use Vatly\API\Webhooks\Events\WebhookReceived;
+use Vatly\API\Webhooks\Events\WebhookSetupReceived;
 use Vatly\Fluent\Tests\TestCase;
 use Vatly\Fluent\Webhooks\WebhookEventFactory;
 
@@ -549,7 +550,7 @@ class WebhookEventFactoryTest extends TestCase
         $webhook = new WebhookReceived(
             id: 'webhook_event_pf',
             resource: 'webhook_event',
-            eventName: 'payment.failed',
+            eventName: 'order.payment_failed',
             entityType: 'order',
             entityId: 'ord_dunning_1',
             testmode: false,
@@ -562,7 +563,7 @@ class WebhookEventFactoryTest extends TestCase
 
         $event = $this->factory->createFromWebhook($webhook);
 
-        $this->assertInstanceOf(PaymentFailed::class, $event);
+        $this->assertInstanceOf(OrderPaymentFailed::class, $event);
         $this->assertSame('cus_456', $event->customerId);
         $this->assertSame('ord_dunning_1', $event->orderId);
         $this->assertSame('pending', $event->status);
@@ -924,6 +925,28 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertSame('unknown.event', $event->eventName);
     }
 
+    public function test_it_creates_webhook_setup_received_event_from_webhook(): void
+    {
+        $webhook = new WebhookReceived(
+            id: 'webhook_event_setup',
+            resource: 'webhook_event',
+            eventName: 'webhook.setup',
+            entityType: 'webhook',
+            entityId: 'wh_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            object: ['url' => 'https://example.test/webhooks/vatly'],
+        );
+
+        $event = $this->factory->createFromWebhook($webhook);
+
+        // Regression: `webhook.setup` used to fall through to Unsupported.
+        $this->assertInstanceOf(WebhookSetupReceived::class, $event);
+        $this->assertSame('webhook.setup', $event->eventName);
+        $this->assertSame('wh_123', $event->entityId);
+        $this->assertSame(['url' => 'https://example.test/webhooks/vatly'], $event->object);
+    }
+
     public function test_it_returns_list_of_supported_events(): void
     {
         $supported = $this->factory->getSupportedEvents();
@@ -938,7 +961,7 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertContains('order.canceled', $supported);
         $this->assertContains('order.chargeback_received', $supported);
         $this->assertContains('order.chargeback_reversed', $supported);
-        $this->assertContains('payment.failed', $supported);
+        $this->assertContains('order.payment_failed', $supported);
         $this->assertContains('checkout.paid', $supported);
         $this->assertContains('checkout.failed', $supported);
         $this->assertContains('checkout.canceled', $supported);
@@ -946,6 +969,7 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertContains('refund.completed', $supported);
         $this->assertContains('refund.failed', $supported);
         $this->assertContains('refund.canceled', $supported);
+        $this->assertContains('webhook.setup', $supported);
     }
 
     public function test_it_checks_if_event_is_supported(): void
@@ -957,7 +981,7 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertTrue($this->factory->isSupported('order.canceled'));
         $this->assertTrue($this->factory->isSupported('order.chargeback_received'));
         $this->assertTrue($this->factory->isSupported('order.chargeback_reversed'));
-        $this->assertTrue($this->factory->isSupported('payment.failed'));
+        $this->assertTrue($this->factory->isSupported('order.payment_failed'));
         $this->assertTrue($this->factory->isSupported('checkout.paid'));
         $this->assertTrue($this->factory->isSupported('checkout.failed'));
         $this->assertTrue($this->factory->isSupported('checkout.canceled'));
@@ -966,6 +990,7 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertTrue($this->factory->isSupported('refund.completed'));
         $this->assertTrue($this->factory->isSupported('refund.failed'));
         $this->assertTrue($this->factory->isSupported('refund.canceled'));
+        $this->assertTrue($this->factory->isSupported('webhook.setup'));
         $this->assertFalse($this->factory->isSupported('unknown.event'));
     }
 

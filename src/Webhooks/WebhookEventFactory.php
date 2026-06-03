@@ -17,7 +17,7 @@ use Vatly\API\Webhooks\Events\OrderCanceled;
 use Vatly\API\Webhooks\Events\OrderChargebackReceived;
 use Vatly\API\Webhooks\Events\OrderChargebackReversed;
 use Vatly\API\Webhooks\Events\OrderPaid;
-use Vatly\API\Webhooks\Events\PaymentFailed;
+use Vatly\API\Webhooks\Events\OrderPaymentFailed;
 use Vatly\API\Webhooks\Events\RefundCanceled;
 use Vatly\API\Webhooks\Events\RefundCompleted;
 use Vatly\API\Webhooks\Events\RefundFailed;
@@ -29,6 +29,7 @@ use Vatly\API\Webhooks\Events\SubscriptionResumed;
 use Vatly\API\Webhooks\Events\SubscriptionStarted;
 use Vatly\API\Webhooks\Events\UnsupportedWebhookReceived;
 use Vatly\API\Webhooks\Events\WebhookReceived;
+use Vatly\API\Webhooks\Events\WebhookSetupReceived;
 
 class WebhookEventFactory
 {
@@ -55,7 +56,7 @@ class WebhookEventFactory
     /**
      * Create a typed event from a raw webhook.
      *
-     * For order-scoped events (`order.paid`, `payment.failed`) the factory
+     * For order-scoped events (`order.paid`, `order.payment_failed`) the factory
      * performs a follow-up API GET so the dispatched event carries the full
      * tax breakdown — webhook payloads themselves only include gross total.
      *
@@ -84,7 +85,7 @@ class WebhookEventFactory
      * and end timestamp, all present on the wire. They are dispatched-only — no
      * built-in reaction mutates local state.
      *
-     * @return SubscriptionStarted|SubscriptionBillingUpdated|SubscriptionResumed|SubscriptionCanceledImmediately|SubscriptionCanceledWithGracePeriod|SubscriptionCancellationGracePeriodCompleted|OrderPaid|OrderCanceled|OrderChargebackReceived|OrderChargebackReversed|PaymentFailed|CheckoutPaid|CheckoutFailed|CheckoutCanceled|CheckoutExpired|RefundCompleted|RefundFailed|RefundCanceled|UnsupportedWebhookReceived
+     * @return SubscriptionStarted|SubscriptionBillingUpdated|SubscriptionResumed|SubscriptionCanceledImmediately|SubscriptionCanceledWithGracePeriod|SubscriptionCancellationGracePeriodCompleted|OrderPaid|OrderCanceled|OrderChargebackReceived|OrderChargebackReversed|OrderPaymentFailed|CheckoutPaid|CheckoutFailed|CheckoutCanceled|CheckoutExpired|RefundCompleted|RefundFailed|RefundCanceled|WebhookSetupReceived|UnsupportedWebhookReceived
      */
     public function createFromWebhook(WebhookReceived $webhook): object
     {
@@ -99,7 +100,7 @@ class WebhookEventFactory
             OrderCanceled::VATLY_EVENT_NAME => OrderCanceled::fromWebhook($webhook),
             OrderChargebackReceived::VATLY_EVENT_NAME => $this->createOrderChargebackReceived($webhook),
             OrderChargebackReversed::VATLY_EVENT_NAME => $this->createOrderChargebackReversed($webhook),
-            PaymentFailed::VATLY_EVENT_NAME => $this->createPaymentFailed($webhook),
+            OrderPaymentFailed::VATLY_EVENT_NAME => $this->createOrderPaymentFailed($webhook),
             CheckoutPaid::VATLY_EVENT_NAME => CheckoutPaid::fromWebhook($webhook),
             CheckoutFailed::VATLY_EVENT_NAME => CheckoutFailed::fromWebhook($webhook),
             CheckoutCanceled::VATLY_EVENT_NAME => CheckoutCanceled::fromWebhook($webhook),
@@ -113,6 +114,7 @@ class WebhookEventFactory
             RefundCanceled::VATLY_EVENT_NAME => $this->getRefund !== null
                 ? RefundCanceled::fromApiRefund($this->getRefund->execute($webhook->entityId))
                 : UnsupportedWebhookReceived::fromWebhook($webhook),
+            WebhookSetupReceived::VATLY_EVENT_NAME => WebhookSetupReceived::fromWebhook($webhook),
             default => UnsupportedWebhookReceived::fromWebhook($webhook),
         };
     }
@@ -222,15 +224,15 @@ class WebhookEventFactory
     }
 
     /**
-     * Build a PaymentFailed event from the enriched API resource.
+     * Build an OrderPaymentFailed event from the enriched API resource.
      *
      * Same rationale as {@see self::createOrderPaid()}: rethrows on enrichment
      * failure rather than writing a degraded row. Tax breakdown is critical
      * for dunning-notification accuracy and downstream reconciliation.
      */
-    private function createPaymentFailed(WebhookReceived $webhook): PaymentFailed
+    private function createOrderPaymentFailed(WebhookReceived $webhook): OrderPaymentFailed
     {
-        return PaymentFailed::fromApiOrder($this->getOrder->execute($webhook->entityId));
+        return OrderPaymentFailed::fromApiOrder($this->getOrder->execute($webhook->entityId));
     }
 
     /**
@@ -274,11 +276,12 @@ class WebhookEventFactory
             OrderCanceled::VATLY_EVENT_NAME,
             OrderChargebackReceived::VATLY_EVENT_NAME,
             OrderChargebackReversed::VATLY_EVENT_NAME,
-            PaymentFailed::VATLY_EVENT_NAME,
+            OrderPaymentFailed::VATLY_EVENT_NAME,
             CheckoutPaid::VATLY_EVENT_NAME,
             CheckoutFailed::VATLY_EVENT_NAME,
             CheckoutCanceled::VATLY_EVENT_NAME,
             CheckoutExpired::VATLY_EVENT_NAME,
+            WebhookSetupReceived::VATLY_EVENT_NAME,
         ];
 
         // Refund events require `GetRefund` enrichment; only report them as

@@ -17,7 +17,7 @@ use Vatly\Fluent\Contracts\EventDispatcherInterface;
 use Vatly\Fluent\Contracts\WebhookCallRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
 use Vatly\API\Webhooks\Events\CheckoutPaid;
-use Vatly\API\Webhooks\Events\PaymentFailed;
+use Vatly\API\Webhooks\Events\OrderPaymentFailed;
 use Vatly\API\Webhooks\Events\SubscriptionStarted;
 use Vatly\API\Webhooks\Events\UnsupportedWebhookReceived;
 use Vatly\Fluent\Exceptions\InvalidWebhookSignatureException;
@@ -177,7 +177,7 @@ class WebhookProcessorTest extends TestCase
     {
         $payload = $this->makePayload(
             id: 'webhook_event_pf',
-            eventName: 'payment.failed',
+            eventName: 'order.payment_failed',
             entityType: 'order',
             entityId: 'ord_dunning_1',
             object: [
@@ -214,7 +214,7 @@ class WebhookProcessorTest extends TestCase
             ->shouldReceive('dispatch')
             ->once()
             ->withArgs(function (object $event) {
-                return $event instanceof PaymentFailed
+                return $event instanceof OrderPaymentFailed
                     && $event->customerId === 'cus_456'
                     && $event->orderId === 'ord_dunning_1'
                     && $event->status === 'pending'

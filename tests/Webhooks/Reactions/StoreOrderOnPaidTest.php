@@ -6,6 +6,7 @@ namespace Vatly\Fluent\Tests\Webhooks\Reactions;
 
 use Mockery;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
+use Vatly\Fluent\Contracts\EventDispatcherInterface;
 use Vatly\Fluent\Contracts\OrderInterface;
 use Vatly\Fluent\Contracts\OrderRepositoryInterface;
 use Vatly\API\Data\OrderLineData;
@@ -14,6 +15,7 @@ use Vatly\API\Webhooks\Events\OrderPaid;
 use Vatly\API\Webhooks\Events\SubscriptionStarted;
 use Vatly\Fluent\Data\StoreOrderData;
 use Vatly\Fluent\Data\UpdateOrderData;
+use Vatly\Fluent\Events\OrderWasCreatedFromWebhook;
 use Vatly\Fluent\Tests\TestCase;
 use Vatly\Fluent\Webhooks\Reactions\StoreOrderOnPaid;
 
@@ -24,6 +26,7 @@ class StoreOrderOnPaidTest extends TestCase
         $reaction = new StoreOrderOnPaid(
             Mockery::mock(OrderRepositoryInterface::class),
             Mockery::mock(CustomerBindingRepository::class),
+            Mockery::mock(EventDispatcherInterface::class),
         );
 
         $this->assertTrue($reaction->supports($this->makeEvent()));
@@ -34,6 +37,7 @@ class StoreOrderOnPaidTest extends TestCase
         $reaction = new StoreOrderOnPaid(
             Mockery::mock(OrderRepositoryInterface::class),
             Mockery::mock(CustomerBindingRepository::class),
+            Mockery::mock(EventDispatcherInterface::class),
         );
 
         $event = new SubscriptionStarted('cus_1', 'sub_1', 'plan_1', 'default', 'Monthly', 1);
@@ -46,6 +50,7 @@ class StoreOrderOnPaidTest extends TestCase
         $taxSummary = $this->makeTaxSummary();
         $event = $this->makeEvent(taxSummary: $taxSummary);
 
+        $order = Mockery::mock(OrderInterface::class);
         $repo = Mockery::mock(OrderRepositoryInterface::class);
         $repo->shouldReceive('findByVatlyId')->with('ord_1')->once()->andReturnNull();
         $repo->shouldReceive('store')->once()->with(Mockery::on(function (StoreOrderData $data) use ($taxSummary) {
@@ -59,17 +64,23 @@ class StoreOrderOnPaidTest extends TestCase
                 && $data->invoiceNumber === 'INV-001'
                 && $data->paymentMethod === 'card'
                 && $data->hostCustomerId === 'host_7';
-        }))->andReturn(Mockery::mock(OrderInterface::class));
+        }))->andReturn($order);
 
         $bindings = Mockery::mock(CustomerBindingRepository::class);
         $bindings->shouldReceive('hostCustomerIdFor')->with('cus_1')->once()->andReturn('host_7');
         $bindings->shouldReceive('record')->with('cus_1')->once();
 
-        $reaction = new StoreOrderOnPaid($repo, $bindings);
+        $dispatcher = Mockery::mock(EventDispatcherInterface::class);
+        $dispatcher->shouldReceive('dispatch')->once()->with(Mockery::on(function ($event) use ($order) {
+            return $event instanceof OrderWasCreatedFromWebhook
+                && $event->order === $order;
+        }));
+
+        $reaction = new StoreOrderOnPaid($repo, $bindings, $dispatcher);
         $reaction->handle($event);
     }
 
-    public function test_it_updates_an_existing_order_without_consulting_bindings(): void
+    public function test_it_updates_an_existing_order_without_consulting_bindings_or_dispatching(): void
     {
         $taxSummary = $this->makeTaxSummary();
         $event = $this->makeEvent(taxSummary: $taxSummary);
@@ -89,7 +100,29 @@ class StoreOrderOnPaidTest extends TestCase
         $bindings->shouldNotReceive('hostCustomerIdFor');
         $bindings->shouldNotReceive('record');
 
-        $reaction = new StoreOrderOnPaid($repo, $bindings);
+        $dispatcher = Mockery::mock(EventDispatcherInterface::class);
+        $dispatcher->shouldNotReceive('dispatch');
+
+        $reaction = new StoreOrderOnPaid($repo, $bindings, $dispatcher);
+        $reaction->handle($event);
+    }
+
+    public function test_it_does_not_dispatch_order_created_when_store_returns_null(): void
+    {
+        $event = $this->makeEvent();
+
+        $repo = Mockery::mock(OrderRepositoryInterface::class);
+        $repo->shouldReceive('findByVatlyId')->with('ord_1')->once()->andReturnNull();
+        $repo->shouldReceive('store')->once()->andReturnNull();
+
+        $bindings = Mockery::mock(CustomerBindingRepository::class);
+        $bindings->shouldReceive('hostCustomerIdFor')->with('cus_1')->once()->andReturnNull();
+        $bindings->shouldReceive('record')->with('cus_1')->once();
+
+        $dispatcher = Mockery::mock(EventDispatcherInterface::class);
+        $dispatcher->shouldNotReceive('dispatch');
+
+        $reaction = new StoreOrderOnPaid($repo, $bindings, $dispatcher);
         $reaction->handle($event);
     }
 
@@ -119,7 +152,10 @@ class StoreOrderOnPaidTest extends TestCase
         $bindings->shouldNotReceive('hostCustomerIdFor');
         $bindings->shouldNotReceive('record');
 
-        (new StoreOrderOnPaid($repo, $bindings))->handle($event);
+        $dispatcher = Mockery::mock(EventDispatcherInterface::class);
+        $dispatcher->shouldReceive('dispatch')->once();
+
+        (new StoreOrderOnPaid($repo, $bindings, $dispatcher))->handle($event);
     }
 
     public function test_it_plumbs_metadata_through_store_and_update_paths(): void
@@ -148,7 +184,10 @@ class StoreOrderOnPaidTest extends TestCase
         $bindings->shouldReceive('hostCustomerIdFor')->andReturn(null);
         $bindings->shouldReceive('record')->once();
 
-        (new StoreOrderOnPaid($repo, $bindings))->handle($event);
+        $dispatcher = Mockery::mock(EventDispatcherInterface::class);
+        $dispatcher->shouldReceive('dispatch')->once();
+
+        (new StoreOrderOnPaid($repo, $bindings, $dispatcher))->handle($event);
 
         $existing = Mockery::mock(OrderInterface::class);
         $updateRepo = Mockery::mock(OrderRepositoryInterface::class);
@@ -157,7 +196,10 @@ class StoreOrderOnPaidTest extends TestCase
             fn (UpdateOrderData $data) => $data->metadata === $metadata,
         ))->andReturn($existing);
 
-        (new StoreOrderOnPaid($updateRepo, Mockery::mock(CustomerBindingRepository::class)))->handle($event);
+        $updateDispatcher = Mockery::mock(EventDispatcherInterface::class);
+        $updateDispatcher->shouldNotReceive('dispatch');
+
+        (new StoreOrderOnPaid($updateRepo, Mockery::mock(CustomerBindingRepository::class), $updateDispatcher))->handle($event);
     }
 
     public function test_it_forwards_order_lines_into_store_order_data(): void
@@ -199,7 +241,10 @@ class StoreOrderOnPaidTest extends TestCase
         $bindings->shouldReceive('hostCustomerIdFor')->andReturn(null);
         $bindings->shouldReceive('record')->once();
 
-        (new StoreOrderOnPaid($repo, $bindings))->handle($event);
+        $dispatcher = Mockery::mock(EventDispatcherInterface::class);
+        $dispatcher->shouldReceive('dispatch')->once();
+
+        (new StoreOrderOnPaid($repo, $bindings, $dispatcher))->handle($event);
     }
 
     public function test_it_does_not_re_write_lines_for_an_already_persisted_order(): void
@@ -212,7 +257,10 @@ class StoreOrderOnPaidTest extends TestCase
         $repo->shouldReceive('update')->once()->andReturn($existing);
         $repo->shouldNotReceive('store');
 
-        (new StoreOrderOnPaid($repo, Mockery::mock(CustomerBindingRepository::class)))->handle($event);
+        $dispatcher = Mockery::mock(EventDispatcherInterface::class);
+        $dispatcher->shouldNotReceive('dispatch');
+
+        (new StoreOrderOnPaid($repo, Mockery::mock(CustomerBindingRepository::class), $dispatcher))->handle($event);
     }
 
     private function makeEvent(?TaxSummaryCollection $taxSummary = null): OrderPaid
