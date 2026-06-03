@@ -8,14 +8,12 @@ use Mockery;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
 use Vatly\Fluent\Contracts\OrderInterface;
 use Vatly\Fluent\Contracts\OrderRepositoryInterface;
+use Vatly\API\Types\TaxSummaryCollection;
+use Vatly\API\Webhooks\Events\OrderPaid;
+use Vatly\API\Webhooks\Events\PaymentFailed;
 use Vatly\Fluent\Data\StoreOrderData;
 use Vatly\Fluent\Data\UpdateOrderData;
-use Vatly\Fluent\Events\OrderPaid;
-use Vatly\Fluent\Events\PaymentFailed;
 use Vatly\Fluent\Tests\TestCase;
-use Vatly\Fluent\Types\TaxSummary;
-use Vatly\Fluent\Types\TaxSummaryItem;
-use Vatly\Fluent\Types\TaxSummaryRate;
 use Vatly\Fluent\Webhooks\Reactions\StoreOrderOnPaymentFailed;
 
 class StoreOrderOnPaymentFailedTest extends TestCase
@@ -43,7 +41,7 @@ class StoreOrderOnPaymentFailedTest extends TestCase
             status: 'paid',
             total: 9900,
             subtotal: 8182,
-            taxSummary: TaxSummary::empty(),
+            taxSummary: new TaxSummaryCollection([]),
             currency: 'EUR',
             invoiceNumber: null,
             paymentMethod: null,
@@ -130,7 +128,7 @@ class StoreOrderOnPaymentFailedTest extends TestCase
             status: 'pending',
             total: 4900,
             subtotal: 4050,
-            taxSummary: TaxSummary::empty(),
+            taxSummary: new TaxSummaryCollection([]),
             currency: 'EUR',
             invoiceNumber: null,
             paymentMethod: 'sepa_direct_debit',
@@ -160,7 +158,7 @@ class StoreOrderOnPaymentFailedTest extends TestCase
             status: 'pending',
             total: 4900,
             subtotal: 4050,
-            taxSummary: TaxSummary::empty(),
+            taxSummary: new TaxSummaryCollection([]),
             currency: 'EUR',
             invoiceNumber: null,
             paymentMethod: 'sepa_direct_debit',
@@ -189,7 +187,7 @@ class StoreOrderOnPaymentFailedTest extends TestCase
         (new StoreOrderOnPaymentFailed($updateRepo, Mockery::mock(CustomerBindingRepository::class)))->handle($event);
     }
 
-    private function makeEvent(?TaxSummary $taxSummary = null, string $status = 'pending'): PaymentFailed
+    private function makeEvent(?TaxSummaryCollection $taxSummary = null, string $status = 'pending'): PaymentFailed
     {
         return new PaymentFailed(
             customerId: 'cus_1',
@@ -197,21 +195,20 @@ class StoreOrderOnPaymentFailedTest extends TestCase
             status: $status,
             total: 4900,
             subtotal: 4050,
-            taxSummary: $taxSummary ?? TaxSummary::empty(),
+            taxSummary: $taxSummary ?? new TaxSummaryCollection([]),
             currency: 'EUR',
             invoiceNumber: null,
             paymentMethod: 'sepa_direct_debit',
         );
     }
 
-    private function makeTaxSummary(): TaxSummary
+    private function makeTaxSummary(): TaxSummaryCollection
     {
-        return new TaxSummary([
-            new TaxSummaryItem(
-                rate: new TaxSummaryRate('VAT', 21.0, 100.0),
-                amount: 850,
-                currency: 'EUR',
-            ),
+        return new TaxSummaryCollection([
+            [
+                'taxRate' => ['name' => 'VAT', 'percentage' => 21.0, 'taxablePercentage' => 100.0],
+                'amount' => ['currency' => 'EUR', 'value' => '8.50'],
+            ],
         ]);
     }
 }

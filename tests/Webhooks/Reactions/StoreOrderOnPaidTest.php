@@ -8,15 +8,13 @@ use Mockery;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
 use Vatly\Fluent\Contracts\OrderInterface;
 use Vatly\Fluent\Contracts\OrderRepositoryInterface;
-use Vatly\Fluent\Data\OrderLineData;
+use Vatly\API\Data\OrderLineData;
+use Vatly\API\Types\TaxSummaryCollection;
+use Vatly\API\Webhooks\Events\OrderPaid;
+use Vatly\API\Webhooks\Events\SubscriptionStarted;
 use Vatly\Fluent\Data\StoreOrderData;
 use Vatly\Fluent\Data\UpdateOrderData;
-use Vatly\Fluent\Events\OrderPaid;
-use Vatly\Fluent\Events\SubscriptionStarted;
 use Vatly\Fluent\Tests\TestCase;
-use Vatly\Fluent\Types\TaxSummary;
-use Vatly\Fluent\Types\TaxSummaryItem;
-use Vatly\Fluent\Types\TaxSummaryRate;
 use Vatly\Fluent\Webhooks\Reactions\StoreOrderOnPaid;
 
 class StoreOrderOnPaidTest extends TestCase
@@ -103,7 +101,7 @@ class StoreOrderOnPaidTest extends TestCase
             status: 'paid',
             total: 9900,
             subtotal: 8182,
-            taxSummary: TaxSummary::empty(),
+            taxSummary: new TaxSummaryCollection([]),
             currency: 'EUR',
             invoiceNumber: 'INV-001',
             paymentMethod: 'card',
@@ -133,7 +131,7 @@ class StoreOrderOnPaidTest extends TestCase
             status: 'paid',
             total: 9900,
             subtotal: 8182,
-            taxSummary: TaxSummary::empty(),
+            taxSummary: new TaxSummaryCollection([]),
             currency: 'EUR',
             invoiceNumber: 'INV-001',
             paymentMethod: 'card',
@@ -172,7 +170,7 @@ class StoreOrderOnPaidTest extends TestCase
                 basePrice: 2000,
                 total: 2420,
                 subtotal: 2000,
-                taxSummary: TaxSummary::empty(),
+                taxSummary: new TaxSummaryCollection([]),
                 productType: 'subscription',
                 productId: 'subscription_abc',
             ),
@@ -184,7 +182,7 @@ class StoreOrderOnPaidTest extends TestCase
             status: 'paid',
             total: 9900,
             subtotal: 8182,
-            taxSummary: TaxSummary::empty(),
+            taxSummary: new TaxSummaryCollection([]),
             currency: 'EUR',
             invoiceNumber: 'INV-001',
             paymentMethod: 'card',
@@ -217,7 +215,7 @@ class StoreOrderOnPaidTest extends TestCase
         (new StoreOrderOnPaid($repo, Mockery::mock(CustomerBindingRepository::class)))->handle($event);
     }
 
-    private function makeEvent(?TaxSummary $taxSummary = null): OrderPaid
+    private function makeEvent(?TaxSummaryCollection $taxSummary = null): OrderPaid
     {
         return new OrderPaid(
             customerId: 'cus_1',
@@ -225,21 +223,20 @@ class StoreOrderOnPaidTest extends TestCase
             status: 'paid',
             total: 9900,
             subtotal: 8182,
-            taxSummary: $taxSummary ?? TaxSummary::empty(),
+            taxSummary: $taxSummary ?? new TaxSummaryCollection([]),
             currency: 'EUR',
             invoiceNumber: 'INV-001',
             paymentMethod: 'card',
         );
     }
 
-    private function makeTaxSummary(): TaxSummary
+    private function makeTaxSummary(): TaxSummaryCollection
     {
-        return new TaxSummary([
-            new TaxSummaryItem(
-                rate: new TaxSummaryRate('VAT', 21.0, 100.0),
-                amount: 1718,
-                currency: 'EUR',
-            ),
+        return new TaxSummaryCollection([
+            [
+                'taxRate' => ['name' => 'VAT', 'percentage' => 21.0, 'taxablePercentage' => 100.0],
+                'amount' => ['currency' => 'EUR', 'value' => '17.18'],
+            ],
         ]);
     }
 }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Contracts;
 
-use Vatly\Fluent\Data\OrderLineData;
+use Vatly\API\Data\OrderLineData;
 
 /**
  * Write-side of the order-line repository contract.

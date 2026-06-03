@@ -16,10 +16,10 @@ use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\Fluent\Contracts\EventDispatcherInterface;
 use Vatly\Fluent\Contracts\WebhookCallRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
-use Vatly\Fluent\Events\CheckoutPaid;
-use Vatly\Fluent\Events\PaymentFailed;
-use Vatly\Fluent\Events\SubscriptionStarted;
-use Vatly\Fluent\Events\UnsupportedWebhookReceived;
+use Vatly\API\Webhooks\Events\CheckoutPaid;
+use Vatly\API\Webhooks\Events\PaymentFailed;
+use Vatly\API\Webhooks\Events\SubscriptionStarted;
+use Vatly\API\Webhooks\Events\UnsupportedWebhookReceived;
 use Vatly\Fluent\Exceptions\InvalidWebhookSignatureException;
 use Vatly\Fluent\Tests\TestCase;
 use Vatly\Fluent\Webhooks\WebhookEventFactory;
@@ -222,7 +222,7 @@ class WebhookProcessorTest extends TestCase
                     && $event->subtotal === 4050
                     && $event->currency === 'EUR'
                     && $event->paymentMethod === 'sepa_direct_debit'
-                    && $event->taxSummary->items[0]->amount === 850;
+                    && $event->taxSummary->items[0]->amount->toCents() === 850;
             });
 
         $this->processor->handle($payload, $signature);

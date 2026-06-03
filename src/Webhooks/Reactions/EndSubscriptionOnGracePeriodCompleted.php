@@ -7,7 +7,7 @@ namespace Vatly\Fluent\Webhooks\Reactions;
 use Vatly\Fluent\Contracts\SubscriptionRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
 use Vatly\Fluent\Data\UpdateSubscriptionData;
-use Vatly\Fluent\Events\SubscriptionCancellationGracePeriodCompleted;
+use Vatly\API\Webhooks\Events\SubscriptionCancellationGracePeriodCompleted;
 
 /**
  * Stamps the actual end date onto the local subscription when its cancellation

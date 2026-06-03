@@ -10,12 +10,12 @@ use Vatly\Fluent\Contracts\RefundInterface;
 use Vatly\Fluent\Contracts\RefundRepositoryInterface;
 use Vatly\Fluent\Data\StoreRefundData;
 use Vatly\Fluent\Data\UpdateRefundData;
-use Vatly\Fluent\Events\OrderPaid;
-use Vatly\Fluent\Events\RefundCanceled;
-use Vatly\Fluent\Events\RefundCompleted;
-use Vatly\Fluent\Events\RefundFailed;
+use Vatly\API\Webhooks\Events\OrderPaid;
+use Vatly\API\Webhooks\Events\RefundCanceled;
+use Vatly\API\Webhooks\Events\RefundCompleted;
+use Vatly\API\Webhooks\Events\RefundFailed;
 use Vatly\Fluent\Tests\TestCase;
-use Vatly\Fluent\Types\TaxSummary;
+use Vatly\API\Types\TaxSummaryCollection;
 use Vatly\Fluent\Webhooks\Reactions\SyncRefundOnStatusChange;
 
 class SyncRefundOnStatusChangeTest extends TestCase
@@ -39,7 +39,7 @@ class SyncRefundOnStatusChangeTest extends TestCase
             Mockery::mock(CustomerBindingRepository::class),
         );
 
-        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', 9900, 8182, TaxSummary::empty(), 'EUR', null, null)));
+        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', 9900, 8182, new TaxSummaryCollection([]), 'EUR', null, null)));
     }
 
     public function test_it_updates_an_existing_refund_with_the_new_status(): void
@@ -91,7 +91,7 @@ class SyncRefundOnStatusChangeTest extends TestCase
             $status,
             9900,
             8182,
-            TaxSummary::empty(),
+            new TaxSummaryCollection([]),
             'EUR',
             'ord_original_1',
         );

@@ -12,10 +12,10 @@ use Vatly\Fluent\Contracts\SubscriptionRepositoryInterface;
 use Vatly\Fluent\Data\StoreSubscriptionData;
 use Vatly\Fluent\Data\UpdateSubscriptionData;
 use Vatly\Fluent\Events\LocalSubscriptionCreated;
-use Vatly\Fluent\Events\OrderPaid;
-use Vatly\Fluent\Events\SubscriptionStarted;
+use Vatly\API\Webhooks\Events\OrderPaid;
+use Vatly\API\Webhooks\Events\SubscriptionStarted;
 use Vatly\Fluent\Tests\TestCase;
-use Vatly\Fluent\Types\TaxSummary;
+use Vatly\API\Types\TaxSummaryCollection;
 use Vatly\Fluent\Webhooks\Reactions\SyncSubscriptionOnStarted;
 
 class SyncSubscriptionOnStartedTest extends TestCase
@@ -41,7 +41,7 @@ class SyncSubscriptionOnStartedTest extends TestCase
             Mockery::mock(EventDispatcherInterface::class),
         );
 
-        $event = new OrderPaid('cus_1', 'ord_1', 'paid', 9900, 8182, TaxSummary::empty(), 'EUR', null, null);
+        $event = new OrderPaid('cus_1', 'ord_1', 'paid', 9900, 8182, new TaxSummaryCollection([]), 'EUR', null, null);
 
         $this->assertFalse($reaction->supports($event));
     }

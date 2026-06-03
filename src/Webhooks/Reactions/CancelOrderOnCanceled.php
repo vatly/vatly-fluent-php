@@ -7,7 +7,7 @@ namespace Vatly\Fluent\Webhooks\Reactions;
 use Vatly\Fluent\Contracts\OrderRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
 use Vatly\Fluent\Data\UpdateOrderData;
-use Vatly\Fluent\Events\OrderCanceled;
+use Vatly\API\Webhooks\Events\OrderCanceled;
 
 /**
  * Mirrors an order cancellation from Vatly onto the local order row.

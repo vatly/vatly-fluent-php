@@ -9,10 +9,10 @@ use Mockery;
 use Vatly\Fluent\Contracts\SubscriptionInterface;
 use Vatly\Fluent\Contracts\SubscriptionRepositoryInterface;
 use Vatly\Fluent\Data\UpdateSubscriptionData;
-use Vatly\Fluent\Events\OrderPaid;
-use Vatly\Fluent\Events\SubscriptionCancellationGracePeriodCompleted;
+use Vatly\API\Webhooks\Events\OrderPaid;
+use Vatly\API\Webhooks\Events\SubscriptionCancellationGracePeriodCompleted;
 use Vatly\Fluent\Tests\TestCase;
-use Vatly\Fluent\Types\TaxSummary;
+use Vatly\API\Types\TaxSummaryCollection;
 use Vatly\Fluent\Webhooks\Reactions\EndSubscriptionOnGracePeriodCompleted;
 
 class EndSubscriptionOnGracePeriodCompletedTest extends TestCase
@@ -34,7 +34,7 @@ class EndSubscriptionOnGracePeriodCompletedTest extends TestCase
             Mockery::mock(SubscriptionRepositoryInterface::class),
         );
 
-        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', 9900, 8182, TaxSummary::empty(), 'EUR', null, null)));
+        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', 9900, 8182, new TaxSummaryCollection([]), 'EUR', null, null)));
     }
 
     public function test_it_stamps_the_actual_ends_at_onto_an_existing_subscription(): void

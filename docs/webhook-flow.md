@@ -1,6 +1,8 @@
 # Webhook flow: event → reaction → repo method → fields
 
-A driver author shouldn't have to read four directories (`src/Events/`, `src/Webhooks/Reactions/`, `WebhookEventFactory`, `src/Contracts/`) to answer *"if I implement `OrderWriter::store`, which webhooks flow into it and with what data?"* This page is that single reference.
+A driver author shouldn't have to read four directories (the event DTOs in `vatly-api-php`'s `Vatly\API\Webhooks\Events\*`, `src/Webhooks/Reactions/`, `WebhookEventFactory`, `src/Contracts/`) to answer *"if I implement `OrderWriter::store`, which webhooks flow into it and with what data?"* This page is that single reference.
+
+> **Where the event DTOs live:** the typed webhook events (`OrderPaid`, `PaymentFailed`, `SubscriptionStarted`, …) are owned by **`vatly-api-php`** under `Vatly\API\Webhooks\Events\*` and consumed by fluent — fluent no longer ships its own `src/Events/` copies (only the internal `LocalSubscriptionCreated` / `NullEventDispatcher` remain in `Vatly\Fluent\Events\`). Their `taxSummary` field is a `Vatly\API\Types\TaxSummaryCollection` whose items expose `taxRate` (a `TaxSummaryRate`) + `amount` (a `Money`); call `$item->amount->toCents()` for integer cents. Order lines are `Vatly\API\Data\OrderLineData[]`. The orchestration (`WebhookEventFactory`, the reactions, `WebhookProcessor`) stays in fluent.
 
 The [README's "Webhook pipeline at a glance"](../README.md#webhook-pipeline-at-a-glance) table is the quick version; this one adds the **fields drivers care about** column so you know exactly what each `Store*Data` / event carries.
 

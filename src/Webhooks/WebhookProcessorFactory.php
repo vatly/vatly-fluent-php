@@ -40,7 +40,7 @@ class WebhookProcessorFactory
      * that only wires subscriptions/orders can keep calling this exactly as
      * before. Pass `getRefund` (and `refunds`) only to opt into refund handling
      * — when `getRefund` is null, `refund.*` webhooks degrade to
-     * {@see \Vatly\Fluent\Events\UnsupportedWebhookReceived} (the pre-refund
+     * {@see \Vatly\API\Webhooks\Events\UnsupportedWebhookReceived} (the pre-refund
      * behavior), and the {@see SyncRefundOnStatusChange} reaction is registered
      * only when `refunds` is supplied.
      *

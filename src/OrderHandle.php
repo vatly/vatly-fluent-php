@@ -13,7 +13,6 @@ use Vatly\Fluent\Contracts\OrderLineInterface;
 use Vatly\Fluent\Contracts\OrderLineReader;
 use Vatly\Fluent\Contracts\RefundInterface;
 use Vatly\Fluent\Contracts\RefundReader;
-use Vatly\Fluent\Types\Money;
 
 /**
  * Framework-agnostic operations on an order.
@@ -139,7 +138,7 @@ class OrderHandle
      */
     public function reversedSubtotal(): int
     {
-        return Money::fromApiMoneyToCents($this->apiOrder()->reversedSubtotal);
+        return $this->apiOrder()->reversedSubtotal->toCents();
     }
 
     /**
@@ -148,7 +147,7 @@ class OrderHandle
      */
     public function refundableSubtotal(): int
     {
-        return Money::fromApiMoneyToCents($this->apiOrder()->refundableSubtotal);
+        return $this->apiOrder()->refundableSubtotal->toCents();
     }
 
     /**

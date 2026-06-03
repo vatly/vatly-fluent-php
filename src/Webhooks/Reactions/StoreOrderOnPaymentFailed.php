@@ -9,7 +9,7 @@ use Vatly\Fluent\Contracts\OrderRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
 use Vatly\Fluent\Data\StoreOrderData;
 use Vatly\Fluent\Data\UpdateOrderData;
-use Vatly\Fluent\Events\PaymentFailed;
+use Vatly\API\Webhooks\Events\PaymentFailed;
 
 /**
  * Mirrors {@see StoreOrderOnPaid}: ensures the local order row reflects the

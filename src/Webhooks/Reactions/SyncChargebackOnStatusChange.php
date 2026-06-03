@@ -9,8 +9,8 @@ use Vatly\Fluent\Contracts\CustomerBindingRepository;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
 use Vatly\Fluent\Data\StoreChargebackData;
 use Vatly\Fluent\Data\UpdateChargebackData;
-use Vatly\Fluent\Events\OrderChargebackReceived;
-use Vatly\Fluent\Events\OrderChargebackReversed;
+use Vatly\API\Webhooks\Events\OrderChargebackReceived;
+use Vatly\API\Webhooks\Events\OrderChargebackReversed;
 
 /**
  * Persists `order.chargeback_*` webhooks onto the driver's local chargeback row

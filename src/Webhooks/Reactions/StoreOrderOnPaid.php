@@ -9,7 +9,7 @@ use Vatly\Fluent\Contracts\OrderRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
 use Vatly\Fluent\Data\StoreOrderData;
 use Vatly\Fluent\Data\UpdateOrderData;
-use Vatly\Fluent\Events\OrderPaid;
+use Vatly\API\Webhooks\Events\OrderPaid;
 
 /**
  * @immutable
