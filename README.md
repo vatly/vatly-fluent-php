@@ -429,19 +429,25 @@ They run after fluent's built-in reactions (subscription sync, order persistence
 ```php
 $vatly = $container->get(Vatly::class);
 
+// Vatly ids are prefixed — subscription plans are `subscription_plan_…`,
+// one-off products `one_off_product_…`. Find them in the Vatly dashboard
+// or via `GET /subscription-plans`.
+
 // Create a checkout — pass in a CustomerProfile carrying whatever the host knows.
 use Vatly\Fluent\CustomerProfile;
 
+// Each checkout item id is a Vatly product: `one_off_product_…` for a one-off
+// product or `subscription_plan_…` for a subscription plan.
 $checkout = $vatly
     ->checkoutBuilder(new CustomerProfile(vatlyId: $user->vatly_id))
     ->withRedirectUrlSuccess('https://app.example.com/done')
     ->withRedirectUrlCanceled('https://app.example.com/oops')
-    ->create([['id' => 'plan_premium', 'quantity' => 1]], '...', '...');
+    ->create([['id' => 'one_off_product_3Qb8Wz1Yt', 'quantity' => 1]], '...', '...');
 
 // Subscribe
 $checkout = $vatly
     ->subscriptionBuilder(new CustomerProfile(vatlyId: $user->vatly_id))
-    ->toPlan('plan_premium')
+    ->toPlan('subscription_plan_7Hd9Kf2Lm')
     ->create();
 
 // Subscribe with a free trial. withTrialDays() is the whole-day form;
@@ -449,7 +455,7 @@ $checkout = $vatly
 // (Vatly's trial input is day-granular) so the trial never ends early.
 $checkout = $vatly
     ->subscriptionBuilder(new CustomerProfile(vatlyId: $user->vatly_id))
-    ->toPlan('plan_premium')
+    ->toPlan('subscription_plan_7Hd9Kf2Lm')
     ->withTrialDays(14)
     ->create();
 
