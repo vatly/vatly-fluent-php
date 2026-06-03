@@ -73,7 +73,7 @@ class WebhookProcessorFactory
             new ResumeSubscriptionOnResumed($subscriptions),
             new CancelSubscriptionOnCanceled($subscriptions),
             new EndSubscriptionOnGracePeriodCompleted($subscriptions),
-            new StoreOrderOnPaid($orders, $bindings),
+            new StoreOrderOnPaid($orders, $bindings, $dispatcher),
             new StoreOrderOnPaymentFailed($orders, $bindings),
             new CancelOrderOnCanceled($orders),
         ];

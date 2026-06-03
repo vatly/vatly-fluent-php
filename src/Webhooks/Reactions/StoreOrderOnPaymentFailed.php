@@ -9,11 +9,11 @@ use Vatly\Fluent\Contracts\OrderRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
 use Vatly\Fluent\Data\StoreOrderData;
 use Vatly\Fluent\Data\UpdateOrderData;
-use Vatly\API\Webhooks\Events\PaymentFailed;
+use Vatly\API\Webhooks\Events\OrderPaymentFailed;
 
 /**
  * Mirrors {@see StoreOrderOnPaid}: ensures the local order row reflects the
- * upstream order state after a `payment.failed` webhook. The persisted status
+ * upstream order state after an `order.payment_failed` webhook. The persisted status
  * is whatever Vatly's enriched Order resource currently reports (typically
  * `pending` during dunning) — we deliberately don't synthesise a
  * driver-specific status like `'failed'`, so `OrderInterface::getStatus()`
@@ -30,12 +30,12 @@ class StoreOrderOnPaymentFailed implements WebhookReactionInterface
 
     public function supports(object $event): bool
     {
-        return $event instanceof PaymentFailed;
+        return $event instanceof OrderPaymentFailed;
     }
 
     public function handle(object $event): void
     {
-        /** @var PaymentFailed $event */
+        /** @var OrderPaymentFailed $event */
         $existing = $this->orders->findByVatlyId($event->orderId);
 
         if ($existing !== null) {

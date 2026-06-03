@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Vatly\Fluent\Webhooks\Reactions;
 
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
+use Vatly\Fluent\Contracts\EventDispatcherInterface;
 use Vatly\Fluent\Contracts\OrderRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
 use Vatly\Fluent\Data\StoreOrderData;
 use Vatly\Fluent\Data\UpdateOrderData;
+use Vatly\Fluent\Events\OrderWasCreatedFromWebhook;
 use Vatly\API\Webhooks\Events\OrderPaid;
 
 /**
@@ -19,6 +21,7 @@ class StoreOrderOnPaid implements WebhookReactionInterface
     public function __construct(
         private OrderRepositoryInterface $orders,
         private CustomerBindingRepository $bindings,
+        private EventDispatcherInterface $dispatcher,
     ) {}
 
     public function supports(object $event): bool
@@ -55,7 +58,7 @@ class StoreOrderOnPaid implements WebhookReactionInterface
             $this->bindings->record($event->customerId);
         }
 
-        $this->orders->store(new StoreOrderData(
+        $order = $this->orders->store(new StoreOrderData(
             vatlyId: $event->orderId,
             customerId: $event->customerId,
             status: $event->status,
@@ -71,5 +74,15 @@ class StoreOrderOnPaid implements WebhookReactionInterface
             // initial store — the update path above leaves existing lines as-is.
             lines: $event->lines,
         ));
+
+        // Driver may legitimately decline to persist (store() returns null) —
+        // only announce the local order when a row was actually created. This
+        // fires exactly once per brand-new order (not on the update path above),
+        // mirroring SyncSubscriptionOnStarted.
+        if ($order === null) {
+            return;
+        }
+
+        $this->dispatcher->dispatch(new OrderWasCreatedFromWebhook($order));
     }
 }
