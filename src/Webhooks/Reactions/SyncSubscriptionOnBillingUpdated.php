@@ -7,7 +7,7 @@ namespace Vatly\Fluent\Webhooks\Reactions;
 use Vatly\Fluent\Contracts\SubscriptionRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
 use Vatly\Fluent\Data\UpdateSubscriptionData;
-use Vatly\Fluent\Events\SubscriptionBillingUpdated;
+use Vatly\API\Webhooks\Events\SubscriptionBillingUpdated;
 
 /**
  * Refreshes the locally-stored subscription when its billing details change

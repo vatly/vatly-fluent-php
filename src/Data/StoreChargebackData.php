@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Data;
 
-use Vatly\Fluent\Types\TaxSummary;
+use Vatly\API\Types\TaxSummaryCollection;
 
 /**
  * Data for storing a new chargeback from Vatly.
@@ -22,7 +22,7 @@ class StoreChargebackData
         public string $originalOrderId,
         public ?string $reason = null,
         public ?int $subtotal = null,
-        public ?TaxSummary $taxSummary = null,
+        public ?TaxSummaryCollection $taxSummary = null,
         public ?string $hostCustomerId = null,
     ) {}
 }

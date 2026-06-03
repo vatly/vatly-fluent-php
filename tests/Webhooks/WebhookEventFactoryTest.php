@@ -17,26 +17,26 @@ use Vatly\API\Webhooks\WebhookPayload;
 use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Actions\GetRefund;
 use Vatly\Fluent\Actions\GetSubscription;
-use Vatly\Fluent\Events\CheckoutCanceled;
-use Vatly\Fluent\Events\CheckoutExpired;
-use Vatly\Fluent\Events\CheckoutFailed;
-use Vatly\Fluent\Events\CheckoutPaid;
-use Vatly\Fluent\Events\OrderCanceled;
-use Vatly\Fluent\Events\OrderChargebackReceived;
-use Vatly\Fluent\Events\OrderChargebackReversed;
-use Vatly\Fluent\Events\OrderPaid;
-use Vatly\Fluent\Events\PaymentFailed;
-use Vatly\Fluent\Events\RefundCanceled;
-use Vatly\Fluent\Events\RefundCompleted;
-use Vatly\Fluent\Events\RefundFailed;
-use Vatly\Fluent\Events\SubscriptionBillingUpdated;
-use Vatly\Fluent\Events\SubscriptionCanceledImmediately;
-use Vatly\Fluent\Events\SubscriptionCanceledWithGracePeriod;
-use Vatly\Fluent\Events\SubscriptionCancellationGracePeriodCompleted;
-use Vatly\Fluent\Events\SubscriptionResumed;
-use Vatly\Fluent\Events\SubscriptionStarted;
-use Vatly\Fluent\Events\UnsupportedWebhookReceived;
-use Vatly\Fluent\Events\WebhookReceived;
+use Vatly\API\Webhooks\Events\CheckoutCanceled;
+use Vatly\API\Webhooks\Events\CheckoutExpired;
+use Vatly\API\Webhooks\Events\CheckoutFailed;
+use Vatly\API\Webhooks\Events\CheckoutPaid;
+use Vatly\API\Webhooks\Events\OrderCanceled;
+use Vatly\API\Webhooks\Events\OrderChargebackReceived;
+use Vatly\API\Webhooks\Events\OrderChargebackReversed;
+use Vatly\API\Webhooks\Events\OrderPaid;
+use Vatly\API\Webhooks\Events\PaymentFailed;
+use Vatly\API\Webhooks\Events\RefundCanceled;
+use Vatly\API\Webhooks\Events\RefundCompleted;
+use Vatly\API\Webhooks\Events\RefundFailed;
+use Vatly\API\Webhooks\Events\SubscriptionBillingUpdated;
+use Vatly\API\Webhooks\Events\SubscriptionCanceledImmediately;
+use Vatly\API\Webhooks\Events\SubscriptionCanceledWithGracePeriod;
+use Vatly\API\Webhooks\Events\SubscriptionCancellationGracePeriodCompleted;
+use Vatly\API\Webhooks\Events\SubscriptionResumed;
+use Vatly\API\Webhooks\Events\SubscriptionStarted;
+use Vatly\API\Webhooks\Events\UnsupportedWebhookReceived;
+use Vatly\API\Webhooks\Events\WebhookReceived;
 use Vatly\Fluent\Tests\TestCase;
 use Vatly\Fluent\Webhooks\WebhookEventFactory;
 
@@ -454,11 +454,11 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertSame('EUR', $event->currency);
         $this->assertSame('INV-2024-001', $event->invoiceNumber);
         $this->assertSame('credit_card', $event->paymentMethod);
-        $this->assertCount(1, $event->taxSummary);
-        $this->assertSame('VAT', $event->taxSummary->items[0]->rate->name);
-        $this->assertSame(21.0, $event->taxSummary->items[0]->rate->percentage);
-        $this->assertSame(1718, $event->taxSummary->items[0]->amount);
-        $this->assertSame('EUR', $event->taxSummary->items[0]->currency);
+        $this->assertCount(1, $event->taxSummary->items);
+        $this->assertSame('VAT', $event->taxSummary->items[0]->taxRate->name);
+        $this->assertSame(21.0, $event->taxSummary->items[0]->taxRate->percentage);
+        $this->assertSame(1718, $event->taxSummary->items[0]->amount->toCents());
+        $this->assertSame('EUR', $event->taxSummary->items[0]->amount->currency);
     }
 
     public function test_order_paid_event_carries_mapped_order_lines_from_the_enriched_order(): void
@@ -571,9 +571,9 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertSame('EUR', $event->currency);
         $this->assertNull($event->invoiceNumber);
         $this->assertSame('sepa_direct_debit', $event->paymentMethod);
-        $this->assertCount(1, $event->taxSummary);
-        $this->assertSame('VAT', $event->taxSummary->items[0]->rate->name);
-        $this->assertSame(850, $event->taxSummary->items[0]->amount);
+        $this->assertCount(1, $event->taxSummary->items);
+        $this->assertSame('VAT', $event->taxSummary->items[0]->taxRate->name);
+        $this->assertSame(850, $event->taxSummary->items[0]->amount->toCents());
     }
 
     public function test_it_creates_order_canceled_event_from_webhook(): void
@@ -692,9 +692,9 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertSame(9900, $event->total);
         $this->assertSame(8182, $event->subtotal);
         $this->assertSame('EUR', $event->currency);
-        $this->assertCount(1, $event->taxSummary);
-        $this->assertSame('VAT', $event->taxSummary->items[0]->rate->name);
-        $this->assertSame(1718, $event->taxSummary->items[0]->amount);
+        $this->assertCount(1, $event->taxSummary->items);
+        $this->assertSame('VAT', $event->taxSummary->items[0]->taxRate->name);
+        $this->assertSame(1718, $event->taxSummary->items[0]->amount->toCents());
     }
 
     public function test_it_creates_refund_failed_event_from_enriched_api_refund(): void

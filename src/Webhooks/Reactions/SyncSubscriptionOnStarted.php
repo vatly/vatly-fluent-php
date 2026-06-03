@@ -11,7 +11,7 @@ use Vatly\Fluent\Contracts\WebhookReactionInterface;
 use Vatly\Fluent\Data\StoreSubscriptionData;
 use Vatly\Fluent\Data\UpdateSubscriptionData;
 use Vatly\Fluent\Events\LocalSubscriptionCreated;
-use Vatly\Fluent\Events\SubscriptionStarted;
+use Vatly\API\Webhooks\Events\SubscriptionStarted;
 
 /**
  * @immutable

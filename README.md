@@ -99,6 +99,8 @@ A driver is a thin glue package (e.g. `vatly-laravel`) that supplies fluent with
 
 For incoming Vatly webhooks, fluent dispatches a typed event and runs a built-in reaction that calls back into your repos. A driver author only needs to implement the repo methods — the wiring is fixed. For the full event → reaction → repo-method matrix **including the fields each `Store*Data` / event carries**, see [docs/webhook-flow.md](docs/webhook-flow.md).
 
+> The typed webhook event DTOs (`OrderPaid`, `PaymentFailed`, `SubscriptionStarted`, …) live in **`vatly-api-php`** under the `Vatly\API\Webhooks\Events\*` namespace and are consumed by fluent — fluent no longer ships its own copies. Import them from `Vatly\API\Webhooks\Events\…` when you handle dispatched events. Fluent still owns the orchestration (`WebhookEventFactory`, the reactions, `WebhookProcessor`) plus the internal `Vatly\Fluent\Events\{LocalSubscriptionCreated,NullEventDispatcher}`.
+
 | Vatly event              | Dispatched event class                                            | Built-in reaction              | Repo method(s) called                                |
 |--------------------------|-------------------------------------------------------------------|--------------------------------|------------------------------------------------------|
 | `order.paid`             | `OrderPaid`                                                       | `StoreOrderOnPaid`             | `OrderWriter::store` (new) / `OrderWriter::update` (existing) |

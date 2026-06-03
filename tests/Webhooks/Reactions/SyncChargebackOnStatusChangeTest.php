@@ -10,11 +10,11 @@ use Vatly\Fluent\Contracts\ChargebackRepositoryInterface;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
 use Vatly\Fluent\Data\StoreChargebackData;
 use Vatly\Fluent\Data\UpdateChargebackData;
-use Vatly\Fluent\Events\OrderChargebackReceived;
-use Vatly\Fluent\Events\OrderChargebackReversed;
-use Vatly\Fluent\Events\OrderPaid;
+use Vatly\API\Webhooks\Events\OrderChargebackReceived;
+use Vatly\API\Webhooks\Events\OrderChargebackReversed;
+use Vatly\API\Webhooks\Events\OrderPaid;
 use Vatly\Fluent\Tests\TestCase;
-use Vatly\Fluent\Types\TaxSummary;
+use Vatly\API\Types\TaxSummaryCollection;
 use Vatly\Fluent\Webhooks\Reactions\SyncChargebackOnStatusChange;
 
 class SyncChargebackOnStatusChangeTest extends TestCase
@@ -28,7 +28,7 @@ class SyncChargebackOnStatusChangeTest extends TestCase
 
         $this->assertTrue($reaction->supports($this->received('pending')));
         $this->assertTrue($reaction->supports($this->reversed('won')));
-        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', 9900, 8182, TaxSummary::empty(), 'EUR', null, null)));
+        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', 9900, 8182, new TaxSummaryCollection([]), 'EUR', null, null)));
     }
 
     public function test_it_stores_a_new_chargeback_resolving_host_customer_from_bindings(): void
@@ -100,7 +100,7 @@ class SyncChargebackOnStatusChangeTest extends TestCase
             status: $status,
             total: 9900,
             subtotal: 8182,
-            taxSummary: TaxSummary::empty(),
+            taxSummary: new TaxSummaryCollection([]),
             currency: 'EUR',
         );
     }
@@ -116,7 +116,7 @@ class SyncChargebackOnStatusChangeTest extends TestCase
             status: $status,
             total: 9900,
             subtotal: 8182,
-            taxSummary: TaxSummary::empty(),
+            taxSummary: new TaxSummaryCollection([]),
             currency: 'EUR',
         );
     }

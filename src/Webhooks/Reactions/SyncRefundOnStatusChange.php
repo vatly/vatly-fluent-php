@@ -9,9 +9,9 @@ use Vatly\Fluent\Contracts\RefundRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
 use Vatly\Fluent\Data\StoreRefundData;
 use Vatly\Fluent\Data\UpdateRefundData;
-use Vatly\Fluent\Events\RefundCanceled;
-use Vatly\Fluent\Events\RefundCompleted;
-use Vatly\Fluent\Events\RefundFailed;
+use Vatly\API\Webhooks\Events\RefundCanceled;
+use Vatly\API\Webhooks\Events\RefundCompleted;
+use Vatly\API\Webhooks\Events\RefundFailed;
 
 /**
  * Persists `refund.*` webhooks onto the driver's local refund row — the piece
