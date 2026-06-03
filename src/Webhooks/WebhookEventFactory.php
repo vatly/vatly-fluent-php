@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Webhooks;
 
+use Vatly\API\Resources\BaseResource;
+use Vatly\API\Resources\Chargeback as ApiChargeback;
+use Vatly\API\Resources\Order as ApiOrder;
+use Vatly\API\Resources\Refund as ApiRefund;
+use Vatly\API\Resources\ResourceFactory;
+use Vatly\API\Resources\Subscription as ApiSubscription;
+use Vatly\API\VatlyApiClient;
 use Vatly\API\Webhooks\WebhookPayload;
-use Vatly\Fluent\Actions\GetChargeback;
-use Vatly\Fluent\Actions\GetOrder;
-use Vatly\Fluent\Actions\GetRefund;
-use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\API\Webhooks\Events\CheckoutCanceled;
 use Vatly\API\Webhooks\Events\CheckoutExpired;
 use Vatly\API\Webhooks\Events\CheckoutFailed;
@@ -31,24 +34,31 @@ use Vatly\API\Webhooks\Events\UnsupportedWebhookReceived;
 use Vatly\API\Webhooks\Events\WebhookReceived;
 use Vatly\API\Webhooks\Events\WebhookSetupReceived;
 
+/**
+ * Turns a raw Vatly webhook into a typed event.
+ *
+ * Vatlify sends **fat, HMAC-signed** webhook payloads: the delivery's `object`
+ * is the full resource — byte-identical to the corresponding `GET /…/{id}` body
+ * (subtotal, the complete tax summary, lines, mandate, …). The HMAC signature
+ * (verified upstream in {@see WebhookProcessor}) is the trust boundary, so the
+ * payload is the authoritative snapshot.
+ *
+ * That means there is no follow-up API GET. For the money/tax-bearing events
+ * the factory hydrates the matching api-php Resource straight from
+ * `$webhook->object` (via {@see ResourceFactory::createResourceFromApiResult()},
+ * the same path the API client uses to build a resource from a `GET` response)
+ * and maps it through the event's `fromApi*` constructor — same enriched event,
+ * zero network round-trip. The hydrating accessors used by the mappers
+ * (e.g. {@see ApiOrder::lines()}) read the embedded data and never touch HTTP.
+ *
+ * The status-mirror and checkout events (`order.canceled`, `checkout.*`,
+ * `subscription.*` cancellation transitions) are built straight from the
+ * payload envelope; they carry no money/tax fields to hydrate.
+ */
 class WebhookEventFactory
 {
     public function __construct(
-        private GetOrder $getOrder,
-        private GetSubscription $getSubscription,
-        /**
-         * Optional: only needed to enrich `refund.*` events. When null, refund
-         * webhooks degrade to {@see UnsupportedWebhookReceived} — keeping the
-         * factory back-compatible for drivers that don't wire refunds.
-         */
-        private ?GetRefund $getRefund = null,
-        /**
-         * Optional: enriches `order.chargeback_*` events with the customer id,
-         * dispute status, and tax breakdown. When null, those events are built
-         * from the (sparse) webhook payload — still dispatched, just without the
-         * persistence-grade fields.
-         */
-        private ?GetChargeback $getChargeback = null,
+        private VatlyApiClient $apiClient,
     ) {
         //
     }
@@ -56,183 +66,87 @@ class WebhookEventFactory
     /**
      * Create a typed event from a raw webhook.
      *
-     * For order-scoped events (`order.paid`, `order.payment_failed`) the factory
-     * performs a follow-up API GET so the dispatched event carries the full
-     * tax breakdown — webhook payloads themselves only include gross total.
-     *
-     * For `subscription.started` and `subscription.billing_updated` the same
-     * enrichment pattern fetches the mandate summary so consumers can persist
-     * the payment method on file without a separate API roundtrip per portal
-     * render. Enrichment is best-effort: a transient `GetSubscription` failure
-     * does not block persistence — the event falls back to the webhook payload,
-     * which embeds the mandate inline, so the fallback stays non-lossy.
-     *
-     * For `refund.*` events the factory enriches via `GetRefund` for the same
-     * reason as `order.paid`: refund tax data is compliance-critical and the
-     * dispatched event must carry the authoritative breakdown.
-     *
-     * `order.canceled` is built straight from the webhook payload — a status
-     * mirror that needs no enrichment. The `order.chargeback_*` events are
-     * enriched via `GetChargeback` when that action is wired (customer id,
-     * status, tax breakdown for persistence) but fall back to the sparse
-     * payload otherwise — best-effort, since the payload already carries the
-     * `originalOrderId` the access-suspension path needs.
-     *
-     * The `checkout.*` events and `subscription.cancellation_grace_period_completed`
-     * are likewise built straight from the payload: checkout deliveries already
-     * carry the full Checkout resource (no sparse money/tax fields), and the
-     * grace-period-completed transition only needs the customer/subscription IDs
-     * and end timestamp, all present on the wire. They are dispatched-only — no
-     * built-in reaction mutates local state.
+     * Every event is built from the signed webhook payload — the money/tax
+     * bearing ones by hydrating the api-php Resource from `$webhook->object`,
+     * the rest straight from the envelope. No follow-up API call is made.
      *
      * @return SubscriptionStarted|SubscriptionBillingUpdated|SubscriptionResumed|SubscriptionCanceledImmediately|SubscriptionCanceledWithGracePeriod|SubscriptionCancellationGracePeriodCompleted|OrderPaid|OrderCanceled|OrderChargebackReceived|OrderChargebackReversed|OrderPaymentFailed|CheckoutPaid|CheckoutFailed|CheckoutCanceled|CheckoutExpired|RefundCompleted|RefundFailed|RefundCanceled|WebhookSetupReceived|UnsupportedWebhookReceived
      */
     public function createFromWebhook(WebhookReceived $webhook): object
     {
         return match ($webhook->eventName) {
-            SubscriptionStarted::VATLY_EVENT_NAME => $this->createSubscriptionStarted($webhook),
-            SubscriptionBillingUpdated::VATLY_EVENT_NAME => $this->createSubscriptionBillingUpdated($webhook),
+            SubscriptionStarted::VATLY_EVENT_NAME => SubscriptionStarted::fromApiSubscription($this->hydrateSubscription($webhook)),
+            SubscriptionBillingUpdated::VATLY_EVENT_NAME => SubscriptionBillingUpdated::fromApiSubscription($this->hydrateSubscription($webhook)),
             SubscriptionResumed::VATLY_EVENT_NAME => SubscriptionResumed::fromWebhook($webhook),
             SubscriptionCanceledImmediately::VATLY_EVENT_NAME => SubscriptionCanceledImmediately::fromWebhook($webhook),
             SubscriptionCanceledWithGracePeriod::VATLY_EVENT_NAME => SubscriptionCanceledWithGracePeriod::fromWebhook($webhook),
             SubscriptionCancellationGracePeriodCompleted::VATLY_EVENT_NAME => SubscriptionCancellationGracePeriodCompleted::fromWebhook($webhook),
-            OrderPaid::VATLY_EVENT_NAME => $this->createOrderPaid($webhook),
+            OrderPaid::VATLY_EVENT_NAME => OrderPaid::fromApiOrder($this->hydrateOrder($webhook)),
             OrderCanceled::VATLY_EVENT_NAME => OrderCanceled::fromWebhook($webhook),
-            OrderChargebackReceived::VATLY_EVENT_NAME => $this->createOrderChargebackReceived($webhook),
-            OrderChargebackReversed::VATLY_EVENT_NAME => $this->createOrderChargebackReversed($webhook),
-            OrderPaymentFailed::VATLY_EVENT_NAME => $this->createOrderPaymentFailed($webhook),
+            OrderChargebackReceived::VATLY_EVENT_NAME => OrderChargebackReceived::fromApiChargeback($this->hydrateChargeback($webhook)),
+            OrderChargebackReversed::VATLY_EVENT_NAME => OrderChargebackReversed::fromApiChargeback($this->hydrateChargeback($webhook)),
+            OrderPaymentFailed::VATLY_EVENT_NAME => OrderPaymentFailed::fromApiOrder($this->hydrateOrder($webhook)),
             CheckoutPaid::VATLY_EVENT_NAME => CheckoutPaid::fromWebhook($webhook),
             CheckoutFailed::VATLY_EVENT_NAME => CheckoutFailed::fromWebhook($webhook),
             CheckoutCanceled::VATLY_EVENT_NAME => CheckoutCanceled::fromWebhook($webhook),
             CheckoutExpired::VATLY_EVENT_NAME => CheckoutExpired::fromWebhook($webhook),
-            RefundCompleted::VATLY_EVENT_NAME => $this->getRefund !== null
-                ? RefundCompleted::fromApiRefund($this->getRefund->execute($webhook->entityId))
-                : UnsupportedWebhookReceived::fromWebhook($webhook),
-            RefundFailed::VATLY_EVENT_NAME => $this->getRefund !== null
-                ? RefundFailed::fromApiRefund($this->getRefund->execute($webhook->entityId))
-                : UnsupportedWebhookReceived::fromWebhook($webhook),
-            RefundCanceled::VATLY_EVENT_NAME => $this->getRefund !== null
-                ? RefundCanceled::fromApiRefund($this->getRefund->execute($webhook->entityId))
-                : UnsupportedWebhookReceived::fromWebhook($webhook),
+            RefundCompleted::VATLY_EVENT_NAME => RefundCompleted::fromApiRefund($this->hydrateRefund($webhook)),
+            RefundFailed::VATLY_EVENT_NAME => RefundFailed::fromApiRefund($this->hydrateRefund($webhook)),
+            RefundCanceled::VATLY_EVENT_NAME => RefundCanceled::fromApiRefund($this->hydrateRefund($webhook)),
             WebhookSetupReceived::VATLY_EVENT_NAME => WebhookSetupReceived::fromWebhook($webhook),
             default => UnsupportedWebhookReceived::fromWebhook($webhook),
         };
     }
 
-    /**
-     * Build a SubscriptionStarted event, preferring the API-enriched form
-     * (carries mandate) but falling back to the webhook payload on any
-     * GetSubscription failure. Keeps the webhook flow resilient to
-     * transient API errors that would otherwise force Vatly to retry the
-     * delivery for a recoverable enrichment-only issue.
-     */
-    private function createSubscriptionStarted(WebhookReceived $webhook): SubscriptionStarted
+    private function hydrateOrder(WebhookReceived $webhook): ApiOrder
     {
-        try {
-            return SubscriptionStarted::fromApiSubscription(
-                $this->getSubscription->execute($webhook->entityId),
-            );
-        } catch (\Throwable) {
-            return SubscriptionStarted::fromWebhook($webhook);
-        }
+        $order = $this->hydrate($webhook, new ApiOrder($this->apiClient));
+        assert($order instanceof ApiOrder);
+
+        return $order;
+    }
+
+    private function hydrateSubscription(WebhookReceived $webhook): ApiSubscription
+    {
+        $subscription = $this->hydrate($webhook, new ApiSubscription($this->apiClient));
+        assert($subscription instanceof ApiSubscription);
+
+        return $subscription;
+    }
+
+    private function hydrateRefund(WebhookReceived $webhook): ApiRefund
+    {
+        $refund = $this->hydrate($webhook, new ApiRefund($this->apiClient));
+        assert($refund instanceof ApiRefund);
+
+        return $refund;
+    }
+
+    private function hydrateChargeback(WebhookReceived $webhook): ApiChargeback
+    {
+        $chargeback = $this->hydrate($webhook, new ApiChargeback($this->apiClient));
+        assert($chargeback instanceof ApiChargeback);
+
+        return $chargeback;
     }
 
     /**
-     * Build a SubscriptionBillingUpdated event, preferring the API-enriched
-     * form (carries the fresh mandate) but falling back to the webhook payload
-     * on any GetSubscription failure. Same resilience rationale as
-     * {@see self::createSubscriptionStarted()}: the mandate refresh is an
-     * enrichment, not a correctness requirement — a transient blip leaves the
-     * stored mandate as-is rather than forcing Vatly to retry the delivery,
-     * and the next `sync()` reconciles.
-     */
-    private function createSubscriptionBillingUpdated(WebhookReceived $webhook): SubscriptionBillingUpdated
-    {
-        try {
-            return SubscriptionBillingUpdated::fromApiSubscription(
-                $this->getSubscription->execute($webhook->entityId),
-            );
-        } catch (\Throwable) {
-            return SubscriptionBillingUpdated::fromWebhook($webhook);
-        }
-    }
-
-    /**
-     * Build an OrderChargebackReceived event, enriching via `GetChargeback`
-     * when that action is wired so the event carries the customer id, status,
-     * and tax breakdown the persistence reactions need.
+     * Hydrate an api-php Resource from the signed webhook payload.
      *
-     * Enrichment is best-effort (unlike `order.paid`): the sparse webhook
-     * payload already carries `originalOrderId`, which is enough for the
-     * access-suspension path, so a transient `GetChargeback` failure falls back
-     * to the payload rather than forcing a redelivery and delaying the
-     * suspension. The chargeback id lives in the webhook `object`, not the
-     * envelope `entityId` (which is the order id).
+     * {@see ResourceFactory::createResourceFromApiResult()} expects the same
+     * `stdClass` tree the API client decodes a `GET` response into, so we
+     * re-encode the (deep-array) `$webhook->object` back to objects before
+     * handing it over. No HTTP is performed — this is a pure in-memory map.
      */
-    private function createOrderChargebackReceived(WebhookReceived $webhook): OrderChargebackReceived
+    private function hydrate(WebhookReceived $webhook, BaseResource $resource): BaseResource
     {
-        $chargebackId = $webhook->object['id'] ?? '';
+        $apiResult = json_decode((string) json_encode($webhook->object), false);
 
-        if ($this->getChargeback === null || $chargebackId === '') {
-            return OrderChargebackReceived::fromWebhook($webhook);
+        if (! $apiResult instanceof \stdClass) {
+            $apiResult = new \stdClass();
         }
 
-        try {
-            return OrderChargebackReceived::fromApiChargeback(
-                $this->getChargeback->execute($chargebackId),
-            );
-        } catch (\Throwable) {
-            return OrderChargebackReceived::fromWebhook($webhook);
-        }
-    }
-
-    /**
-     * Build an OrderChargebackReversed event. Same enrichment + fallback
-     * rationale as {@see self::createOrderChargebackReceived()}.
-     */
-    private function createOrderChargebackReversed(WebhookReceived $webhook): OrderChargebackReversed
-    {
-        $chargebackId = $webhook->object['id'] ?? '';
-
-        if ($this->getChargeback === null || $chargebackId === '') {
-            return OrderChargebackReversed::fromWebhook($webhook);
-        }
-
-        try {
-            return OrderChargebackReversed::fromApiChargeback(
-                $this->getChargeback->execute($chargebackId),
-            );
-        } catch (\Throwable) {
-            return OrderChargebackReversed::fromWebhook($webhook);
-        }
-    }
-
-    /**
-     * Build an OrderPaid event from the enriched API resource.
-     *
-     * Unlike SubscriptionStarted, OrderPaid intentionally rethrows on
-     * enrichment failure: the webhook payload lacks `subtotal`, `taxSummary`,
-     * and `status`. A best-effort fallback would persist a row with wrong tax
-     * data, which compounds into compliance/reconciliation issues. Letting
-     * the webhook fail forces Vatly to retry — the correct outcome for a
-     * transient API blip, given that order data integrity beats availability
-     * for payment-processing entities.
-     */
-    private function createOrderPaid(WebhookReceived $webhook): OrderPaid
-    {
-        return OrderPaid::fromApiOrder($this->getOrder->execute($webhook->entityId));
-    }
-
-    /**
-     * Build an OrderPaymentFailed event from the enriched API resource.
-     *
-     * Same rationale as {@see self::createOrderPaid()}: rethrows on enrichment
-     * failure rather than writing a degraded row. Tax breakdown is critical
-     * for dunning-notification accuracy and downstream reconciliation.
-     */
-    private function createOrderPaymentFailed(WebhookReceived $webhook): OrderPaymentFailed
-    {
-        return OrderPaymentFailed::fromApiOrder($this->getOrder->execute($webhook->entityId));
+        return ResourceFactory::createResourceFromApiResult($apiResult, $resource);
     }
 
     /**
@@ -265,7 +179,7 @@ class WebhookEventFactory
      */
     public function getSupportedEvents(): array
     {
-        $events = [
+        return [
             SubscriptionStarted::VATLY_EVENT_NAME,
             SubscriptionBillingUpdated::VATLY_EVENT_NAME,
             SubscriptionResumed::VATLY_EVENT_NAME,
@@ -281,19 +195,11 @@ class WebhookEventFactory
             CheckoutFailed::VATLY_EVENT_NAME,
             CheckoutCanceled::VATLY_EVENT_NAME,
             CheckoutExpired::VATLY_EVENT_NAME,
+            RefundCompleted::VATLY_EVENT_NAME,
+            RefundFailed::VATLY_EVENT_NAME,
+            RefundCanceled::VATLY_EVENT_NAME,
             WebhookSetupReceived::VATLY_EVENT_NAME,
         ];
-
-        // Refund events require `GetRefund` enrichment; only report them as
-        // supported when that action is wired (otherwise they degrade to
-        // UnsupportedWebhookReceived, so advertising them would be misleading).
-        if ($this->getRefund !== null) {
-            $events[] = RefundCompleted::VATLY_EVENT_NAME;
-            $events[] = RefundFailed::VATLY_EVENT_NAME;
-            $events[] = RefundCanceled::VATLY_EVENT_NAME;
-        }
-
-        return $events;
     }
 
     /**

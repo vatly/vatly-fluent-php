@@ -5,10 +5,7 @@ declare(strict_types=1);
 namespace Vatly\Fluent\Tests\Webhooks;
 
 use Mockery;
-use Vatly\Fluent\Actions\GetChargeback;
-use Vatly\Fluent\Actions\GetOrder;
-use Vatly\Fluent\Actions\GetRefund;
-use Vatly\Fluent\Actions\GetSubscription;
+use Vatly\API\VatlyApiClient;
 use Vatly\Fluent\Contracts\ChargebackRepositoryInterface;
 use Vatly\Fluent\Contracts\ConfigurationInterface;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
@@ -43,9 +40,7 @@ class WebhookProcessorFactoryTest extends TestCase
             webhookCalls: Mockery::mock(WebhookCallRepositoryInterface::class),
             dispatcher: Mockery::mock(EventDispatcherInterface::class),
             bindings: Mockery::mock(CustomerBindingRepository::class),
-            getOrder: Mockery::mock(GetOrder::class),
-            getSubscription: Mockery::mock(GetSubscription::class),
-            getRefund: Mockery::mock(GetRefund::class),
+            apiClient: new VatlyApiClient(),
         );
 
         $this->assertInstanceOf(WebhookProcessor::class, $processor);
@@ -63,10 +58,11 @@ class WebhookProcessorFactoryTest extends TestCase
         $this->assertInstanceOf(CancelOrderOnCanceled::class, $reactions[7]);
     }
 
-    public function test_it_is_back_compatible_when_called_without_a_get_refund_action(): void
+    public function test_it_builds_a_processor_without_optional_repositories(): void
     {
-        // A pre-refund driver wires only subscriptions/orders and never passes
-        // getRefund/refunds — this must not throw ArgumentCountError.
+        // A driver that only wires subscriptions/orders passes neither `refunds`
+        // nor `chargebacks` — this must not throw and must register no opt-in
+        // persistence reaction.
         $processor = WebhookProcessorFactory::create(
             config: $this->config('secret'),
             subscriptions: Mockery::mock(SubscriptionRepositoryInterface::class),
@@ -74,16 +70,16 @@ class WebhookProcessorFactoryTest extends TestCase
             webhookCalls: Mockery::mock(WebhookCallRepositoryInterface::class),
             dispatcher: Mockery::mock(EventDispatcherInterface::class),
             bindings: Mockery::mock(CustomerBindingRepository::class),
-            getOrder: Mockery::mock(GetOrder::class),
-            getSubscription: Mockery::mock(GetSubscription::class),
+            apiClient: new VatlyApiClient(),
         );
 
         $reactions = $processor->getReactions();
 
         $this->assertInstanceOf(WebhookProcessor::class, $processor);
-        $this->assertCount(8, $reactions); // no refund reaction without a refunds repo
+        $this->assertCount(8, $reactions);
         foreach ($reactions as $reaction) {
             $this->assertNotInstanceOf(SyncRefundOnStatusChange::class, $reaction);
+            $this->assertNotInstanceOf(SyncChargebackOnStatusChange::class, $reaction);
         }
     }
 
@@ -96,9 +92,7 @@ class WebhookProcessorFactoryTest extends TestCase
             webhookCalls: Mockery::mock(WebhookCallRepositoryInterface::class),
             dispatcher: Mockery::mock(EventDispatcherInterface::class),
             bindings: Mockery::mock(CustomerBindingRepository::class),
-            getOrder: Mockery::mock(GetOrder::class),
-            getSubscription: Mockery::mock(GetSubscription::class),
-            getRefund: Mockery::mock(GetRefund::class),
+            apiClient: new VatlyApiClient(),
             refunds: Mockery::mock(RefundRepositoryInterface::class),
         );
 
@@ -117,9 +111,7 @@ class WebhookProcessorFactoryTest extends TestCase
             webhookCalls: Mockery::mock(WebhookCallRepositoryInterface::class),
             dispatcher: Mockery::mock(EventDispatcherInterface::class),
             bindings: Mockery::mock(CustomerBindingRepository::class),
-            getOrder: Mockery::mock(GetOrder::class),
-            getSubscription: Mockery::mock(GetSubscription::class),
-            getChargeback: Mockery::mock(GetChargeback::class),
+            apiClient: new VatlyApiClient(),
             chargebacks: Mockery::mock(ChargebackRepositoryInterface::class),
         );
 
@@ -139,8 +131,7 @@ class WebhookProcessorFactoryTest extends TestCase
             webhookCalls: Mockery::mock(WebhookCallRepositoryInterface::class),
             dispatcher: Mockery::mock(EventDispatcherInterface::class),
             bindings: Mockery::mock(CustomerBindingRepository::class),
-            getOrder: Mockery::mock(GetOrder::class),
-            getSubscription: Mockery::mock(GetSubscription::class),
+            apiClient: new VatlyApiClient(),
         );
 
         foreach ($processor->getReactions() as $reaction) {
@@ -159,9 +150,7 @@ class WebhookProcessorFactoryTest extends TestCase
             webhookCalls: Mockery::mock(WebhookCallRepositoryInterface::class),
             dispatcher: Mockery::mock(EventDispatcherInterface::class),
             bindings: Mockery::mock(CustomerBindingRepository::class),
-            getOrder: Mockery::mock(GetOrder::class),
-            getSubscription: Mockery::mock(GetSubscription::class),
-            getRefund: Mockery::mock(GetRefund::class),
+            apiClient: new VatlyApiClient(),
             additionalReactions: [$custom],
         );
 
@@ -180,9 +169,7 @@ class WebhookProcessorFactoryTest extends TestCase
             webhookCalls: Mockery::mock(WebhookCallRepositoryInterface::class),
             dispatcher: Mockery::mock(EventDispatcherInterface::class),
             bindings: Mockery::mock(CustomerBindingRepository::class),
-            getOrder: Mockery::mock(GetOrder::class),
-            getSubscription: Mockery::mock(GetSubscription::class),
-            getRefund: Mockery::mock(GetRefund::class),
+            apiClient: new VatlyApiClient(),
         );
 
         $this->assertInstanceOf(WebhookProcessor::class, $processor);

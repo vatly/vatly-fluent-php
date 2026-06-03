@@ -5,18 +5,8 @@ declare(strict_types=1);
 namespace Vatly\Fluent\Tests\Webhooks;
 
 use DateTimeInterface;
-use Mockery;
-use Vatly\API\Resources\Order as ApiOrder;
-use Vatly\API\Resources\Refund as ApiRefund;
-use Vatly\API\Resources\Subscription as ApiSubscription;
-use Vatly\API\Types\Mandate;
-use Vatly\API\Types\Money;
-use Vatly\API\Types\TaxSummaryCollection;
 use Vatly\API\VatlyApiClient;
 use Vatly\API\Webhooks\WebhookPayload;
-use Vatly\Fluent\Actions\GetOrder;
-use Vatly\Fluent\Actions\GetRefund;
-use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\API\Webhooks\Events\CheckoutCanceled;
 use Vatly\API\Webhooks\Events\CheckoutExpired;
 use Vatly\API\Webhooks\Events\CheckoutFailed;
@@ -41,21 +31,27 @@ use Vatly\API\Webhooks\Events\WebhookSetupReceived;
 use Vatly\Fluent\Tests\TestCase;
 use Vatly\Fluent\Webhooks\WebhookEventFactory;
 
+/**
+ * The webhook payload is the authoritative, HMAC-signed snapshot: its `object`
+ * is byte-identical to the corresponding `GET /…/{id}` body. So the factory
+ * builds every event straight from `$webhook->object` — money/tax-bearing
+ * events by hydrating the api-php Resource, the rest from the envelope — and
+ * never performs a follow-up API GET.
+ *
+ * The {@see VatlyApiClient} below is a real, un-stubbed instance: it is only
+ * used to construct empty Resources for in-memory hydration. Any HTTP attempt
+ * would fail (no API key), which is exactly why these tests prove "zero API
+ * calls" by construction.
+ */
 class WebhookEventFactoryTest extends TestCase
 {
     private WebhookEventFactory $factory;
-    private GetOrder $getOrder;
-    private GetSubscription $getSubscription;
-    private GetRefund $getRefund;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->getOrder = Mockery::mock(GetOrder::class);
-        $this->getSubscription = Mockery::mock(GetSubscription::class);
-        $this->getRefund = Mockery::mock(GetRefund::class);
-        $this->factory = new WebhookEventFactory($this->getOrder, $this->getSubscription, $this->getRefund);
+        $this->factory = new WebhookEventFactory(new VatlyApiClient());
     }
 
     public function test_it_converts_upstream_webhook_payload_into_webhook_received_event(): void
@@ -102,31 +98,21 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertSame([], $event->object);
     }
 
-    public function test_it_creates_subscription_started_event_from_enriched_api_subscription(): void
+    public function test_it_creates_subscription_started_event_from_fat_payload(): void
     {
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_abc',
-            resource: 'webhook_event',
+        $webhook = $this->makeWebhook(
             eventName: 'subscription.started',
             entityType: 'subscription',
             entityId: 'sub_123',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
-            object: [],
+            object: $this->fatSubscription([
+                'id' => 'sub_123',
+                'customerId' => 'cus_456',
+                'subscriptionPlanId' => 'plan_789',
+                'name' => 'Premium Plan',
+                'quantity' => 1,
+                'mandate' => ['method' => 'card', 'maskedIdentifier' => '4242'],
+            ]),
         );
-
-        $apiSubscription = $this->makeApiSubscription([
-            'id' => 'sub_123',
-            'customerId' => 'cus_456',
-            'subscriptionPlanId' => 'plan_789',
-            'name' => 'Premium Plan',
-            'quantity' => 1,
-            'mandate' => new Mandate('card', '4242'),
-        ]);
-
-        $this->getSubscription->shouldReceive('execute')
-            ->with('sub_123')
-            ->andReturn($apiSubscription);
 
         $event = $this->factory->createFromWebhook($webhook);
 
@@ -141,143 +127,63 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertSame('4242', $event->mandate->maskedIdentifier);
     }
 
-    public function test_subscription_started_falls_back_to_webhook_payload_when_enrichment_fails(): void
+    public function test_subscription_started_event_carries_null_mandate_when_payload_has_none(): void
     {
-        // GetSubscription failure (network blip, rate limit, transient 5xx) must
-        // not block the webhook flow. The webhook payload itself carries enough
-        // to persist the subscription; mandate stays null and is backfilled on
-        // the next sync() or subscription.billing_updated event.
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_abc',
-            resource: 'webhook_event',
+        $webhook = $this->makeWebhook(
             eventName: 'subscription.started',
             entityType: 'subscription',
-            entityId: 'sub_transient_fail',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
-            object: [
+            entityId: 'sub_no_mandate',
+            object: $this->fatSubscription([
+                'id' => 'sub_no_mandate',
                 'customerId' => 'cus_456',
                 'subscriptionPlanId' => 'plan_789',
                 'name' => 'Premium Plan',
                 'quantity' => 1,
-            ],
+                'mandate' => null,
+            ]),
         );
-
-        $this->getSubscription->shouldReceive('execute')
-            ->andThrow(new \RuntimeException('Transient API failure'));
 
         $event = $this->factory->createFromWebhook($webhook);
 
         $this->assertInstanceOf(SubscriptionStarted::class, $event);
-        $this->assertSame('cus_456', $event->customerId);
-        $this->assertSame('sub_transient_fail', $event->subscriptionId);
-        $this->assertSame('plan_789', $event->planId);
-        $this->assertSame('Premium Plan', $event->name);
-        $this->assertSame(1, $event->quantity);
-        // This payload carries no `mandate`, so the fallback yields null.
         $this->assertNull($event->mandate);
     }
 
-    public function test_subscription_started_fallback_parses_mandate_embedded_in_webhook_payload(): void
+    public function test_it_creates_subscription_billing_updated_event_from_fat_payload(): void
     {
-        // Enrichment fails, but the webhook payload embeds the mandate inline —
-        // the fallback must carry it through rather than drop it.
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_abc',
-            resource: 'webhook_event',
-            eventName: 'subscription.started',
-            entityType: 'subscription',
-            entityId: 'sub_fail_with_mandate',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
-            object: [
-                'customerId' => 'cus_456',
-                'subscriptionPlanId' => 'plan_789',
-                'name' => 'Premium Plan',
-                'quantity' => 1,
-                'mandate' => ['method' => 'card', 'maskedIdentifier' => '4242'],
-            ],
-        );
-
-        $this->getSubscription->shouldReceive('execute')->andThrow(new \RuntimeException('Transient API failure'));
-
-        $event = $this->factory->createFromWebhook($webhook);
-
-        $this->assertInstanceOf(SubscriptionStarted::class, $event);
-        $this->assertNotNull($event->mandate);
-        $this->assertSame('card', $event->mandate->method);
-        $this->assertSame('4242', $event->mandate->maskedIdentifier);
-    }
-
-    public function test_subscription_billing_updated_fallback_parses_mandate_embedded_in_webhook_payload(): void
-    {
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_bu',
-            resource: 'webhook_event',
+        $webhook = $this->makeWebhook(
             eventName: 'subscription.billing_updated',
             entityType: 'subscription',
-            entityId: 'sub_fail_with_mandate',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
-            object: [
+            entityId: 'sub_123',
+            object: $this->fatSubscription([
+                'id' => 'sub_123',
                 'customerId' => 'cus_456',
                 'subscriptionPlanId' => 'plan_789',
                 'name' => 'Premium Plan',
                 'quantity' => 1,
                 'mandate' => ['method' => 'sepa_debit', 'maskedIdentifier' => 'NL91****4300'],
-            ],
+            ]),
         );
-
-        $this->getSubscription->shouldReceive('execute')->andThrow(new \RuntimeException('Transient API failure'));
 
         $event = $this->factory->createFromWebhook($webhook);
 
         $this->assertInstanceOf(SubscriptionBillingUpdated::class, $event);
+        $this->assertSame('cus_456', $event->customerId);
+        $this->assertSame('sub_123', $event->subscriptionId);
+        $this->assertSame('plan_789', $event->planId);
+        $this->assertSame('Premium Plan', $event->name);
+        $this->assertSame(1, $event->quantity);
         $this->assertNotNull($event->mandate);
         $this->assertSame('sepa_debit', $event->mandate->method);
         $this->assertSame('NL91****4300', $event->mandate->maskedIdentifier);
     }
 
-    public function test_subscription_started_event_carries_null_mandate_when_api_returns_none(): void
-    {
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_abc',
-            resource: 'webhook_event',
-            eventName: 'subscription.started',
-            entityType: 'subscription',
-            entityId: 'sub_no_mandate',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
-            object: [],
-        );
-
-        $apiSubscription = $this->makeApiSubscription([
-            'id' => 'sub_no_mandate',
-            'customerId' => 'cus_456',
-            'subscriptionPlanId' => 'plan_789',
-            'name' => 'Premium Plan',
-            'quantity' => 1,
-            'mandate' => null,
-        ]);
-
-        $this->getSubscription->shouldReceive('execute')->andReturn($apiSubscription);
-
-        $event = $this->factory->createFromWebhook($webhook);
-
-        $this->assertInstanceOf(SubscriptionStarted::class, $event);
-        $this->assertNull($event->mandate);
-    }
-
     public function test_it_creates_subscription_canceled_immediately_event_from_webhook(): void
     {
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_abc',
-            resource: 'webhook_event',
+        $webhook = $this->makeWebhook(
             eventName: 'subscription.canceled_immediately',
             entityType: 'subscription',
             entityId: 'sub_123',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
             object: [
                 'customerId' => 'cus_456',
                 'endedAt' => '2024-01-15T10:00:00Z',
@@ -293,14 +199,10 @@ class WebhookEventFactoryTest extends TestCase
 
     public function test_it_creates_subscription_canceled_with_grace_period_event_from_webhook(): void
     {
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_abc',
-            resource: 'webhook_event',
+        $webhook = $this->makeWebhook(
             eventName: 'subscription.canceled_with_grace_period',
             entityType: 'subscription',
             entityId: 'sub_123',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
             object: [
                 'customerId' => 'cus_456',
                 'endedAt' => '2024-02-15T10:00:00Z',
@@ -315,90 +217,12 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertInstanceOf(DateTimeInterface::class, $event->endsAt);
     }
 
-    public function test_it_creates_subscription_billing_updated_event_from_enriched_api_subscription(): void
-    {
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_abc',
-            resource: 'webhook_event',
-            eventName: 'subscription.billing_updated',
-            entityType: 'subscription',
-            entityId: 'sub_123',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
-            object: [],
-        );
-
-        $apiSubscription = $this->makeApiSubscription([
-            'id' => 'sub_123',
-            'customerId' => 'cus_456',
-            'subscriptionPlanId' => 'plan_789',
-            'name' => 'Premium Plan',
-            'quantity' => 1,
-            'mandate' => new Mandate('sepa_debit', 'NL91****4300'),
-        ]);
-
-        $this->getSubscription->shouldReceive('execute')
-            ->with('sub_123')
-            ->andReturn($apiSubscription);
-
-        $event = $this->factory->createFromWebhook($webhook);
-
-        $this->assertInstanceOf(SubscriptionBillingUpdated::class, $event);
-        $this->assertSame('cus_456', $event->customerId);
-        $this->assertSame('sub_123', $event->subscriptionId);
-        $this->assertSame('plan_789', $event->planId);
-        $this->assertSame('Premium Plan', $event->name);
-        $this->assertSame(1, $event->quantity);
-        $this->assertNotNull($event->mandate);
-        $this->assertSame('sepa_debit', $event->mandate->method);
-        $this->assertSame('NL91****4300', $event->mandate->maskedIdentifier);
-    }
-
-    public function test_subscription_billing_updated_falls_back_to_webhook_payload_when_enrichment_fails(): void
-    {
-        // Same resilience contract as subscription.started: a GetSubscription
-        // blip must not block the webhook. Mandate stays null on the fallback
-        // so the reaction makes no mandate change; the next sync() reconciles.
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_abc',
-            resource: 'webhook_event',
-            eventName: 'subscription.billing_updated',
-            entityType: 'subscription',
-            entityId: 'sub_transient_fail',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
-            object: [
-                'customerId' => 'cus_456',
-                'subscriptionPlanId' => 'plan_789',
-                'name' => 'Premium Plan',
-                'quantity' => 1,
-            ],
-        );
-
-        $this->getSubscription->shouldReceive('execute')
-            ->andThrow(new \RuntimeException('Transient API failure'));
-
-        $event = $this->factory->createFromWebhook($webhook);
-
-        $this->assertInstanceOf(SubscriptionBillingUpdated::class, $event);
-        $this->assertSame('cus_456', $event->customerId);
-        $this->assertSame('sub_transient_fail', $event->subscriptionId);
-        $this->assertSame('plan_789', $event->planId);
-        $this->assertSame('Premium Plan', $event->name);
-        $this->assertSame(1, $event->quantity);
-        $this->assertNull($event->mandate);
-    }
-
     public function test_it_creates_subscription_resumed_event_from_webhook(): void
     {
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_abc',
-            resource: 'webhook_event',
+        $webhook = $this->makeWebhook(
             eventName: 'subscription.resumed',
             entityType: 'subscription',
             entityId: 'sub_123',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
             object: ['customerId' => 'cus_456'],
         );
 
@@ -409,39 +233,24 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertSame('sub_123', $event->subscriptionId);
     }
 
-    public function test_it_creates_order_paid_event_from_webhook_with_enriched_tax_data(): void
+    public function test_it_creates_order_paid_event_from_fat_payload_with_tax_breakdown(): void
     {
-        $apiOrder = $this->buildApiOrder([
-            'id' => 'ord_123',
-            'customerId' => 'cus_456',
-            'total' => ['currency' => 'EUR', 'value' => '99.00'],
-            'subtotal' => ['currency' => 'EUR', 'value' => '81.82'],
-            'taxRates' => [
-                ['name' => 'VAT', 'percentage' => 21.0, 'taxablePercentage' => 100.0, 'amount' => '17.18'],
-            ],
-            'invoiceNumber' => 'INV-2024-001',
-            'paymentMethod' => 'credit_card',
-        ]);
-
-        $this->getOrder->shouldReceive('execute')
-            ->once()
-            ->with('ord_123')
-            ->andReturn($apiOrder);
-
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_abc',
-            resource: 'webhook_event',
+        $webhook = $this->makeWebhook(
             eventName: 'order.paid',
             entityType: 'order',
             entityId: 'ord_123',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
-            object: [
+            object: $this->fatOrder([
+                'id' => 'ord_123',
                 'customerId' => 'cus_456',
+                'status' => 'paid',
                 'total' => ['currency' => 'EUR', 'value' => '99.00'],
+                'subtotal' => ['currency' => 'EUR', 'value' => '81.82'],
+                'taxRates' => [
+                    ['name' => 'VAT', 'percentage' => 21.0, 'taxablePercentage' => 100.0, 'amount' => '17.18'],
+                ],
                 'invoiceNumber' => 'INV-2024-001',
                 'paymentMethod' => 'credit_card',
-            ],
+            ]),
         );
 
         $event = $this->factory->createFromWebhook($webhook);
@@ -462,51 +271,44 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertSame('EUR', $event->taxSummary->items[0]->amount->currency);
     }
 
-    public function test_order_paid_event_carries_mapped_order_lines_from_the_enriched_order(): void
+    public function test_order_paid_event_carries_mapped_order_lines_from_the_fat_payload(): void
     {
-        $apiOrder = $this->buildApiOrder([
-            'id' => 'ord_123',
-            'customerId' => 'cus_456',
-            'total' => ['currency' => 'EUR', 'value' => '99.00'],
-            'subtotal' => ['currency' => 'EUR', 'value' => '81.82'],
-            'taxRates' => [
-                ['name' => 'VAT', 'percentage' => 21.0, 'taxablePercentage' => 100.0, 'amount' => '17.18'],
-            ],
-            'invoiceNumber' => 'INV-2024-001',
-            'paymentMethod' => 'credit_card',
-            'lines' => [
-                [
-                    'id' => 'order_item_sub',
-                    'description' => 'Pro plan',
-                    'quantity' => 1,
-                    'basePrice' => '20.00',
-                    'total' => '24.20',
-                    'subtotal' => '20.00',
-                    'productType' => 'subscription',
-                    'productId' => 'subscription_abc',
-                ],
-                [
-                    'id' => 'order_item_legacy',
-                    'description' => 'Unattributed line',
-                    'quantity' => 2,
-                    'basePrice' => '5.00',
-                    'total' => '12.10',
-                    'subtotal' => '10.00',
-                ],
-            ],
-        ]);
-
-        $this->getOrder->shouldReceive('execute')->once()->with('ord_123')->andReturn($apiOrder);
-
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_abc',
-            resource: 'webhook_event',
+        $webhook = $this->makeWebhook(
             eventName: 'order.paid',
             entityType: 'order',
             entityId: 'ord_123',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
-            object: ['customerId' => 'cus_456'],
+            object: $this->fatOrder([
+                'id' => 'ord_123',
+                'customerId' => 'cus_456',
+                'status' => 'paid',
+                'total' => ['currency' => 'EUR', 'value' => '99.00'],
+                'subtotal' => ['currency' => 'EUR', 'value' => '81.82'],
+                'taxRates' => [
+                    ['name' => 'VAT', 'percentage' => 21.0, 'taxablePercentage' => 100.0, 'amount' => '17.18'],
+                ],
+                'invoiceNumber' => 'INV-2024-001',
+                'paymentMethod' => 'credit_card',
+                'lines' => [
+                    [
+                        'id' => 'order_item_sub',
+                        'description' => 'Pro plan',
+                        'quantity' => 1,
+                        'basePrice' => '20.00',
+                        'total' => '24.20',
+                        'subtotal' => '20.00',
+                        'productType' => 'subscription',
+                        'productId' => 'subscription_abc',
+                    ],
+                    [
+                        'id' => 'order_item_legacy',
+                        'description' => 'Unattributed line',
+                        'quantity' => 2,
+                        'basePrice' => '5.00',
+                        'total' => '12.10',
+                        'subtotal' => '10.00',
+                    ],
+                ],
+            ]),
         );
 
         $event = $this->factory->createFromWebhook($webhook);
@@ -527,38 +329,24 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertNull($event->lines[1]->productId);
     }
 
-    public function test_it_creates_payment_failed_event_from_webhook_with_enriched_order(): void
+    public function test_it_creates_payment_failed_event_from_fat_payload(): void
     {
-        $apiOrder = $this->buildApiOrder([
-            'id' => 'ord_dunning_1',
-            'customerId' => 'cus_456',
-            'total' => ['currency' => 'EUR', 'value' => '49.00'],
-            'subtotal' => ['currency' => 'EUR', 'value' => '40.50'],
-            'taxRates' => [
-                ['name' => 'VAT', 'percentage' => 21.0, 'taxablePercentage' => 100.0, 'amount' => '8.50'],
-            ],
-            'invoiceNumber' => null,
-            'paymentMethod' => 'sepa_direct_debit',
-            'status' => 'pending',
-        ]);
-
-        $this->getOrder->shouldReceive('execute')
-            ->once()
-            ->with('ord_dunning_1')
-            ->andReturn($apiOrder);
-
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_pf',
-            resource: 'webhook_event',
+        $webhook = $this->makeWebhook(
             eventName: 'order.payment_failed',
             entityType: 'order',
             entityId: 'ord_dunning_1',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
-            object: [
+            object: $this->fatOrder([
+                'id' => 'ord_dunning_1',
                 'customerId' => 'cus_456',
+                'status' => 'pending',
                 'total' => ['currency' => 'EUR', 'value' => '49.00'],
-            ],
+                'subtotal' => ['currency' => 'EUR', 'value' => '40.50'],
+                'taxRates' => [
+                    ['name' => 'VAT', 'percentage' => 21.0, 'taxablePercentage' => 100.0, 'amount' => '8.50'],
+                ],
+                'invoiceNumber' => null,
+                'paymentMethod' => 'sepa_direct_debit',
+            ]),
         );
 
         $event = $this->factory->createFromWebhook($webhook);
@@ -579,14 +367,10 @@ class WebhookEventFactoryTest extends TestCase
 
     public function test_it_creates_order_canceled_event_from_webhook(): void
     {
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_oc',
-            resource: 'webhook_event',
+        $webhook = $this->makeWebhook(
             eventName: 'order.canceled',
             entityType: 'order',
             entityId: 'ord_123',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
             object: [
                 'customerId' => 'cus_456',
                 'status' => 'canceled',
@@ -601,86 +385,88 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertSame('canceled', $event->status);
     }
 
-    public function test_it_creates_order_chargeback_received_event_from_webhook(): void
+    public function test_it_creates_order_chargeback_received_event_from_fat_payload(): void
     {
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_cb',
-            resource: 'webhook_event',
+        $webhook = $this->makeWebhook(
             eventName: 'order.chargeback_received',
             entityType: 'order',
             entityId: 'ord_123',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
-            object: [
+            object: $this->fatChargeback([
                 'id' => 'chargeback_789',
-                'resource' => 'chargeback',
+                'customerId' => 'cus_456',
+                'status' => 'received',
                 'originalOrderId' => 'ord_original_1',
                 'reason' => 'fraudulent',
-            ],
+                'total' => ['currency' => 'EUR', 'value' => '99.00'],
+                'subtotal' => ['currency' => 'EUR', 'value' => '81.82'],
+                'taxRates' => [
+                    ['name' => 'VAT', 'percentage' => 21.0, 'taxablePercentage' => 100.0, 'amount' => '17.18'],
+                ],
+            ]),
         );
 
         $event = $this->factory->createFromWebhook($webhook);
 
         $this->assertInstanceOf(OrderChargebackReceived::class, $event);
-        $this->assertSame('ord_123', $event->orderId);
+        $this->assertSame('ord_original_1', $event->orderId);
         $this->assertSame('chargeback_789', $event->chargebackId);
         $this->assertSame('ord_original_1', $event->originalOrderId);
         $this->assertSame('fraudulent', $event->reason);
+        $this->assertSame('cus_456', $event->customerId);
+        $this->assertSame('received', $event->status);
+        $this->assertNotNull($event->total);
+        $this->assertSame(9900, $event->total->toCents());
+        $this->assertSame('EUR', $event->currency);
+        $this->assertNotNull($event->taxSummary);
+        $this->assertCount(1, $event->taxSummary->items);
+        $this->assertSame(1718, $event->taxSummary->items[0]->amount->toCents());
     }
 
-    public function test_it_creates_order_chargeback_reversed_event_from_webhook(): void
+    public function test_it_creates_order_chargeback_reversed_event_from_fat_payload(): void
     {
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_cbr',
-            resource: 'webhook_event',
+        $webhook = $this->makeWebhook(
             eventName: 'order.chargeback_reversed',
             entityType: 'order',
             entityId: 'ord_123',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
-            object: [
+            object: $this->fatChargeback([
                 'id' => 'chargeback_789',
-                'resource' => 'chargeback',
+                'customerId' => 'cus_456',
+                'status' => 'reversed',
                 'originalOrderId' => 'ord_original_1',
-            ],
+                'reason' => '',
+                'total' => ['currency' => 'EUR', 'value' => '99.00'],
+                'subtotal' => ['currency' => 'EUR', 'value' => '81.82'],
+                'taxRates' => [],
+            ]),
         );
 
         $event = $this->factory->createFromWebhook($webhook);
 
         $this->assertInstanceOf(OrderChargebackReversed::class, $event);
-        $this->assertSame('ord_123', $event->orderId);
+        $this->assertSame('ord_original_1', $event->orderId);
         $this->assertSame('chargeback_789', $event->chargebackId);
+        $this->assertSame('reversed', $event->status);
+        // An empty `reason` string maps to null per the event's contract.
         $this->assertNull($event->reason);
     }
 
-    public function test_it_creates_refund_completed_event_from_enriched_api_refund(): void
+    public function test_it_creates_refund_completed_event_from_fat_payload(): void
     {
-        $apiRefund = $this->buildApiRefund([
-            'id' => 'refund_123',
-            'customerId' => 'cus_456',
-            'status' => 'refunded',
-            'originalOrderId' => 'ord_original_1',
-            'total' => ['currency' => 'EUR', 'value' => '99.00'],
-            'subtotal' => ['currency' => 'EUR', 'value' => '81.82'],
-            'taxRates' => [
-                ['name' => 'VAT', 'percentage' => 21.0, 'taxablePercentage' => 100.0, 'amount' => '17.18'],
-            ],
-        ]);
-
-        $this->getRefund->shouldReceive('execute')
-            ->once()
-            ->with('refund_123')
-            ->andReturn($apiRefund);
-
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_rf',
-            resource: 'webhook_event',
+        $webhook = $this->makeWebhook(
             eventName: 'refund.completed',
             entityType: 'refund',
             entityId: 'refund_123',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
-            object: ['customerId' => 'cus_456'],
+            object: $this->fatRefund([
+                'id' => 'refund_123',
+                'customerId' => 'cus_456',
+                'status' => 'refunded',
+                'originalOrderId' => 'ord_original_1',
+                'total' => ['currency' => 'EUR', 'value' => '99.00'],
+                'subtotal' => ['currency' => 'EUR', 'value' => '81.82'],
+                'taxRates' => [
+                    ['name' => 'VAT', 'percentage' => 21.0, 'taxablePercentage' => 100.0, 'amount' => '17.18'],
+                ],
+            ]),
         );
 
         $event = $this->factory->createFromWebhook($webhook);
@@ -698,29 +484,21 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertSame(1718, $event->taxSummary->items[0]->amount->toCents());
     }
 
-    public function test_it_creates_refund_failed_event_from_enriched_api_refund(): void
+    public function test_it_creates_refund_failed_event_from_fat_payload(): void
     {
-        $apiRefund = $this->buildApiRefund([
-            'id' => 'refund_failed_1',
-            'customerId' => 'cus_456',
-            'status' => 'failed',
-            'originalOrderId' => 'ord_original_1',
-            'total' => ['currency' => 'EUR', 'value' => '49.00'],
-            'subtotal' => ['currency' => 'EUR', 'value' => '40.50'],
-            'taxRates' => [],
-        ]);
-
-        $this->getRefund->shouldReceive('execute')->once()->with('refund_failed_1')->andReturn($apiRefund);
-
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_rff',
-            resource: 'webhook_event',
+        $webhook = $this->makeWebhook(
             eventName: 'refund.failed',
             entityType: 'refund',
             entityId: 'refund_failed_1',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
-            object: [],
+            object: $this->fatRefund([
+                'id' => 'refund_failed_1',
+                'customerId' => 'cus_456',
+                'status' => 'failed',
+                'originalOrderId' => 'ord_original_1',
+                'total' => ['currency' => 'EUR', 'value' => '49.00'],
+                'subtotal' => ['currency' => 'EUR', 'value' => '40.50'],
+                'taxRates' => [],
+            ]),
         );
 
         $event = $this->factory->createFromWebhook($webhook);
@@ -731,29 +509,21 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertSame(4900, $event->total->toCents());
     }
 
-    public function test_it_creates_refund_canceled_event_from_enriched_api_refund(): void
+    public function test_it_creates_refund_canceled_event_from_fat_payload(): void
     {
-        $apiRefund = $this->buildApiRefund([
-            'id' => 'refund_canceled_1',
-            'customerId' => 'cus_456',
-            'status' => 'canceled',
-            'originalOrderId' => 'ord_original_1',
-            'total' => ['currency' => 'EUR', 'value' => '10.00'],
-            'subtotal' => ['currency' => 'EUR', 'value' => '8.26'],
-            'taxRates' => [],
-        ]);
-
-        $this->getRefund->shouldReceive('execute')->once()->with('refund_canceled_1')->andReturn($apiRefund);
-
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_rfc',
-            resource: 'webhook_event',
+        $webhook = $this->makeWebhook(
             eventName: 'refund.canceled',
             entityType: 'refund',
             entityId: 'refund_canceled_1',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
-            object: [],
+            object: $this->fatRefund([
+                'id' => 'refund_canceled_1',
+                'customerId' => 'cus_456',
+                'status' => 'canceled',
+                'originalOrderId' => 'ord_original_1',
+                'total' => ['currency' => 'EUR', 'value' => '10.00'],
+                'subtotal' => ['currency' => 'EUR', 'value' => '8.26'],
+                'taxRates' => [],
+            ]),
         );
 
         $event = $this->factory->createFromWebhook($webhook);
@@ -763,42 +533,12 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertSame('canceled', $event->status);
     }
 
-    public function test_refund_events_degrade_to_unsupported_without_a_get_refund_action(): void
-    {
-        // Back-compat: a factory built without GetRefund (the pre-refund shape)
-        // must treat refund webhooks as unsupported, not fatal.
-        $factory = new WebhookEventFactory($this->getOrder, $this->getSubscription);
-
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_rf',
-            resource: 'webhook_event',
-            eventName: 'refund.completed',
-            entityType: 'refund',
-            entityId: 'refund_123',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
-            object: ['customerId' => 'cus_456'],
-        );
-
-        $event = $factory->createFromWebhook($webhook);
-
-        $this->assertInstanceOf(UnsupportedWebhookReceived::class, $event);
-        $this->assertFalse($factory->isSupported('refund.completed'));
-        $this->assertNotContains('refund.completed', $factory->getSupportedEvents());
-        // Non-refund events are unaffected.
-        $this->assertTrue($factory->isSupported('order.paid'));
-    }
-
     public function test_it_creates_checkout_paid_event_from_webhook(): void
     {
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_cp',
-            resource: 'webhook_event',
+        $webhook = $this->makeWebhook(
             eventName: 'checkout.paid',
             entityType: 'checkout',
             entityId: 'checkout_123',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
             object: [
                 'customerId' => 'cus_456',
                 'orderId' => 'ord_789',
@@ -819,14 +559,10 @@ class WebhookEventFactoryTest extends TestCase
 
     public function test_it_creates_checkout_failed_event_from_webhook(): void
     {
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_cf',
-            resource: 'webhook_event',
+        $webhook = $this->makeWebhook(
             eventName: 'checkout.failed',
             entityType: 'checkout',
             entityId: 'checkout_123',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
             object: ['customerId' => 'cus_456', 'status' => 'failed'],
         );
 
@@ -841,14 +577,10 @@ class WebhookEventFactoryTest extends TestCase
 
     public function test_it_creates_checkout_canceled_event_from_webhook(): void
     {
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_cc',
-            resource: 'webhook_event',
+        $webhook = $this->makeWebhook(
             eventName: 'checkout.canceled',
             entityType: 'checkout',
             entityId: 'checkout_123',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
             object: ['customerId' => 'cus_456'],
         );
 
@@ -862,14 +594,10 @@ class WebhookEventFactoryTest extends TestCase
 
     public function test_it_creates_checkout_expired_event_from_webhook(): void
     {
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_ce',
-            resource: 'webhook_event',
+        $webhook = $this->makeWebhook(
             eventName: 'checkout.expired',
             entityType: 'checkout',
             entityId: 'checkout_123',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
             object: [],
         );
 
@@ -883,14 +611,10 @@ class WebhookEventFactoryTest extends TestCase
 
     public function test_it_creates_subscription_cancellation_grace_period_completed_event_from_webhook(): void
     {
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_gpc',
-            resource: 'webhook_event',
+        $webhook = $this->makeWebhook(
             eventName: 'subscription.cancellation_grace_period_completed',
             entityType: 'subscription',
             entityId: 'sub_123',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
             object: [
                 'customerId' => 'cus_456',
                 'endedAt' => '2024-02-15T10:00:00Z',
@@ -908,14 +632,10 @@ class WebhookEventFactoryTest extends TestCase
 
     public function test_it_creates_unsupported_webhook_received_for_unknown_events(): void
     {
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_abc',
-            resource: 'webhook_event',
+        $webhook = $this->makeWebhook(
             eventName: 'unknown.event',
             entityType: 'unknown',
             entityId: 'res_123',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
             object: [],
         );
 
@@ -927,14 +647,10 @@ class WebhookEventFactoryTest extends TestCase
 
     public function test_it_creates_webhook_setup_received_event_from_webhook(): void
     {
-        $webhook = new WebhookReceived(
-            id: 'webhook_event_setup',
-            resource: 'webhook_event',
+        $webhook = $this->makeWebhook(
             eventName: 'webhook.setup',
             entityType: 'webhook',
             entityId: 'wh_123',
-            testmode: false,
-            createdAt: '2024-01-15T10:00:00Z',
             object: ['url' => 'https://example.test/webhooks/vatly'],
         );
 
@@ -995,121 +711,170 @@ class WebhookEventFactoryTest extends TestCase
     }
 
     /**
-     * @param array{
-     *   id: string,
-     *   customerId: string,
-     *   total: array{currency: string, value: string},
-     *   subtotal: array{currency: string, value: string},
-     *   taxRates: array<int, array{name: string, percentage: float, taxablePercentage: float, amount: string}>,
-     *   invoiceNumber: ?string,
-     *   paymentMethod: ?string,
-     *   status?: string,
-     * Build a minimal API Subscription resource for enrichment-path tests.
-     *
-     * @param array{
-     *     id: string,
-     *     customerId: string,
-     *     subscriptionPlanId: string,
-     *     name: string,
-     *     quantity: int,
-     *     mandate: ?Mandate,
-     * } $data
+     * @param array<string, mixed> $object
      */
-    private function makeApiSubscription(array $data): ApiSubscription
-    {
-        $subscription = new ApiSubscription(Mockery::mock(VatlyApiClient::class));
-        $subscription->id = $data['id'];
-        $subscription->customerId = $data['customerId'];
-        $subscription->subscriptionPlanId = $data['subscriptionPlanId'];
-        $subscription->name = $data['name'];
-        $subscription->quantity = $data['quantity'];
-        $subscription->mandate = $data['mandate'];
-
-        return $subscription;
+    private function makeWebhook(
+        string $eventName,
+        string $entityType,
+        string $entityId,
+        array $object,
+    ): WebhookReceived {
+        return new WebhookReceived(
+            id: 'webhook_event_'.$entityId,
+            resource: 'webhook_event',
+            eventName: $eventName,
+            entityType: $entityType,
+            entityId: $entityId,
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            object: $object,
+        );
     }
 
     /**
-     * } $data
+     * Build the fat (signed) `order` webhook `object` — byte-shape-equivalent to
+     * a `GET /orders/{id}` body, as emitted by vatlify's `OrderPayload::fromModel`.
+     *
+     * @param array<string, mixed> $data
+     *
+     * @return array<string, mixed>
      */
-    private function buildApiOrder(array $data): ApiOrder
+    private function fatOrder(array $data): array
     {
-        $order = new ApiOrder(Mockery::mock(VatlyApiClient::class));
-        $order->id = $data['id'];
-        $order->customerId = $data['customerId'];
-        $order->total = new Money($data['total']['currency'], $data['total']['value']);
-        $order->subtotal = new Money($data['subtotal']['currency'], $data['subtotal']['value']);
-        $order->invoiceNumber = $data['invoiceNumber'];
-        $order->paymentMethod = $data['paymentMethod'];
-        $order->status = $data['status'] ?? 'paid';
+        $currency = $data['total']['currency'];
 
-        $taxItems = array_map(
+        $object = [
+            'id' => $data['id'],
+            'resource' => 'order',
+            'customerId' => $data['customerId'],
+            'createdAt' => '2024-01-15T10:00:00+00:00',
+            'testmode' => false,
+            'status' => $data['status'],
+            'total' => $data['total'],
+            'subtotal' => $data['subtotal'],
+            'reversedSubtotal' => ['currency' => $currency, 'value' => '0.00'],
+            'refundableSubtotal' => $data['subtotal'],
+            'invoiceNumber' => $data['invoiceNumber'] ?? null,
+            'paymentMethod' => $data['paymentMethod'] ?? null,
+            'taxSummary' => $this->fatTaxSummary($data['taxRates'], $currency),
+            'metadata' => $data['metadata'] ?? null,
+            'lines' => array_map(
+                fn (array $line) => [
+                    'id' => $line['id'],
+                    'resource' => 'orderline',
+                    'description' => $line['description'],
+                    'quantity' => $line['quantity'],
+                    'productType' => $line['productType'] ?? null,
+                    'productId' => $line['productId'] ?? null,
+                    'basePrice' => ['currency' => $currency, 'value' => $line['basePrice']],
+                    'total' => ['currency' => $currency, 'value' => $line['total']],
+                    'subtotal' => ['currency' => $currency, 'value' => $line['subtotal']],
+                    'taxes' => [],
+                ],
+                $data['lines'] ?? [],
+            ),
+        ];
+
+        return $object;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     *
+     * @return array<string, mixed>
+     */
+    private function fatRefund(array $data): array
+    {
+        $currency = $data['total']['currency'];
+
+        return [
+            'id' => $data['id'],
+            'resource' => 'refund',
+            'createdAt' => '2024-01-15T10:00:00+00:00',
+            'testmode' => false,
+            'status' => $data['status'],
+            'customerId' => $data['customerId'],
+            'originalOrderId' => $data['originalOrderId'],
+            'total' => $data['total'],
+            'subtotal' => $data['subtotal'],
+            'taxSummary' => $this->fatTaxSummary($data['taxRates'], $currency),
+            'lines' => [],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     *
+     * @return array<string, mixed>
+     */
+    private function fatChargeback(array $data): array
+    {
+        $currency = $data['total']['currency'];
+
+        return [
+            'id' => $data['id'],
+            'resource' => 'chargeback',
+            'customerId' => $data['customerId'],
+            'createdAt' => '2024-01-15T10:00:00+00:00',
+            'testmode' => false,
+            'status' => $data['status'],
+            'amount' => $data['total'],
+            'settlementAmount' => $data['total'],
+            'total' => $data['total'],
+            'subtotal' => $data['subtotal'],
+            'taxSummary' => $this->fatTaxSummary($data['taxRates'], $currency),
+            'reason' => $data['reason'],
+            'originalOrderId' => $data['originalOrderId'],
+            'orderId' => null,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     *
+     * @return array<string, mixed>
+     */
+    private function fatSubscription(array $data): array
+    {
+        return [
+            'id' => $data['id'],
+            'resource' => 'subscription',
+            'customerId' => $data['customerId'],
+            'subscriptionPlanId' => $data['subscriptionPlanId'],
+            'testmode' => false,
+            'name' => $data['name'],
+            'description' => 'A subscription',
+            'quantity' => $data['quantity'],
+            'interval' => '1 month',
+            'intervalCount' => 1,
+            'status' => 'active',
+            'startedAt' => '2024-01-15T10:00:00+00:00',
+            'endedAt' => null,
+            'canceledAt' => null,
+            'renewedAt' => null,
+            'renewedUntil' => null,
+            'nextRenewalAt' => null,
+            'mandate' => $data['mandate'],
+        ];
+    }
+
+    /**
+     * @param array<int, array{name: string, percentage: float, taxablePercentage: float, amount: string}> $taxRates
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function fatTaxSummary(array $taxRates, string $currency): array
+    {
+        return array_map(
             fn (array $rate) => [
                 'taxRate' => [
                     'name' => $rate['name'],
                     'percentage' => $rate['percentage'],
                     'taxablePercentage' => $rate['taxablePercentage'],
                 ],
-                'amount' => ['currency' => $data['total']['currency'], 'value' => $rate['amount']],
+                'amount' => ['currency' => $currency, 'value' => $rate['amount']],
             ],
-            $data['taxRates'],
+            $taxRates,
         );
-        $order->taxSummary = new TaxSummaryCollection($taxItems);
-
-        $order->lines = array_map(
-            fn (array $line) => (object) [
-                'id' => $line['id'],
-                'resource' => 'orderline',
-                'description' => $line['description'],
-                'quantity' => $line['quantity'],
-                'productType' => $line['productType'] ?? null,
-                'productId' => $line['productId'] ?? null,
-                'basePrice' => (object) ['currency' => $data['total']['currency'], 'value' => $line['basePrice']],
-                'total' => (object) ['currency' => $data['total']['currency'], 'value' => $line['total']],
-                'subtotal' => (object) ['currency' => $data['total']['currency'], 'value' => $line['subtotal']],
-                'taxes' => [],
-            ],
-            $data['lines'] ?? [],
-        );
-
-        return $order;
-    }
-
-    /**
-     * Build a minimal API Refund resource for enrichment-path tests.
-     *
-     * @param array{
-     *   id: string,
-     *   customerId: string,
-     *   status: string,
-     *   originalOrderId: string,
-     *   total: array{currency: string, value: string},
-     *   subtotal: array{currency: string, value: string},
-     *   taxRates: array<int, array{name: string, percentage: float, taxablePercentage: float, amount: string}>,
-     * } $data
-     */
-    private function buildApiRefund(array $data): ApiRefund
-    {
-        $refund = new ApiRefund(Mockery::mock(VatlyApiClient::class));
-        $refund->id = $data['id'];
-        $refund->customerId = $data['customerId'];
-        $refund->status = $data['status'];
-        $refund->originalOrderId = $data['originalOrderId'];
-        $refund->total = new Money($data['total']['currency'], $data['total']['value']);
-        $refund->subtotal = new Money($data['subtotal']['currency'], $data['subtotal']['value']);
-
-        $taxItems = array_map(
-            fn (array $rate) => [
-                'taxRate' => [
-                    'name' => $rate['name'],
-                    'percentage' => $rate['percentage'],
-                    'taxablePercentage' => $rate['taxablePercentage'],
-                ],
-                'amount' => ['currency' => $data['total']['currency'], 'value' => $rate['amount']],
-            ],
-            $data['taxRates'],
-        );
-        $refund->taxSummary = new TaxSummaryCollection($taxItems);
-
-        return $refund;
     }
 }

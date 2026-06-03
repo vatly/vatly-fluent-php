@@ -20,9 +20,9 @@ use Vatly\API\Webhooks\Events\SubscriptionBillingUpdated;
  * billing-update payload would be wrong. It mirrors
  * {@see CancelSubscriptionOnCanceled}'s find-or-skip stance instead.
  *
- * A null mandate on the event (enrichment fell back to the webhook payload)
- * is treated as "no mandate change" — `UpdateSubscriptionData`'s default —
- * so a transient API blip never wipes a good stored mandate; the next
+ * A null mandate on the event (the signed payload genuinely carried none) is
+ * treated as "no mandate change" — `UpdateSubscriptionData`'s default — so a
+ * payload without a mandate never wipes a good stored mandate; the next
  * `sync()` reconciles.
  *
  * @immutable

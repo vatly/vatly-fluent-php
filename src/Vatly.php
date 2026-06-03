@@ -109,7 +109,7 @@ class Vatly
 
     public function getWebhookEventFactory(): WebhookEventFactory
     {
-        return $this->webhookEventFactory ??= new WebhookEventFactory($this->getOrder(), $this->getSubscription(), $this->getRefund(), $this->getChargeback());
+        return $this->webhookEventFactory ??= new WebhookEventFactory($this->apiClient);
     }
 
     public function webhookProcessor(): WebhookProcessor
@@ -126,11 +126,8 @@ class Vatly
                 ?? throw IncompleteWiringException::missing('events', 'WebhookProcessor'),
             bindings: $this->wiring->customerBindings
                 ?? throw IncompleteWiringException::missing('customerBindings', 'WebhookProcessor'),
-            getOrder: $this->getOrder(),
-            getSubscription: $this->getSubscription(),
-            getRefund: $this->getRefund(),
+            apiClient: $this->apiClient,
             refunds: $this->wiring->refunds,
-            getChargeback: $this->getChargeback(),
             chargebacks: $this->wiring->chargebacks,
             additionalReactions: $this->wiring->additionalWebhookReactions,
         );

@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Webhooks;
 
-use Vatly\Fluent\Actions\GetChargeback;
-use Vatly\Fluent\Actions\GetOrder;
-use Vatly\Fluent\Actions\GetRefund;
-use Vatly\Fluent\Actions\GetSubscription;
+use Vatly\API\VatlyApiClient;
 use Vatly\Fluent\Contracts\ChargebackRepositoryInterface;
 use Vatly\Fluent\Contracts\ConfigurationInterface;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
@@ -36,19 +33,16 @@ class WebhookProcessorFactory
      * Drivers call this from their bootstrap to avoid re-deriving the
      * reaction registration list on each install.
      *
-     * `getRefund` and `refunds` are both optional and back-compatible: a driver
-     * that only wires subscriptions/orders can keep calling this exactly as
-     * before. Pass `getRefund` (and `refunds`) only to opt into refund handling
-     * — when `getRefund` is null, `refund.*` webhooks degrade to
-     * {@see \Vatly\API\Webhooks\Events\UnsupportedWebhookReceived} (the pre-refund
-     * behavior), and the {@see SyncRefundOnStatusChange} reaction is registered
-     * only when `refunds` is supplied.
+     * The `apiClient` is threaded so the {@see WebhookEventFactory} can hydrate
+     * the money/tax-bearing events from the signed webhook payload — no follow-up
+     * API GET is made; the payload is the authoritative snapshot.
      *
-     * `getChargeback` and `chargebacks` follow the same opt-in shape for the
-     * `order.chargeback_*` events: pass `getChargeback` to enrich them (customer
-     * id, status, tax breakdown) and `chargebacks` to register the persistence
-     * reactions. Both default to null, so existing callers are unaffected and
-     * the chargeback events keep dispatching from the (sparse) webhook payload.
+     * `refunds` and `chargebacks` are optional and back-compatible: a driver
+     * that only wires subscriptions/orders can keep calling this without them.
+     * The `refund.*` and `order.chargeback_*` events are always built from the
+     * (fat) payload; the opt-in repositories only gate whether the matching
+     * persistence reaction ({@see SyncRefundOnStatusChange} /
+     * {@see SyncChargebackOnStatusChange}) is registered.
      *
      * @param WebhookReactionInterface[] $additionalReactions
      */
@@ -59,11 +53,8 @@ class WebhookProcessorFactory
         WebhookCallRepositoryInterface $webhookCalls,
         EventDispatcherInterface $dispatcher,
         CustomerBindingRepository $bindings,
-        GetOrder $getOrder,
-        GetSubscription $getSubscription,
-        ?GetRefund $getRefund = null,
+        VatlyApiClient $apiClient,
         ?RefundRepositoryInterface $refunds = null,
-        ?GetChargeback $getChargeback = null,
         ?ChargebackRepositoryInterface $chargebacks = null,
         array $additionalReactions = [],
     ): WebhookProcessor {
@@ -94,7 +85,7 @@ class WebhookProcessorFactory
         }
 
         return new WebhookProcessor(
-            eventFactory: new WebhookEventFactory($getOrder, $getSubscription, $getRefund, $getChargeback),
+            eventFactory: new WebhookEventFactory($apiClient),
             repository: $webhookCalls,
             dispatcher: $dispatcher,
             webhookSecret: $config->getWebhookSecret() ?? '',
