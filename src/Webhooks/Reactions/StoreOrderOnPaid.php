@@ -67,6 +67,9 @@ class StoreOrderOnPaid implements WebhookReactionInterface
             taxSummary: $event->taxSummary,
             hostCustomerId: $hostCustomerId,
             metadata: $event->metadata,
+            // Lines are immutable once paid, so they're only written on the
+            // initial store — the update path above leaves existing lines as-is.
+            lines: $event->lines,
         ));
     }
 }

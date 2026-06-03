@@ -14,6 +14,8 @@ use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Contracts\ChargebackInterface;
 use Vatly\Fluent\Contracts\ChargebackReader;
 use Vatly\Fluent\Contracts\OrderInterface;
+use Vatly\Fluent\Contracts\OrderLineInterface;
+use Vatly\Fluent\Contracts\OrderLineReader;
 use Vatly\Fluent\Contracts\RefundInterface;
 use Vatly\Fluent\Contracts\RefundReader;
 use Vatly\Fluent\OrderHandle;
@@ -137,6 +139,38 @@ class OrderHandleTest extends TestCase
         );
 
         $this->assertSame([], $handle->chargebacks());
+    }
+
+    public function test_lines_returns_local_lines_for_the_order(): void
+    {
+        $lineA = Mockery::mock(OrderLineInterface::class);
+        $lineB = Mockery::mock(OrderLineInterface::class);
+
+        $reader = Mockery::mock(OrderLineReader::class);
+        $reader->shouldReceive('listForOrder')->with('order_abc')->once()->andReturn([$lineA, $lineB]);
+
+        $order = Mockery::mock(OrderInterface::class);
+        $order->shouldReceive('getVatlyId')->andReturn('order_abc');
+
+        $handle = new OrderHandle(
+            order: $order,
+            getOrderAction: Mockery::mock(GetOrder::class),
+            orderLines: $reader,
+        );
+
+        $this->assertSame([$lineA, $lineB], $handle->lines());
+    }
+
+    public function test_lines_is_empty_when_no_order_line_reader_is_wired(): void
+    {
+        $order = Mockery::mock(OrderInterface::class);
+
+        $handle = new OrderHandle(
+            order: $order,
+            getOrderAction: Mockery::mock(GetOrder::class),
+        );
+
+        $this->assertSame([], $handle->lines());
     }
 
     public function test_reversal_helpers_read_the_live_api_order(): void

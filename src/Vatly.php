@@ -251,6 +251,7 @@ class Vatly
             getOrderAction: $this->getOrder(),
             refunds: $this->wiring->refunds,
             chargebacks: $this->wiring->chargebacks,
+            orderLines: $this->wiring->orderLines,
         );
     }
 

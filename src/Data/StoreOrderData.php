@@ -26,5 +26,13 @@ class StoreOrderData
         public ?string $hostCustomerId = null,
         /** @var array<string, mixed>|null */
         public ?array $metadata = null,
+        /**
+         * The order's lines, persisted as first-class read entities. Defaults
+         * to empty for back-compat: drivers/reactions that don't carry lines
+         * keep working unchanged.
+         *
+         * @var OrderLineData[]
+         */
+        public array $lines = [],
     ) {}
 }
