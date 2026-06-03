@@ -6,6 +6,7 @@ namespace Vatly\Fluent\Events;
 
 use Vatly\API\Resources\Order as ApiOrder;
 use Vatly\API\Types\WebhookEventName;
+use Vatly\Fluent\Data\OrderLineData;
 use Vatly\Fluent\Types\Money;
 use Vatly\Fluent\Types\TaxSummary;
 
@@ -34,6 +35,13 @@ class OrderPaid
         public ?string $paymentMethod,
         /** @var array<string, mixed>|null */
         public ?array $metadata = null,
+        /**
+         * The order's lines, mapped from the enriched API order. Empty for
+         * back-compat when an order carries none.
+         *
+         * @var OrderLineData[]
+         */
+        public array $lines = [],
     ) {
         //
     }
@@ -51,7 +59,28 @@ class OrderPaid
             invoiceNumber: $order->invoiceNumber,
             paymentMethod: $order->paymentMethod,
             metadata: self::normalizeMetadata($order->metadata),
+            lines: self::mapLines($order),
         );
+    }
+
+    /**
+     * Map the enriched API order's lines (the `OrderLineCollection` returned
+     * by `GetOrder`) into immutable {@see OrderLineData} DTOs.
+     *
+     * `productType`/`productId` are read straight off the API line (nullable as
+     * of api-php alpha.15) and carried as raw strings.
+     *
+     * @return OrderLineData[]
+     */
+    private static function mapLines(ApiOrder $order): array
+    {
+        $lines = [];
+
+        foreach ($order->lines() as $line) {
+            $lines[] = OrderLineData::fromApiOrderLine($line);
+        }
+
+        return $lines;
     }
 
     /**

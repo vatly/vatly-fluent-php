@@ -9,6 +9,8 @@ use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Contracts\ChargebackInterface;
 use Vatly\Fluent\Contracts\ChargebackReader;
 use Vatly\Fluent\Contracts\OrderInterface;
+use Vatly\Fluent\Contracts\OrderLineInterface;
+use Vatly\Fluent\Contracts\OrderLineReader;
 use Vatly\Fluent\Contracts\RefundInterface;
 use Vatly\Fluent\Contracts\RefundReader;
 use Vatly\Fluent\Types\Money;
@@ -41,6 +43,12 @@ class OrderHandle
          * empty array.
          */
         private readonly ?ChargebackReader $chargebacks = null,
+        /**
+         * Optional: supplied by {@see Vatly::order()} when an order-line
+         * repository is wired. Without it, {@see self::lines()} returns an empty
+         * array rather than reaching into driver internals.
+         */
+        private readonly ?OrderLineReader $orderLines = null,
     ) {
         //
     }
@@ -194,5 +202,20 @@ class OrderHandle
     public function chargebacks(): array
     {
         return $this->chargebacks?->listForOrder($this->order->getVatlyId()) ?? [];
+    }
+
+    /**
+     * The lines recorded locally for this order, per the driver's
+     * {@see OrderLineReader} implementation.
+     *
+     * Reads only local state (no API call). Returns an empty array when no
+     * order-line repository is wired, so callers can render line-item detail
+     * unconditionally without feature-detecting the wiring.
+     *
+     * @return OrderLineInterface[]
+     */
+    public function lines(): array
+    {
+        return $this->orderLines?->listForOrder($this->order->getVatlyId()) ?? [];
     }
 }

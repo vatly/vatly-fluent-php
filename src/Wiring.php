@@ -8,6 +8,7 @@ use Vatly\Fluent\Contracts\ChargebackRepositoryInterface;
 use Vatly\Fluent\Contracts\ConfigurationInterface;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
 use Vatly\Fluent\Contracts\EventDispatcherInterface;
+use Vatly\Fluent\Contracts\OrderLineRepositoryInterface;
 use Vatly\Fluent\Contracts\OrderRepositoryInterface;
 use Vatly\Fluent\Contracts\RefundRepositoryInterface;
 use Vatly\Fluent\Contracts\SubscriptionRepositoryInterface;
@@ -36,6 +37,7 @@ final class Wiring
         public readonly ConfigurationInterface $config,
         public readonly ?SubscriptionRepositoryInterface $subscriptions = null,
         public readonly ?OrderRepositoryInterface $orders = null,
+        public readonly ?OrderLineRepositoryInterface $orderLines = null,
         public readonly ?RefundRepositoryInterface $refunds = null,
         public readonly ?ChargebackRepositoryInterface $chargebacks = null,
         public readonly ?WebhookCallRepositoryInterface $webhookCalls = null,

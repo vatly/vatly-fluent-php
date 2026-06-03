@@ -8,6 +8,7 @@ use Mockery;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
 use Vatly\Fluent\Contracts\OrderInterface;
 use Vatly\Fluent\Contracts\OrderRepositoryInterface;
+use Vatly\Fluent\Data\OrderLineData;
 use Vatly\Fluent\Data\StoreOrderData;
 use Vatly\Fluent\Data\UpdateOrderData;
 use Vatly\Fluent\Events\OrderPaid;
@@ -159,6 +160,61 @@ class StoreOrderOnPaidTest extends TestCase
         ))->andReturn($existing);
 
         (new StoreOrderOnPaid($updateRepo, Mockery::mock(CustomerBindingRepository::class)))->handle($event);
+    }
+
+    public function test_it_forwards_order_lines_into_store_order_data(): void
+    {
+        $lines = [
+            new OrderLineData(
+                vatlyId: 'order_item_sub',
+                description: 'Pro plan',
+                quantity: 1,
+                basePrice: 2000,
+                total: 2420,
+                subtotal: 2000,
+                taxSummary: TaxSummary::empty(),
+                productType: 'subscription',
+                productId: 'subscription_abc',
+            ),
+        ];
+
+        $event = new OrderPaid(
+            customerId: 'cus_1',
+            orderId: 'ord_1',
+            status: 'paid',
+            total: 9900,
+            subtotal: 8182,
+            taxSummary: TaxSummary::empty(),
+            currency: 'EUR',
+            invoiceNumber: 'INV-001',
+            paymentMethod: 'card',
+            lines: $lines,
+        );
+
+        $repo = Mockery::mock(OrderRepositoryInterface::class);
+        $repo->shouldReceive('findByVatlyId')->with('ord_1')->once()->andReturnNull();
+        $repo->shouldReceive('store')->once()->with(Mockery::on(
+            fn (StoreOrderData $data) => $data->lines === $lines,
+        ))->andReturn(Mockery::mock(OrderInterface::class));
+
+        $bindings = Mockery::mock(CustomerBindingRepository::class);
+        $bindings->shouldReceive('hostCustomerIdFor')->andReturn(null);
+        $bindings->shouldReceive('record')->once();
+
+        (new StoreOrderOnPaid($repo, $bindings))->handle($event);
+    }
+
+    public function test_it_does_not_re_write_lines_for_an_already_persisted_order(): void
+    {
+        $event = $this->makeEvent();
+
+        $existing = Mockery::mock(OrderInterface::class);
+        $repo = Mockery::mock(OrderRepositoryInterface::class);
+        $repo->shouldReceive('findByVatlyId')->with('ord_1')->once()->andReturn($existing);
+        $repo->shouldReceive('update')->once()->andReturn($existing);
+        $repo->shouldNotReceive('store');
+
+        (new StoreOrderOnPaid($repo, Mockery::mock(CustomerBindingRepository::class)))->handle($event);
     }
 
     private function makeEvent(?TaxSummary $taxSummary = null): OrderPaid

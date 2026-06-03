@@ -461,6 +461,71 @@ class WebhookEventFactoryTest extends TestCase
         $this->assertSame('EUR', $event->taxSummary->items[0]->currency);
     }
 
+    public function test_order_paid_event_carries_mapped_order_lines_from_the_enriched_order(): void
+    {
+        $apiOrder = $this->buildApiOrder([
+            'id' => 'ord_123',
+            'customerId' => 'cus_456',
+            'total' => ['currency' => 'EUR', 'value' => '99.00'],
+            'subtotal' => ['currency' => 'EUR', 'value' => '81.82'],
+            'taxRates' => [
+                ['name' => 'VAT', 'percentage' => 21.0, 'taxablePercentage' => 100.0, 'amount' => '17.18'],
+            ],
+            'invoiceNumber' => 'INV-2024-001',
+            'paymentMethod' => 'credit_card',
+            'lines' => [
+                [
+                    'id' => 'order_item_sub',
+                    'description' => 'Pro plan',
+                    'quantity' => 1,
+                    'basePrice' => '20.00',
+                    'total' => '24.20',
+                    'subtotal' => '20.00',
+                    'productType' => 'subscription',
+                    'productId' => 'subscription_abc',
+                ],
+                [
+                    'id' => 'order_item_legacy',
+                    'description' => 'Unattributed line',
+                    'quantity' => 2,
+                    'basePrice' => '5.00',
+                    'total' => '12.10',
+                    'subtotal' => '10.00',
+                ],
+            ],
+        ]);
+
+        $this->getOrder->shouldReceive('execute')->once()->with('ord_123')->andReturn($apiOrder);
+
+        $webhook = new WebhookReceived(
+            id: 'webhook_event_abc',
+            resource: 'webhook_event',
+            eventName: 'order.paid',
+            entityType: 'order',
+            entityId: 'ord_123',
+            testmode: false,
+            createdAt: '2024-01-15T10:00:00Z',
+            object: ['customerId' => 'cus_456'],
+        );
+
+        $event = $this->factory->createFromWebhook($webhook);
+
+        $this->assertInstanceOf(OrderPaid::class, $event);
+        $this->assertCount(2, $event->lines);
+
+        $this->assertSame('order_item_sub', $event->lines[0]->vatlyId);
+        $this->assertSame(2000, $event->lines[0]->basePrice);
+        $this->assertSame(2420, $event->lines[0]->total);
+        $this->assertSame(2000, $event->lines[0]->subtotal);
+        $this->assertSame('subscription', $event->lines[0]->productType);
+        $this->assertSame('subscription_abc', $event->lines[0]->productId);
+
+        $this->assertSame('order_item_legacy', $event->lines[1]->vatlyId);
+        $this->assertSame(2, $event->lines[1]->quantity);
+        $this->assertNull($event->lines[1]->productType);
+        $this->assertNull($event->lines[1]->productId);
+    }
+
     public function test_it_creates_payment_failed_event_from_webhook_with_enriched_order(): void
     {
         $apiOrder = $this->buildApiOrder([
@@ -964,6 +1029,22 @@ class WebhookEventFactoryTest extends TestCase
             $data['taxRates'],
         );
         $order->taxSummary = new TaxSummaryCollection($taxItems);
+
+        $order->lines = array_map(
+            fn (array $line) => (object) [
+                'id' => $line['id'],
+                'resource' => 'orderline',
+                'description' => $line['description'],
+                'quantity' => $line['quantity'],
+                'productType' => $line['productType'] ?? null,
+                'productId' => $line['productId'] ?? null,
+                'basePrice' => (object) ['currency' => $data['total']['currency'], 'value' => $line['basePrice']],
+                'total' => (object) ['currency' => $data['total']['currency'], 'value' => $line['total']],
+                'subtotal' => (object) ['currency' => $data['total']['currency'], 'value' => $line['subtotal']],
+                'taxes' => [],
+            ],
+            $data['lines'] ?? [],
+        );
 
         return $order;
     }
