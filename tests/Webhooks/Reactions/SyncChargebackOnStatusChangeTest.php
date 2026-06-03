@@ -14,6 +14,7 @@ use Vatly\API\Webhooks\Events\OrderChargebackReceived;
 use Vatly\API\Webhooks\Events\OrderChargebackReversed;
 use Vatly\API\Webhooks\Events\OrderPaid;
 use Vatly\Fluent\Tests\TestCase;
+use Vatly\API\Types\Money;
 use Vatly\API\Types\TaxSummaryCollection;
 use Vatly\Fluent\Webhooks\Reactions\SyncChargebackOnStatusChange;
 
@@ -28,7 +29,7 @@ class SyncChargebackOnStatusChangeTest extends TestCase
 
         $this->assertTrue($reaction->supports($this->received('pending')));
         $this->assertTrue($reaction->supports($this->reversed('won')));
-        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', 9900, 8182, new TaxSummaryCollection([]), 'EUR', null, null)));
+        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', self::money(9900), self::money(8182), new TaxSummaryCollection([]), null, null)));
     }
 
     public function test_it_stores_a_new_chargeback_resolving_host_customer_from_bindings(): void
@@ -98,8 +99,8 @@ class SyncChargebackOnStatusChangeTest extends TestCase
             reason: 'fraudulent',
             customerId: 'cus_1',
             status: $status,
-            total: 9900,
-            subtotal: 8182,
+            total: self::money(9900),
+            subtotal: self::money(8182),
             taxSummary: new TaxSummaryCollection([]),
             currency: 'EUR',
         );
@@ -114,8 +115,8 @@ class SyncChargebackOnStatusChangeTest extends TestCase
             reason: 'fraudulent',
             customerId: 'cus_1',
             status: $status,
-            total: 9900,
-            subtotal: 8182,
+            total: self::money(9900),
+            subtotal: self::money(8182),
             taxSummary: new TaxSummaryCollection([]),
             currency: 'EUR',
         );

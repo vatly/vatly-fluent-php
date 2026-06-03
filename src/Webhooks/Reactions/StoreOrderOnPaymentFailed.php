@@ -41,11 +41,13 @@ class StoreOrderOnPaymentFailed implements WebhookReactionInterface
         if ($existing !== null) {
             $this->orders->update($existing, new UpdateOrderData(
                 status: $event->status,
-                total: $event->total,
-                currency: $event->currency,
+                // Flatten Money → integer cents at the persistence edge; the
+                // currency now travels on the Money value object.
+                total: $event->total->toCents(),
+                currency: $event->total->currency,
                 invoiceNumber: $event->invoiceNumber,
                 paymentMethod: $event->paymentMethod,
-                subtotal: $event->subtotal,
+                subtotal: $event->subtotal->toCents(),
                 taxSummary: $event->taxSummary,
                 metadata: $event->metadata,
             ));
@@ -66,11 +68,11 @@ class StoreOrderOnPaymentFailed implements WebhookReactionInterface
             vatlyId: $event->orderId,
             customerId: $event->customerId,
             status: $event->status,
-            total: $event->total,
-            currency: $event->currency,
+            total: $event->total->toCents(),
+            currency: $event->total->currency,
             invoiceNumber: $event->invoiceNumber,
             paymentMethod: $event->paymentMethod,
-            subtotal: $event->subtotal,
+            subtotal: $event->subtotal->toCents(),
             taxSummary: $event->taxSummary,
             hostCustomerId: $hostCustomerId,
             metadata: $event->metadata,

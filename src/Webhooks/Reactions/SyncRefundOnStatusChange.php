@@ -53,9 +53,11 @@ class SyncRefundOnStatusChange implements WebhookReactionInterface
         if ($existing !== null) {
             $this->refunds->update($existing, new UpdateRefundData(
                 status: $event->status,
-                total: $event->total,
-                currency: $event->currency,
-                subtotal: $event->subtotal,
+                // Flatten Money → integer cents at the persistence edge; the
+                // currency now travels on the Money value object.
+                total: $event->total->toCents(),
+                currency: $event->total->currency,
+                subtotal: $event->subtotal->toCents(),
                 taxSummary: $event->taxSummary,
             ));
 
@@ -72,10 +74,10 @@ class SyncRefundOnStatusChange implements WebhookReactionInterface
             vatlyId: $event->refundId,
             customerId: $event->customerId,
             status: $event->status,
-            total: $event->total,
-            currency: $event->currency,
+            total: $event->total->toCents(),
+            currency: $event->total->currency,
             originalOrderId: $event->originalOrderId,
-            subtotal: $event->subtotal,
+            subtotal: $event->subtotal->toCents(),
             taxSummary: $event->taxSummary,
             hostCustomerId: $hostCustomerId,
         ));

@@ -11,6 +11,7 @@ use Vatly\Fluent\Data\UpdateOrderData;
 use Vatly\API\Webhooks\Events\OrderCanceled;
 use Vatly\API\Webhooks\Events\OrderPaid;
 use Vatly\Fluent\Tests\TestCase;
+use Vatly\API\Types\Money;
 use Vatly\API\Types\TaxSummaryCollection;
 use Vatly\Fluent\Webhooks\Reactions\CancelOrderOnCanceled;
 
@@ -27,7 +28,7 @@ class CancelOrderOnCanceledTest extends TestCase
     {
         $reaction = new CancelOrderOnCanceled(Mockery::mock(OrderRepositoryInterface::class));
 
-        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', 9900, 8182, new TaxSummaryCollection([]), 'EUR', null, null)));
+        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', self::money(9900), self::money(8182), new TaxSummaryCollection([]), null, null)));
     }
 
     public function test_it_mirrors_the_canceled_status_onto_the_local_order(): void
