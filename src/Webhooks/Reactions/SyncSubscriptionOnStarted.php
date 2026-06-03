@@ -10,7 +10,7 @@ use Vatly\Fluent\Contracts\SubscriptionRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
 use Vatly\Fluent\Data\StoreSubscriptionData;
 use Vatly\Fluent\Data\UpdateSubscriptionData;
-use Vatly\Fluent\Events\LocalSubscriptionCreated;
+use Vatly\Fluent\Events\SubscriptionWasCreatedFromWebhook;
 use Vatly\API\Webhooks\Events\SubscriptionStarted;
 
 /**
@@ -63,6 +63,6 @@ class SyncSubscriptionOnStarted implements WebhookReactionInterface
             return;
         }
 
-        $this->dispatcher->dispatch(new LocalSubscriptionCreated($subscription));
+        $this->dispatcher->dispatch(new SubscriptionWasCreatedFromWebhook($subscription));
     }
 }

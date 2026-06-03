@@ -7,16 +7,16 @@ namespace Vatly\Fluent\Tests\Events;
 use DateTimeInterface;
 use Vatly\Fluent\Concerns\DerivesSubscriptionState;
 use Vatly\Fluent\Contracts\SubscriptionInterface;
-use Vatly\Fluent\Events\LocalSubscriptionCreated;
+use Vatly\Fluent\Events\SubscriptionWasCreatedFromWebhook;
 use Vatly\Fluent\Tests\TestCase;
 
-class LocalSubscriptionCreatedTest extends TestCase
+class SubscriptionWasCreatedFromWebhookTest extends TestCase
 {
     public function test_it_can_be_instantiated_with_subscription(): void
     {
         $subscription = $this->createMockSubscription();
 
-        $event = new LocalSubscriptionCreated($subscription);
+        $event = new SubscriptionWasCreatedFromWebhook($subscription);
 
         $this->assertSame($subscription, $event->subscription);
         $this->assertInstanceOf(SubscriptionInterface::class, $event->subscription);
@@ -26,7 +26,7 @@ class LocalSubscriptionCreatedTest extends TestCase
     {
         $subscription = $this->createMockSubscription();
 
-        $event = new LocalSubscriptionCreated($subscription);
+        $event = new SubscriptionWasCreatedFromWebhook($subscription);
 
         $this->assertSame('sub_test_123', $event->subscription->getVatlyId());
         $this->assertTrue($event->subscription->isActive());

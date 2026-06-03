@@ -99,7 +99,7 @@ A driver is a thin glue package (e.g. `vatly-laravel`) that supplies fluent with
 
 For incoming Vatly webhooks, fluent dispatches a typed event and runs a built-in reaction that calls back into your repos. A driver author only needs to implement the repo methods — the wiring is fixed. For the full event → reaction → repo-method matrix **including the fields each `Store*Data` / event carries**, see [docs/webhook-flow.md](docs/webhook-flow.md).
 
-> The typed webhook event DTOs (`OrderPaid`, `PaymentFailed`, `SubscriptionStarted`, …) live in **`vatly-api-php`** under the `Vatly\API\Webhooks\Events\*` namespace and are consumed by fluent — fluent no longer ships its own copies. Import them from `Vatly\API\Webhooks\Events\…` when you handle dispatched events. Fluent still owns the orchestration (`WebhookEventFactory`, the reactions, `WebhookProcessor`) plus the internal `Vatly\Fluent\Events\{LocalSubscriptionCreated,NullEventDispatcher}`.
+> The typed webhook event DTOs (`OrderPaid`, `PaymentFailed`, `SubscriptionStarted`, …) live in **`vatly-api-php`** under the `Vatly\API\Webhooks\Events\*` namespace and are consumed by fluent — fluent no longer ships its own copies. Import them from `Vatly\API\Webhooks\Events\…` when you handle dispatched events. Fluent still owns the orchestration (`WebhookEventFactory`, the reactions, `WebhookProcessor`) plus the internal `Vatly\Fluent\Events\{SubscriptionWasCreatedFromWebhook,NullEventDispatcher}`.
 
 | Vatly event              | Dispatched event class                                            | Built-in reaction              | Repo method(s) called                                |
 |--------------------------|-------------------------------------------------------------------|--------------------------------|------------------------------------------------------|
@@ -115,7 +115,7 @@ For incoming Vatly webhooks, fluent dispatches a typed event and runs a built-in
 | `subscription.cancellation_grace_period_completed` | `SubscriptionCancellationGracePeriodCompleted` | `EndSubscriptionOnGracePeriodCompleted` | `SubscriptionWriter::update` (stamps actual end date) |
 | `checkout.paid` / `checkout.failed` / `checkout.canceled` / `checkout.expired` | `CheckoutPaid` / `CheckoutFailed` / `CheckoutCanceled` / `CheckoutExpired` | — (dispatched only) | none — driver-handled |
 
-`OrderWriter::store`, `SubscriptionWriter::store`, and `RefundWriter::store` may return `null` if your driver can't route the data (see the adapter recipe below). Built-in reactions tolerate null — `SyncSubscriptionOnStarted` skips its follow-up `LocalSubscriptionCreated` dispatch when store returns null.
+`OrderWriter::store`, `SubscriptionWriter::store`, and `RefundWriter::store` may return `null` if your driver can't route the data (see the adapter recipe below). Built-in reactions tolerate null — `SyncSubscriptionOnStarted` skips its follow-up `SubscriptionWasCreatedFromWebhook` dispatch when store returns null.
 
 `subscription.billing_updated`, `subscription.resumed`, and `order.canceled` are find-or-skip: they update an existing local record but never create one. `subscription.billing_updated` re-fetches the subscription to keep the stored mandate (card last-4, masked IBAN) in step with the payment method on file; `subscription.resumed` clears the stored end date so a resume reactivates the derived state; `order.canceled` mirrors Vatly's `canceled` status onto the local order.
 
@@ -612,7 +612,7 @@ Dispatched by webhook reactions through your `EventDispatcherInterface`. Subscri
 - `SubscriptionResumed`
 - `SubscriptionCanceledImmediately`
 - `SubscriptionCanceledWithGracePeriod`
-- `LocalSubscriptionCreated`
+- `SubscriptionWasCreatedFromWebhook`
 - `UnsupportedWebhookReceived`
 
 ## Testing

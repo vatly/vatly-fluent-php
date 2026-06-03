@@ -11,7 +11,7 @@ use Vatly\Fluent\Contracts\SubscriptionInterface;
 use Vatly\Fluent\Contracts\SubscriptionRepositoryInterface;
 use Vatly\Fluent\Data\StoreSubscriptionData;
 use Vatly\Fluent\Data\UpdateSubscriptionData;
-use Vatly\Fluent\Events\LocalSubscriptionCreated;
+use Vatly\Fluent\Events\SubscriptionWasCreatedFromWebhook;
 use Vatly\API\Webhooks\Events\OrderPaid;
 use Vatly\API\Webhooks\Events\SubscriptionStarted;
 use Vatly\Fluent\Tests\TestCase;
@@ -68,7 +68,7 @@ class SyncSubscriptionOnStartedTest extends TestCase
 
         $dispatcher = Mockery::mock(EventDispatcherInterface::class);
         $dispatcher->shouldReceive('dispatch')->once()->with(Mockery::on(function ($event) use ($subscription) {
-            return $event instanceof LocalSubscriptionCreated
+            return $event instanceof SubscriptionWasCreatedFromWebhook
                 && $event->subscription === $subscription;
         }));
 

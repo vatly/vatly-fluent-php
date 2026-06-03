@@ -55,7 +55,7 @@ public function store(StoreOrderData $data): ?OrderInterface
 }
 ```
 
-Returning `null` is a first-class outcome: the built-in reactions tolerate it (a `SubscriptionWriter::store` returning null simply skips the follow-up `LocalSubscriptionCreated` dispatch).
+Returning `null` is a first-class outcome: the built-in reactions tolerate it (a `SubscriptionWriter::store` returning null simply skips the follow-up `SubscriptionWasCreatedFromWebhook` dispatch).
 
 ## 3. `findByVatlyId` as the idempotency hinge
 
