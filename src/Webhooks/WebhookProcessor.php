@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use InvalidArgumentException;
 use Vatly\API\Exceptions\InvalidSignatureException;
 use Vatly\API\Webhooks\Webhook;
+use Vatly\API\Webhooks\WebhookEventFactory;
 use Vatly\Fluent\Contracts\EventDispatcherInterface;
 use Vatly\Fluent\Contracts\WebhookCallRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;

@@ -101,7 +101,7 @@ For incoming Vatly webhooks, fluent dispatches a typed event and runs a built-in
 
 > **No API round-trip.** Vatly sends **fat, HMAC-signed** webhook deliveries: the payload's `object` is the full resource — byte-identical to the corresponding `GET /…/{id}` body (subtotal, the complete tax summary, lines, mandate). The HMAC signature is the trust boundary, so fluent builds every typed event straight from the signed payload — the money/tax-bearing events by hydrating the matching api-php Resource in memory, the rest from the envelope. There is **no follow-up `GET` to "enrich"**, so a transient API blip can never block a webhook.
 
-> The typed webhook event DTOs (`OrderPaid`, `OrderPaymentFailed`, `SubscriptionStarted`, …) live in **`vatly-api-php`** under the `Vatly\API\Webhooks\Events\*` namespace and are consumed by fluent — fluent no longer ships its own copies. Import them from `Vatly\API\Webhooks\Events\…` when you handle dispatched events. Fluent still owns the orchestration (`WebhookEventFactory`, the reactions, `WebhookProcessor`) plus the driver-side `Vatly\Fluent\Events\{SubscriptionWasCreatedFromWebhook,OrderWasCreatedFromWebhook,NullEventDispatcher}`.
+> The typed webhook event DTOs (`OrderPaid`, `OrderPaymentFailed`, `SubscriptionStarted`, …) live in **`vatly-api-php`** under the `Vatly\API\Webhooks\Events\*` namespace and are consumed by fluent — fluent no longer ships its own copies. Import them from `Vatly\API\Webhooks\Events\…` when you handle dispatched events. The factory that turns a signed payload into those typed events, `Vatly\API\Webhooks\WebhookEventFactory`, also lives in **`vatly-api-php`** (verify → parse → map). Fluent consumes it and owns the downstream orchestration (the reactions and `WebhookProcessor`, which record → react → dispatch) plus the driver-side `Vatly\Fluent\Events\{SubscriptionWasCreatedFromWebhook,OrderWasCreatedFromWebhook,NullEventDispatcher}`.
 
 > **Event money is `Money`, not int cents (api-php ≥ `0.1.0-alpha.18`):** the `total` / `subtotal` fields on the money-bearing events are `Vatly\API\Types\Money` value objects (decimal-string `value` + `currency`). Read the currency with `$event->total->currency` and flatten to integer cents with `$event->total->toCents()`. The standalone `currency` field was **removed** from `OrderPaid`, `OrderPaymentFailed`, and the `Refund*` events (their `total` / `subtotal` are non-null `Money`); the chargeback events (`OrderChargebackReceived` / `OrderChargebackReversed`) instead carry **nullable** `?Money` and **keep** a standalone `currency` string. Order lines moved to `Vatly\API\Types\OrderLineData[]` (from the old `Vatly\API\Data\`), and a line's `basePrice` / `total` / `subtotal` are `Money` too. Fluent's built-in reactions flatten `Money → int` at the persistence edge, so the `Store*Data` / `Update*Data` DTOs your driver implements against still receive integer-cents `total` / `subtotal` and a `currency` string — no driver change required.
 
@@ -574,7 +574,7 @@ This makes `foreach ($user->subscriptions as $sub) $sub->cancel()` work naturall
 ```php
 $vatly->getApiClient();                            // raw VatlyApiClient
 $vatly->getSignatureVerifier();                    // raw webhook signature verifier
-$vatly->getWebhookEventFactory();                  // parses webhook payloads
+$vatly->getWebhookEventFactory();                  // api-php Vatly\API\Webhooks\WebhookEventFactory (parses webhook payloads)
 
 // Actions (lazy, cached)
 $vatly->createCustomer();    $vatly->getCustomer();
