@@ -14,8 +14,8 @@ use Vatly\API\Webhooks\Events\OrderPaymentFailed;
 use Vatly\API\Webhooks\Events\SubscriptionStarted;
 use Vatly\API\Webhooks\Events\UnsupportedWebhookReceived;
 use Vatly\Fluent\Exceptions\InvalidWebhookSignatureException;
+use Vatly\API\Webhooks\WebhookEventFactory;
 use Vatly\Fluent\Tests\TestCase;
-use Vatly\Fluent\Webhooks\WebhookEventFactory;
 use Vatly\Fluent\Webhooks\WebhookProcessor;
 
 /**

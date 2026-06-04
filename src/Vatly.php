@@ -6,6 +6,7 @@ namespace Vatly\Fluent;
 
 use Vatly\API\Exceptions\ApiException;
 use Vatly\API\VatlyApiClient;
+use Vatly\API\Webhooks\WebhookEventFactory;
 use Vatly\Fluent\Actions\CancelSubscription;
 use Vatly\Fluent\Actions\CreateCheckout;
 use Vatly\Fluent\Actions\CreateCustomer;
@@ -26,7 +27,6 @@ use Vatly\Fluent\Contracts\SubscriptionInterface;
 use Vatly\Fluent\Exceptions\CustomerAlreadyBoundException;
 use Vatly\Fluent\Exceptions\IncompleteWiringException;
 use Vatly\Fluent\Webhooks\SignatureVerifier;
-use Vatly\Fluent\Webhooks\WebhookEventFactory;
 use Vatly\Fluent\Webhooks\WebhookProcessor;
 use Vatly\Fluent\Webhooks\WebhookProcessorFactory;
 

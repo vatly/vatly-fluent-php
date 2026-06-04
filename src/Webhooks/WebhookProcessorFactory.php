@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Vatly\Fluent\Webhooks;
 
 use Vatly\API\VatlyApiClient;
+use Vatly\API\Webhooks\WebhookEventFactory;
 use Vatly\Fluent\Contracts\ChargebackRepositoryInterface;
 use Vatly\Fluent\Contracts\ConfigurationInterface;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
