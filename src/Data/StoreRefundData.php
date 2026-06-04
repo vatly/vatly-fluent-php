@@ -20,6 +20,7 @@ class StoreRefundData
         public int $total,
         public string $currency,
         public string $originalOrderId,
+        public bool $testmode,
         public ?int $subtotal = null,
         public ?TaxSummaryCollection $taxSummary = null,
         public ?string $hostCustomerId = null,

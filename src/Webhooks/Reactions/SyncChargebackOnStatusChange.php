@@ -84,6 +84,7 @@ class SyncChargebackOnStatusChange implements WebhookReactionInterface
             total: $event->total?->toCents() ?? 0,
             currency: $event->currency,
             originalOrderId: $event->originalOrderId,
+            testmode: $event->testmode,
             reason: $event->reason,
             subtotal: $event->subtotal?->toCents(),
             taxSummary: $event->taxSummary,

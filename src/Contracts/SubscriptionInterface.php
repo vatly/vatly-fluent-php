@@ -95,4 +95,9 @@ interface SubscriptionInterface
      * identifier (e.g. PayPal), or when the driver hasn't synced.
      */
     public function getMandateMaskedIdentifier(): ?string;
+
+    /**
+     * Whether this subscription was created in test mode (vs live).
+     */
+    public function isTestmode(): bool;
 }

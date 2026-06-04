@@ -20,6 +20,7 @@ class OrderInterfaceTest extends TestCase
         $this->assertSame('EUR', $order->getCurrency());
         $this->assertSame('credit_card', $order->getPaymentMethod());
         $this->assertTrue($order->isPaid());
+        $this->assertTrue($order->isTestmode());
     }
 
     private function createMockOrder(): OrderInterface
@@ -56,6 +57,11 @@ class OrderInterfaceTest extends TestCase
             }
 
             public function isPaid(): bool
+            {
+                return true;
+            }
+
+            public function isTestmode(): bool
             {
                 return true;
             }

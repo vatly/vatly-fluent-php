@@ -40,7 +40,7 @@ class SyncRefundOnStatusChangeTest extends TestCase
             Mockery::mock(CustomerBindingRepository::class),
         );
 
-        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', self::money(9900), self::money(8182), new TaxSummaryCollection([]), null, null)));
+        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', self::money(9900), self::money(8182), new TaxSummaryCollection([]), null, null, true)));
     }
 
     public function test_it_updates_an_existing_refund_with_the_new_status(): void
@@ -70,6 +70,7 @@ class SyncRefundOnStatusChangeTest extends TestCase
                 && $data->status === 'refunded'
                 && $data->total === 9900
                 && $data->originalOrderId === 'ord_original_1'
+                && $data->testmode === true
                 && $data->hostCustomerId === 'host_42';
         }))->andReturn($stored);
 
@@ -94,6 +95,7 @@ class SyncRefundOnStatusChangeTest extends TestCase
             self::money(8182),
             new TaxSummaryCollection([]),
             'ord_original_1',
+            true,
         );
     }
 }

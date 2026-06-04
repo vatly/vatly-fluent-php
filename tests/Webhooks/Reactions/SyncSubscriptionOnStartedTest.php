@@ -29,7 +29,7 @@ class SyncSubscriptionOnStartedTest extends TestCase
             Mockery::mock(EventDispatcherInterface::class),
         );
 
-        $event = new SubscriptionStarted('cus_1', 'sub_1', 'plan_1', 'default', 'Monthly', 1);
+        $event = new SubscriptionStarted('cus_1', 'sub_1', 'plan_1', 'default', 'Monthly', 1, true);
 
         $this->assertTrue($reaction->supports($event));
     }
@@ -42,7 +42,7 @@ class SyncSubscriptionOnStartedTest extends TestCase
             Mockery::mock(EventDispatcherInterface::class),
         );
 
-        $event = new OrderPaid('cus_1', 'ord_1', 'paid', self::money(9900), self::money(8182), new TaxSummaryCollection([]), null, null);
+        $event = new OrderPaid('cus_1', 'ord_1', 'paid', self::money(9900), self::money(8182), new TaxSummaryCollection([]), null, null, true);
 
         $this->assertFalse($reaction->supports($event));
     }
@@ -60,6 +60,7 @@ class SyncSubscriptionOnStartedTest extends TestCase
                 && $data->planId === 'plan_1'
                 && $data->name === 'Monthly'
                 && $data->quantity === 1
+                && $data->testmode === true
                 && $data->hostCustomerId === 'host_42';
         }))->andReturn($subscription);
 
@@ -74,7 +75,7 @@ class SyncSubscriptionOnStartedTest extends TestCase
         }));
 
         $reaction = new SyncSubscriptionOnStarted($repo, $bindings, $dispatcher);
-        $reaction->handle(new SubscriptionStarted('cus_1', 'sub_1', 'plan_1', 'default', 'Monthly', 1));
+        $reaction->handle(new SubscriptionStarted('cus_1', 'sub_1', 'plan_1', 'default', 'Monthly', 1, true));
     }
 
     public function test_it_stores_a_subscription_with_null_host_customer_id_when_no_binding_exists(): void
@@ -95,7 +96,7 @@ class SyncSubscriptionOnStartedTest extends TestCase
         $dispatcher->shouldReceive('dispatch')->once();
 
         $reaction = new SyncSubscriptionOnStarted($repo, $bindings, $dispatcher);
-        $reaction->handle(new SubscriptionStarted('cus_1', 'sub_1', 'plan_1', 'default', 'Monthly', 1));
+        $reaction->handle(new SubscriptionStarted('cus_1', 'sub_1', 'plan_1', 'default', 'Monthly', 1, true));
     }
 
     public function test_it_does_not_dispatch_local_subscription_created_when_store_returns_null(): void
@@ -112,7 +113,7 @@ class SyncSubscriptionOnStartedTest extends TestCase
         $dispatcher->shouldNotReceive('dispatch');
 
         $reaction = new SyncSubscriptionOnStarted($repo, $bindings, $dispatcher);
-        $reaction->handle(new SubscriptionStarted('cus_1', 'sub_1', 'plan_1', 'default', 'Monthly', 1));
+        $reaction->handle(new SubscriptionStarted('cus_1', 'sub_1', 'plan_1', 'default', 'Monthly', 1, true));
     }
 
     public function test_it_updates_an_existing_subscription_without_consulting_bindings(): void
@@ -133,6 +134,6 @@ class SyncSubscriptionOnStartedTest extends TestCase
         $dispatcher->shouldNotReceive('dispatch');
 
         $reaction = new SyncSubscriptionOnStarted($repo, $bindings, $dispatcher);
-        $reaction->handle(new SubscriptionStarted('cus_1', 'sub_1', 'plan_1', 'default', 'Monthly', 1));
+        $reaction->handle(new SubscriptionStarted('cus_1', 'sub_1', 'plan_1', 'default', 'Monthly', 1, true));
     }
 }

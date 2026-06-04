@@ -21,14 +21,14 @@ class CancelOrderOnCanceledTest extends TestCase
     {
         $reaction = new CancelOrderOnCanceled(Mockery::mock(OrderRepositoryInterface::class));
 
-        $this->assertTrue($reaction->supports(new OrderCanceled('cus_1', 'ord_1', 'canceled')));
+        $this->assertTrue($reaction->supports(new OrderCanceled('cus_1', 'ord_1', 'canceled', true)));
     }
 
     public function test_it_does_not_support_other_events(): void
     {
         $reaction = new CancelOrderOnCanceled(Mockery::mock(OrderRepositoryInterface::class));
 
-        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', self::money(9900), self::money(8182), new TaxSummaryCollection([]), null, null)));
+        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', self::money(9900), self::money(8182), new TaxSummaryCollection([]), null, null, true)));
     }
 
     public function test_it_mirrors_the_canceled_status_onto_the_local_order(): void
@@ -41,7 +41,7 @@ class CancelOrderOnCanceledTest extends TestCase
         }))->andReturn($existing);
 
         $reaction = new CancelOrderOnCanceled($repo);
-        $reaction->handle(new OrderCanceled('cus_1', 'ord_1', 'canceled'));
+        $reaction->handle(new OrderCanceled('cus_1', 'ord_1', 'canceled', true));
     }
 
     public function test_it_does_nothing_if_order_not_found(): void
@@ -51,6 +51,6 @@ class CancelOrderOnCanceledTest extends TestCase
         $repo->shouldNotReceive('update');
 
         $reaction = new CancelOrderOnCanceled($repo);
-        $reaction->handle(new OrderCanceled('cus_1', 'ord_1', 'canceled'));
+        $reaction->handle(new OrderCanceled('cus_1', 'ord_1', 'canceled', true));
     }
 }

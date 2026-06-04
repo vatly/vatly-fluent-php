@@ -43,4 +43,9 @@ interface OrderInterface
      * Check if the order is paid.
      */
     public function isPaid(): bool;
+
+    /**
+     * Whether this order was created in test mode (vs live).
+     */
+    public function isTestmode(): bool;
 }

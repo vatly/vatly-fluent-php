@@ -20,6 +20,7 @@ class StoreChargebackData
         public int $total,
         public string $currency,
         public string $originalOrderId,
+        public bool $testmode,
         public ?string $reason = null,
         public ?int $subtotal = null,
         public ?TaxSummaryCollection $taxSummary = null,

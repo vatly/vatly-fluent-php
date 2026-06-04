@@ -55,6 +55,7 @@ class SyncSubscriptionOnStarted implements WebhookReactionInterface
             planId: $event->planId,
             name: $event->name,
             quantity: $event->quantity,
+            testmode: $event->testmode,
             hostCustomerId: $hostCustomerId,
             mandate: $event->mandate,
         ));

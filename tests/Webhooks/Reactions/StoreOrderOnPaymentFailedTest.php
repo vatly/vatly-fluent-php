@@ -45,6 +45,7 @@ class StoreOrderOnPaymentFailedTest extends TestCase
             taxSummary: new TaxSummaryCollection([]),
             invoiceNumber: null,
             paymentMethod: null,
+            testmode: true,
         );
 
         $this->assertFalse($reaction->supports($orderPaid));
@@ -131,6 +132,7 @@ class StoreOrderOnPaymentFailedTest extends TestCase
             taxSummary: new TaxSummaryCollection([]),
             invoiceNumber: null,
             paymentMethod: 'sepa_direct_debit',
+            testmode: true,
         );
 
         $repo = Mockery::mock(OrderRepositoryInterface::class);
@@ -160,6 +162,7 @@ class StoreOrderOnPaymentFailedTest extends TestCase
             taxSummary: new TaxSummaryCollection([]),
             invoiceNumber: null,
             paymentMethod: 'sepa_direct_debit',
+            testmode: true,
             metadata: $metadata,
         );
 
@@ -196,6 +199,7 @@ class StoreOrderOnPaymentFailedTest extends TestCase
             taxSummary: $taxSummary ?? new TaxSummaryCollection([]),
             invoiceNumber: null,
             paymentMethod: 'sepa_direct_debit',
+            testmode: true,
         );
     }
 

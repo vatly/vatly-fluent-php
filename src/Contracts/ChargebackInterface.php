@@ -50,4 +50,9 @@ interface ChargebackInterface
      * favour — funds returned to the merchant).
      */
     public function isReversed(): bool;
+
+    /**
+     * Whether this chargeback was created in test mode (vs live).
+     */
+    public function isTestmode(): bool;
 }

@@ -24,7 +24,7 @@ class EndSubscriptionOnGracePeriodCompletedTest extends TestCase
             Mockery::mock(SubscriptionRepositoryInterface::class),
         );
 
-        $event = new SubscriptionCancellationGracePeriodCompleted('cus_1', 'sub_1', new DateTimeImmutable());
+        $event = new SubscriptionCancellationGracePeriodCompleted('cus_1', 'sub_1', new DateTimeImmutable(), true);
 
         $this->assertTrue($reaction->supports($event));
     }
@@ -35,7 +35,7 @@ class EndSubscriptionOnGracePeriodCompletedTest extends TestCase
             Mockery::mock(SubscriptionRepositoryInterface::class),
         );
 
-        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', self::money(9900), self::money(8182), new TaxSummaryCollection([]), null, null)));
+        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', self::money(9900), self::money(8182), new TaxSummaryCollection([]), null, null, true)));
     }
 
     public function test_it_stamps_the_actual_ends_at_onto_an_existing_subscription(): void
@@ -50,7 +50,7 @@ class EndSubscriptionOnGracePeriodCompletedTest extends TestCase
         }))->andReturn($existing);
 
         $reaction = new EndSubscriptionOnGracePeriodCompleted($repo);
-        $reaction->handle(new SubscriptionCancellationGracePeriodCompleted('cus_1', 'sub_1', $endsAt));
+        $reaction->handle(new SubscriptionCancellationGracePeriodCompleted('cus_1', 'sub_1', $endsAt, true));
     }
 
     public function test_it_does_nothing_if_subscription_not_found(): void
@@ -60,6 +60,6 @@ class EndSubscriptionOnGracePeriodCompletedTest extends TestCase
         $repo->shouldNotReceive('update');
 
         $reaction = new EndSubscriptionOnGracePeriodCompleted($repo);
-        $reaction->handle(new SubscriptionCancellationGracePeriodCompleted('cus_1', 'sub_1', new DateTimeImmutable()));
+        $reaction->handle(new SubscriptionCancellationGracePeriodCompleted('cus_1', 'sub_1', new DateTimeImmutable(), true));
     }
 }

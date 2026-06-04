@@ -24,7 +24,7 @@ class CancelSubscriptionOnCanceledTest extends TestCase
         $repo = Mockery::mock(SubscriptionRepositoryInterface::class);
         $reaction = new CancelSubscriptionOnCanceled($repo);
 
-        $event = new SubscriptionCanceledImmediately('cus_1', 'sub_1', new DateTimeImmutable());
+        $event = new SubscriptionCanceledImmediately('cus_1', 'sub_1', new DateTimeImmutable(), true);
 
         $this->assertTrue($reaction->supports($event));
     }
@@ -34,7 +34,7 @@ class CancelSubscriptionOnCanceledTest extends TestCase
         $repo = Mockery::mock(SubscriptionRepositoryInterface::class);
         $reaction = new CancelSubscriptionOnCanceled($repo);
 
-        $event = new SubscriptionCanceledWithGracePeriod('cus_1', 'sub_1', new DateTimeImmutable('+30 days'));
+        $event = new SubscriptionCanceledWithGracePeriod('cus_1', 'sub_1', new DateTimeImmutable('+30 days'), true);
 
         $this->assertTrue($reaction->supports($event));
     }
@@ -44,7 +44,7 @@ class CancelSubscriptionOnCanceledTest extends TestCase
         $repo = Mockery::mock(SubscriptionRepositoryInterface::class);
         $reaction = new CancelSubscriptionOnCanceled($repo);
 
-        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', self::money(9900), self::money(8182), new TaxSummaryCollection([]), null, null)));
+        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', self::money(9900), self::money(8182), new TaxSummaryCollection([]), null, null, true)));
     }
 
     public function test_it_persists_the_event_ends_at_for_immediate_cancellation(): void
@@ -58,7 +58,7 @@ class CancelSubscriptionOnCanceledTest extends TestCase
         }))->andReturn($existing);
 
         $reaction = new CancelSubscriptionOnCanceled($repo);
-        $reaction->handle(new SubscriptionCanceledImmediately('cus_1', 'sub_1', $endsAt));
+        $reaction->handle(new SubscriptionCanceledImmediately('cus_1', 'sub_1', $endsAt, true));
     }
 
     public function test_it_persists_the_event_ends_at_for_grace_period_cancellation(): void
@@ -72,7 +72,7 @@ class CancelSubscriptionOnCanceledTest extends TestCase
         }))->andReturn($existing);
 
         $reaction = new CancelSubscriptionOnCanceled($repo);
-        $reaction->handle(new SubscriptionCanceledWithGracePeriod('cus_1', 'sub_1', $endsAt));
+        $reaction->handle(new SubscriptionCanceledWithGracePeriod('cus_1', 'sub_1', $endsAt, true));
     }
 
     public function test_it_does_nothing_if_subscription_not_found(): void
@@ -82,6 +82,6 @@ class CancelSubscriptionOnCanceledTest extends TestCase
         $repo->shouldNotReceive('update');
 
         $reaction = new CancelSubscriptionOnCanceled($repo);
-        $reaction->handle(new SubscriptionCanceledImmediately('cus_1', 'sub_1', new DateTimeImmutable()));
+        $reaction->handle(new SubscriptionCanceledImmediately('cus_1', 'sub_1', new DateTimeImmutable(), true));
     }
 }

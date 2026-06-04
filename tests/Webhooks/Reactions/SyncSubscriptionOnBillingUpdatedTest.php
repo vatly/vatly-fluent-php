@@ -24,7 +24,7 @@ class SyncSubscriptionOnBillingUpdatedTest extends TestCase
             Mockery::mock(SubscriptionRepositoryInterface::class),
         );
 
-        $event = new SubscriptionBillingUpdated('cus_1', 'sub_1', 'plan_1', 'Monthly', 1, new Mandate('card', '4242'));
+        $event = new SubscriptionBillingUpdated('cus_1', 'sub_1', 'plan_1', 'Monthly', 1, true, new Mandate('card', '4242'));
 
         $this->assertTrue($reaction->supports($event));
     }
@@ -35,7 +35,7 @@ class SyncSubscriptionOnBillingUpdatedTest extends TestCase
             Mockery::mock(SubscriptionRepositoryInterface::class),
         );
 
-        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', self::money(9900), self::money(8182), new TaxSummaryCollection([]), null, null)));
+        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', self::money(9900), self::money(8182), new TaxSummaryCollection([]), null, null, true)));
     }
 
     public function test_it_updates_the_stored_mandate_for_an_existing_subscription(): void
@@ -54,7 +54,7 @@ class SyncSubscriptionOnBillingUpdatedTest extends TestCase
         }))->andReturn($existing);
 
         $reaction = new SyncSubscriptionOnBillingUpdated($repo);
-        $reaction->handle(new SubscriptionBillingUpdated('cus_1', 'sub_1', 'plan_2', 'Annual', 3, $mandate));
+        $reaction->handle(new SubscriptionBillingUpdated('cus_1', 'sub_1', 'plan_2', 'Annual', 3, true, $mandate));
     }
 
     public function test_a_null_mandate_leaves_the_stored_mandate_untouched(): void
@@ -71,7 +71,7 @@ class SyncSubscriptionOnBillingUpdatedTest extends TestCase
         }))->andReturn($existing);
 
         $reaction = new SyncSubscriptionOnBillingUpdated($repo);
-        $reaction->handle(new SubscriptionBillingUpdated('cus_1', 'sub_1', 'plan_1', 'Monthly', 1, null));
+        $reaction->handle(new SubscriptionBillingUpdated('cus_1', 'sub_1', 'plan_1', 'Monthly', 1, true, null));
     }
 
     public function test_it_does_nothing_if_subscription_not_found(): void
@@ -83,6 +83,6 @@ class SyncSubscriptionOnBillingUpdatedTest extends TestCase
         $repo->shouldNotReceive('update');
 
         $reaction = new SyncSubscriptionOnBillingUpdated($repo);
-        $reaction->handle(new SubscriptionBillingUpdated('cus_1', 'sub_1', 'plan_1', 'Monthly', 1, new Mandate('card', '4242')));
+        $reaction->handle(new SubscriptionBillingUpdated('cus_1', 'sub_1', 'plan_1', 'Monthly', 1, true, new Mandate('card', '4242')));
     }
 }
