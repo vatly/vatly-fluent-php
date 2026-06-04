@@ -41,7 +41,7 @@ class StoreOrderOnPaidTest extends TestCase
             Mockery::mock(EventDispatcherInterface::class),
         );
 
-        $event = new SubscriptionStarted('cus_1', 'sub_1', 'plan_1', 'default', 'Monthly', 1);
+        $event = new SubscriptionStarted('cus_1', 'sub_1', 'plan_1', 'default', 'Monthly', 1, true);
 
         $this->assertFalse($reaction->supports($event));
     }
@@ -138,6 +138,7 @@ class StoreOrderOnPaidTest extends TestCase
             taxSummary: new TaxSummaryCollection([]),
             invoiceNumber: 'INV-001',
             paymentMethod: 'card',
+            testmode: true,
         );
 
         $repo = Mockery::mock(OrderRepositoryInterface::class);
@@ -145,7 +146,8 @@ class StoreOrderOnPaidTest extends TestCase
         $repo->shouldReceive('store')->once()->with(Mockery::on(
             fn (StoreOrderData $data) => $data->customerId === ''
                 && $data->hostCustomerId === null
-                && $data->status === 'paid',
+                && $data->status === 'paid'
+                && $data->testmode === true,
         ))->andReturn(Mockery::mock(OrderInterface::class));
 
         $bindings = Mockery::mock(CustomerBindingRepository::class);
@@ -170,6 +172,7 @@ class StoreOrderOnPaidTest extends TestCase
             taxSummary: new TaxSummaryCollection([]),
             invoiceNumber: 'INV-001',
             paymentMethod: 'card',
+            testmode: true,
             metadata: $metadata,
         );
 
@@ -226,6 +229,7 @@ class StoreOrderOnPaidTest extends TestCase
             taxSummary: new TaxSummaryCollection([]),
             invoiceNumber: 'INV-001',
             paymentMethod: 'card',
+            testmode: true,
             lines: $lines,
         );
 
@@ -272,6 +276,7 @@ class StoreOrderOnPaidTest extends TestCase
             taxSummary: $taxSummary ?? new TaxSummaryCollection([]),
             invoiceNumber: 'INV-001',
             paymentMethod: 'card',
+            testmode: true,
         );
     }
 

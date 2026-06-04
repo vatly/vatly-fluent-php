@@ -76,6 +76,11 @@ class SubscriptionWasCreatedFromWebhookTest extends TestCase
             {
                 return null;
             }
+
+            public function isTestmode(): bool
+            {
+                return false;
+            }
         };
     }
 }

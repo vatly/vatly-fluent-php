@@ -74,6 +74,7 @@ class StoreOrderOnPaymentFailed implements WebhookReactionInterface
             paymentMethod: $event->paymentMethod,
             subtotal: $event->subtotal->toCents(),
             taxSummary: $event->taxSummary,
+            testmode: $event->testmode,
             hostCustomerId: $hostCustomerId,
             metadata: $event->metadata,
         ));

@@ -23,7 +23,7 @@ class ResumeSubscriptionOnResumedTest extends TestCase
             Mockery::mock(SubscriptionRepositoryInterface::class),
         );
 
-        $this->assertTrue($reaction->supports(new SubscriptionResumed('cus_1', 'sub_1')));
+        $this->assertTrue($reaction->supports(new SubscriptionResumed('cus_1', 'sub_1', true)));
     }
 
     public function test_it_does_not_support_other_events(): void
@@ -32,7 +32,7 @@ class ResumeSubscriptionOnResumedTest extends TestCase
             Mockery::mock(SubscriptionRepositoryInterface::class),
         );
 
-        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', self::money(9900), self::money(8182), new TaxSummaryCollection([]), null, null)));
+        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', self::money(9900), self::money(8182), new TaxSummaryCollection([]), null, null, true)));
     }
 
     public function test_it_clears_the_stored_end_date_for_an_existing_subscription(): void
@@ -46,7 +46,7 @@ class ResumeSubscriptionOnResumedTest extends TestCase
         }))->andReturn($existing);
 
         $reaction = new ResumeSubscriptionOnResumed($repo);
-        $reaction->handle(new SubscriptionResumed('cus_1', 'sub_1'));
+        $reaction->handle(new SubscriptionResumed('cus_1', 'sub_1', true));
     }
 
     public function test_it_does_nothing_if_subscription_not_found(): void
@@ -56,6 +56,6 @@ class ResumeSubscriptionOnResumedTest extends TestCase
         $repo->shouldNotReceive('update');
 
         $reaction = new ResumeSubscriptionOnResumed($repo);
-        $reaction->handle(new SubscriptionResumed('cus_1', 'sub_1'));
+        $reaction->handle(new SubscriptionResumed('cus_1', 'sub_1', true));
     }
 }

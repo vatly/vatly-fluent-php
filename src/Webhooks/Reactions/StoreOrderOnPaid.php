@@ -70,6 +70,7 @@ class StoreOrderOnPaid implements WebhookReactionInterface
             paymentMethod: $event->paymentMethod,
             subtotal: $event->subtotal->toCents(),
             taxSummary: $event->taxSummary,
+            testmode: $event->testmode,
             hostCustomerId: $hostCustomerId,
             metadata: $event->metadata,
             // Lines are immutable once paid, so they're only written on the

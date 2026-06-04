@@ -77,6 +77,7 @@ class SyncRefundOnStatusChange implements WebhookReactionInterface
             total: $event->total->toCents(),
             currency: $event->total->currency,
             originalOrderId: $event->originalOrderId,
+            testmode: $event->testmode,
             subtotal: $event->subtotal->toCents(),
             taxSummary: $event->taxSummary,
             hostCustomerId: $hostCustomerId,

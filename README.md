@@ -272,6 +272,7 @@ class Order implements OrderInterface
     public function getCurrency(): string { /* ... */ }
     public function getPaymentMethod(): ?string { /* ... */ }
     public function isPaid(): bool { return $this->status === 'paid'; }
+    public function isTestmode(): bool { return $this->testmode; }
 }
 ```
 
@@ -294,6 +295,7 @@ final class FluentCartOrder implements OrderInterface
     public function getCurrency(): string      { return $this->txn->currency; }
     public function getPaymentMethod(): ?string{ return $this->txn->payment_method; }
     public function isPaid(): bool             { return $this->txn->status === 'paid'; }
+    public function isTestmode(): bool         { return (bool) $this->txn->testmode; }
 }
 ```
 
@@ -336,6 +338,8 @@ Each entity-side contract has three methods. See [src/Contracts](src/Contracts) 
 - `WebhookCallRepositoryInterface` — record received webhook calls (audit log)
 
 `StoreSubscriptionData` and `StoreOrderData` both carry an optional `hostCustomerId` resolved from the binding repo when fluent persists from a webhook reaction. Use it to fill your host-side owner column when it's set, and accept `null` for the anonymous-checkout flow.
+
+Every `Store*Data` (order/subscription/refund/chargeback) also carries a required `testmode` bool, sourced from the originating Vatly record. Persist it on your local row and surface it through the matching entity interface's `isTestmode()` — this keeps test and live records segregated and lets you select the matching API key per record (vs. the global config mode). Note this is per-record `isTestmode()`, distinct from `ConfigurationInterface::isTestmode()`, which reflects the configured key.
 
 ```php
 public function store(StoreSubscriptionData $data): SubscriptionInterface

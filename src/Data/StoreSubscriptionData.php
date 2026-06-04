@@ -19,6 +19,7 @@ class StoreSubscriptionData
         public string $type,
         public string $planId,
         public string $name,
+        public bool $testmode,
         public int $quantity = 1,
         public ?string $hostCustomerId = null,
         /**

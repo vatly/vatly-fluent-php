@@ -41,4 +41,9 @@ interface RefundInterface
      * Whether the refund has completed (funds returned to the customer).
      */
     public function isCompleted(): bool;
+
+    /**
+     * Whether this refund was created in test mode (vs live).
+     */
+    public function isTestmode(): bool;
 }

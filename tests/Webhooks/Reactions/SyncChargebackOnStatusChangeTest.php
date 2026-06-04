@@ -29,7 +29,7 @@ class SyncChargebackOnStatusChangeTest extends TestCase
 
         $this->assertTrue($reaction->supports($this->received('pending')));
         $this->assertTrue($reaction->supports($this->reversed('won')));
-        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', self::money(9900), self::money(8182), new TaxSummaryCollection([]), null, null)));
+        $this->assertFalse($reaction->supports(new OrderPaid('cus_1', 'ord_1', 'paid', self::money(9900), self::money(8182), new TaxSummaryCollection([]), null, null, true)));
     }
 
     public function test_it_stores_a_new_chargeback_resolving_host_customer_from_bindings(): void
@@ -43,6 +43,7 @@ class SyncChargebackOnStatusChangeTest extends TestCase
                 && $data->status === 'pending'
                 && $data->total === 9900
                 && $data->originalOrderId === 'ord_original_1'
+                && $data->testmode === true
                 && $data->hostCustomerId === 'host_42';
         }))->andReturn($stored);
 
@@ -84,7 +85,7 @@ class SyncChargebackOnStatusChangeTest extends TestCase
         $bindings->shouldNotReceive('record');
 
         // Sparse (un-enriched) event: chargebackId set, but no customer id.
-        $event = new OrderChargebackReceived('ord_original_1', 'chargeback_1', 'ord_original_1', null);
+        $event = new OrderChargebackReceived('ord_original_1', 'chargeback_1', 'ord_original_1', true, null);
 
         $reaction = new SyncChargebackOnStatusChange($repo, $bindings);
         $reaction->handle($event);
@@ -96,6 +97,7 @@ class SyncChargebackOnStatusChangeTest extends TestCase
             orderId: 'ord_original_1',
             chargebackId: 'chargeback_1',
             originalOrderId: 'ord_original_1',
+            testmode: true,
             reason: 'fraudulent',
             customerId: 'cus_1',
             status: $status,
@@ -112,6 +114,7 @@ class SyncChargebackOnStatusChangeTest extends TestCase
             orderId: 'ord_original_1',
             chargebackId: 'chargeback_1',
             originalOrderId: 'ord_original_1',
+            testmode: true,
             reason: 'fraudulent',
             customerId: 'cus_1',
             status: $status,

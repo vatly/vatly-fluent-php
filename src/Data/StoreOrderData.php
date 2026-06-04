@@ -20,6 +20,7 @@ class StoreOrderData
         public string $status,
         public int $total,
         public string $currency,
+        public bool $testmode,
         public ?string $invoiceNumber = null,
         public ?string $paymentMethod = null,
         public ?int $subtotal = null,
