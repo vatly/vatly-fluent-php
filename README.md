@@ -1,3 +1,5 @@
+![Vatly Fluent PHP](art/banner.png)
+
 # Vatly Fluent PHP
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/vatly/vatly-fluent-php.svg?style=flat-square)](https://packagist.org/packages/vatly/vatly-fluent-php)
