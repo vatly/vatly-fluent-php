@@ -445,8 +445,6 @@ use Vatly\Fluent\CustomerProfile;
 // Each checkout item id is a Vatly product: `one_off_product_…` for a one-off
 // product or `subscription_plan_…` for a subscription plan. Create the product
 // in the Vatly dashboard first — there is no API to make one on the fly.
-// Items accept only: `id`, `quantity`, `price`, `trialDays`, `metadata`.
-// There is NO item-level `unitPrice`, `name`, or `currency`.
 $checkout = $vatly
     ->checkoutBuilder(new CustomerProfile(vatlyId: $user->vatly_id))
     ->withRedirectUrlSuccess('https://app.example.com/done')
@@ -499,7 +497,7 @@ $url = $vatly->subscription($localSubscription)->updateBilling([
 ]);
 ```
 
-> **Source of truth for payload fields.** Fluent passes checkout/subscription payloads through to `vatly-api-php`, whose schema is the canonical [`openapi.yaml`](https://docs.vatly.com/openapi.yaml) (also vendored at `vendor/vatly/vatly-api-php/openapi.yaml`). If you — or an AI assistant — are unsure whether a field exists or what it's named, read the spec rather than guessing from an example. Checkout items, for instance, accept only `id`, `quantity`, `price` (a `Money` override), `trialDays`, and `metadata`; incoming webhook deliveries are the `WebhookDelivery` envelope (`id`, `resource`, `eventName`, `entityType`, `entityId`, `object`, `createdAt`, `testmode`) — but you normally consume them as the typed events above, not as raw arrays.
+> **Source of truth for payload fields.** Fluent passes checkout/subscription payloads through to `vatly-api-php`, whose schema is the canonical [`openapi.yaml`](https://docs.vatly.com/openapi.yaml) (also vendored at `vendor/vatly/vatly-api-php/openapi.yaml`). For the authoritative API request/response fields and the incoming webhook delivery shape, read the spec rather than guessing from an example.
 
 **Customer helper.** For host-first flows where you create a Vatly customer for a known host entity and want the link recorded automatically:
 
