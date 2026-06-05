@@ -443,12 +443,24 @@ $vatly = $container->get(Vatly::class);
 use Vatly\Fluent\CustomerProfile;
 
 // Each checkout item id is a Vatly product: `one_off_product_…` for a one-off
-// product or `subscription_plan_…` for a subscription plan.
+// product or `subscription_plan_…` for a subscription plan. Create the product
+// in the Vatly dashboard first — there is no API to make one on the fly.
 $checkout = $vatly
     ->checkoutBuilder(new CustomerProfile(vatlyId: $user->vatly_id))
     ->withRedirectUrlSuccess('https://app.example.com/done')
     ->withRedirectUrlCanceled('https://app.example.com/oops')
     ->create([['id' => 'one_off_product_3Qb8Wz1Yt', 'quantity' => 1]], '...', '...');
+
+// Need a custom amount? Override the product's price with a Money object
+// (`value` is a decimal string; precision follows the currency). The item id
+// still points at a pre-configured product.
+$checkout = $vatly
+    ->checkoutBuilder(new CustomerProfile(vatlyId: $user->vatly_id))
+    ->create([[
+        'id' => 'one_off_product_3Qb8Wz1Yt',
+        'quantity' => 1,
+        'price' => ['value' => '49.99', 'currency' => 'EUR'],
+    ]], 'https://app.example.com/done', 'https://app.example.com/oops');
 
 // Subscribe
 $checkout = $vatly
@@ -484,6 +496,8 @@ $url = $vatly->subscription($localSubscription)->updateBilling([
     ],
 ]);
 ```
+
+> **Source of truth for payload fields.** Fluent passes checkout/subscription payloads through to `vatly-api-php`, whose schema is the canonical [`openapi.yaml`](https://docs.vatly.com/openapi.yaml) (also vendored at `vendor/vatly/vatly-api-php/openapi.yaml`). For the authoritative API request/response fields and the incoming webhook delivery shape, read the spec rather than guessing from an example.
 
 **Customer helper.** For host-first flows where you create a Vatly customer for a known host entity and want the link recorded automatically:
 
