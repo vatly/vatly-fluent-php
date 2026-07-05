@@ -73,7 +73,7 @@ For one-off scripts that just hit the API. No persistence, no webhook processing
 
    Available accessors: `createCustomer`, `getCustomer`, `updateCustomer`, `getOrder`, `createCheckout`, `getSubscription`, `cancelSubscription`, `resumeSubscription`, `swapSubscriptionPlan`, `updateSubscriptionBilling`.
 
-   Admin/CRUD resources that fluent doesn't wrap (test helpers, webhook events, and **webhook endpoints**) are reachable on the raw client via `$vatly->getApiClient()`:
+   Admin/CRUD resources that fluent doesn't wrap (test helpers, webhook events, **webhook endpoints**, and the **subscription-plan / one-off-product** catalog) are reachable on the raw client via `$vatly->getApiClient()`:
 
    ```php
    // Register the delivery endpoint from code / IaC (at most one per mode).
@@ -81,6 +81,18 @@ For one-off scripts that just hit the API. No persistence, no webhook processing
    $endpoint = $vatly->getApiClient()->webhookEndpoints->create([
        'url'    => 'https://merchant.example/webhooks/vatly',
        'secret' => getenv('VATLY_WEBHOOK_SECRET'), // min 10 chars
+   ]);
+
+   // Create catalog products/plans from code (api-php ≥ 0.1.0-alpha.24).
+   // A live_ token creates them in `pending` (await Vatly approval); a test_
+   // token auto-approves to `active`. Read the price via $plan->basePrice->value.
+   $plan = $vatly->getApiClient()->subscriptionPlans->create([
+       'name'          => 'Pro Monthly',
+       'description'   => 'Full access to all Pro features, billed monthly',
+       'basePrice'     => ['value' => '29.00', 'currency' => 'EUR'],
+       'productType'   => 'saas',
+       'interval'      => 'month',
+       'intervalCount' => 1,
    ]);
    ```
 
@@ -607,7 +619,7 @@ This makes `foreach ($user->subscriptions as $sub) $sub->cancel()` work naturall
 ## What `Vatly` (the composition root) exposes
 
 ```php
-$vatly->getApiClient();                            // raw VatlyApiClient (also: ->webhookEndpoints, ->testHelpers, ->webhookEvents)
+$vatly->getApiClient();                            // raw VatlyApiClient (also: ->webhookEndpoints, ->subscriptionPlans, ->oneOffProducts, ->testHelpers, ->webhookEvents)
 $vatly->getSignatureVerifier();                    // raw webhook signature verifier
 $vatly->getWebhookEventFactory();                  // api-php Vatly\API\Webhooks\WebhookEventFactory (parses webhook payloads)
 
