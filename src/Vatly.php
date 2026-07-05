@@ -18,6 +18,7 @@ use Vatly\Fluent\Actions\GetRefund;
 use Vatly\Fluent\Actions\GetSubscription;
 use Vatly\Fluent\Actions\ResumeSubscription;
 use Vatly\Fluent\Actions\SwapSubscriptionPlan;
+use Vatly\Fluent\Actions\UpdateCustomer;
 use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Builders\CheckoutBuilder;
 use Vatly\Fluent\Builders\SubscriptionBuilder;
@@ -48,6 +49,7 @@ class Vatly
     // Lazy-loaded actions
     private ?CreateCustomer $createCustomer = null;
     private ?GetCustomer $getCustomer = null;
+    private ?UpdateCustomer $updateCustomer = null;
     private ?GetOrder $getOrder = null;
     private ?GetRefund $getRefund = null;
     private ?GetChargeback $getChargeback = null;
@@ -140,6 +142,7 @@ class Vatly
         return $this->customers ??= new CustomerService(
             createCustomer: $this->createCustomer(),
             getCustomer: $this->getCustomer(),
+            updateCustomer: $this->updateCustomer(),
             bindings: $this->wiring->customerBindings
                 ?? throw IncompleteWiringException::missing('customerBindings', 'CustomerService'),
         );
@@ -262,6 +265,11 @@ class Vatly
     public function getCustomer(): GetCustomer
     {
         return $this->getCustomer ??= new GetCustomer($this->apiClient);
+    }
+
+    public function updateCustomer(): UpdateCustomer
+    {
+        return $this->updateCustomer ??= new UpdateCustomer($this->apiClient);
     }
 
     public function getOrder(): GetOrder

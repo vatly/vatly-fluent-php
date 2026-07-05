@@ -82,6 +82,43 @@ class SubscriptionHandleTest extends TestCase
         $this->assertSame($updatedSubscription, $handle->model());
     }
 
+    public function test_swap_forwards_a_price_override_to_the_action(): void
+    {
+        // api-php's subscriptions->update() accepts a `price` object that, when
+        // combined with a plan switch, overrides the new plan's default price.
+        // The handle passes swap options straight through, so no dedicated
+        // surface is needed — this locks that passthrough.
+        $subscription = $this->stubSubscription('subscription_abc');
+
+        $apiResponse = $this->makeApiSubscription([
+            'subscriptionPlanId' => 'plan_premium',
+            'quantity' => 1,
+        ]);
+
+        $swapAction = Mockery::mock(SwapSubscriptionPlan::class);
+        $swapAction->shouldReceive('execute')
+            ->once()
+            ->with('subscription_abc', 'plan_premium', [
+                'price' => ['value' => '99.99', 'currency' => 'EUR'],
+                'applyImmediately' => true,
+            ])
+            ->andReturn($apiResponse);
+
+        $subscriptions = Mockery::mock(SubscriptionRepositoryInterface::class);
+        $subscriptions->shouldReceive('update')->andReturn(Mockery::mock(SubscriptionInterface::class));
+
+        $handle = $this->buildHandle(
+            subscription: $subscription,
+            subscriptions: $subscriptions,
+            swapAction: $swapAction,
+        );
+
+        $handle->swap('plan_premium', [
+            'price' => ['value' => '99.99', 'currency' => 'EUR'],
+            'applyImmediately' => true,
+        ]);
+    }
+
     public function test_swap_and_invoice_forces_immediate_application(): void
     {
         $subscription = $this->stubSubscription('subscription_abc');

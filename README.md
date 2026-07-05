@@ -71,7 +71,30 @@ For one-off scripts that just hit the API. No persistence, no webhook processing
    $sub   = $vatly->getSubscription()->execute('sub_xyz789');
    ```
 
-   Available accessors: `createCustomer`, `getCustomer`, `getOrder`, `createCheckout`, `getSubscription`, `cancelSubscription`, `resumeSubscription`, `swapSubscriptionPlan`, `updateSubscriptionBilling`.
+   Available accessors: `createCustomer`, `getCustomer`, `updateCustomer`, `getOrder`, `createCheckout`, `getSubscription`, `cancelSubscription`, `resumeSubscription`, `swapSubscriptionPlan`, `updateSubscriptionBilling`.
+
+   Admin/CRUD resources that fluent doesn't wrap (test helpers, webhook events, **webhook endpoints**, and the **subscription-plan / one-off-product** catalog) are reachable on the raw client via `$vatly->getApiClient()`:
+
+   ```php
+   // Register the delivery endpoint from code / IaC (at most one per mode).
+   // The signing secret is write-only — keep the value you send; it's never returned.
+   $endpoint = $vatly->getApiClient()->webhookEndpoints->create([
+       'url'    => 'https://merchant.example/webhooks/vatly',
+       'secret' => getenv('VATLY_WEBHOOK_SECRET'), // min 10 chars
+   ]);
+
+   // Create catalog products/plans from code (api-php ≥ 0.1.0-alpha.24).
+   // A live_ token creates them in `pending` (await Vatly approval); a test_
+   // token auto-approves to `active`. Read the price via $plan->basePrice->value.
+   $plan = $vatly->getApiClient()->subscriptionPlans->create([
+       'name'          => 'Pro Monthly',
+       'description'   => 'Full access to all Pro features, billed monthly',
+       'basePrice'     => ['value' => '29.00', 'currency' => 'EUR'],
+       'productType'   => 'saas',
+       'interval'      => 'month',
+       'intervalCount' => 1,
+   ]);
+   ```
 
 3. **Override the API endpoint** (e.g. for sandbox / proxy):
 
@@ -117,6 +140,8 @@ For incoming Vatly webhooks, fluent dispatches a typed event and runs a built-in
 | `refund.completed` / `refund.failed` / `refund.canceled` | `RefundCompleted` / `RefundFailed` / `RefundCanceled` | `SyncRefundOnStatusChange` *(opt-in)* | `RefundWriter::store` (new) / `::update` (existing) |
 | `subscription.started`   | `SubscriptionStarted`                                             | `SyncSubscriptionOnStarted`    | `SubscriptionWriter::store` (new) / `::update` (existing) |
 | `subscription.billing_updated` | `SubscriptionBillingUpdated`                               | `SyncSubscriptionOnBillingUpdated` | `SubscriptionWriter::update` (refreshes mandate)    |
+| `subscription.updated`   | `SubscriptionUpdated`                                            | `SyncSubscriptionOnUpdated`    | `SubscriptionWriter::update` (immediate plan/price/quantity change) |
+| `subscription.update_scheduled` | `SubscriptionUpdateScheduled`                           | — (dispatched only)            | none — change applies next cycle; target values in `scheduledUpdate` |
 | `subscription.resumed`   | `SubscriptionResumed`                                             | `ResumeSubscriptionOnResumed`  | `SubscriptionWriter::update` (clears end date)       |
 | `subscription.canceled`  | `SubscriptionCanceledImmediately` / `SubscriptionCanceledWithGracePeriod` | `CancelSubscriptionOnCanceled` | `SubscriptionWriter::update`                         |
 | `subscription.cancellation_grace_period_completed` | `SubscriptionCancellationGracePeriodCompleted` | `EndSubscriptionOnGracePeriodCompleted` | `SubscriptionWriter::update` (stamps actual end date) |
@@ -125,7 +150,9 @@ For incoming Vatly webhooks, fluent dispatches a typed event and runs a built-in
 
 `OrderWriter::store`, `SubscriptionWriter::store`, and `RefundWriter::store` may return `null` if your driver can't route the data (see the adapter recipe below). Built-in reactions tolerate null — `SyncSubscriptionOnStarted` skips its follow-up `SubscriptionWasCreatedFromWebhook` dispatch (and `StoreOrderOnPaid` its `OrderWasCreatedFromWebhook` dispatch) when store returns null. Both driver-side events fire exactly once per brand-new local row (not on the update path).
 
-`subscription.billing_updated`, `subscription.resumed`, and `order.canceled` are find-or-skip: they update an existing local record but never create one. `subscription.billing_updated` carries the fresh mandate (card last-4, masked IBAN) in its signed payload, so the stored mandate stays in step with the payment method on file without an API call; `subscription.resumed` clears the stored end date so a resume reactivates the derived state; `order.canceled` mirrors Vatly's `canceled` status onto the local order.
+`subscription.billing_updated`, `subscription.updated`, `subscription.resumed`, and `order.canceled` are find-or-skip: they update an existing local record but never create one. `subscription.billing_updated` carries the fresh mandate (card last-4, masked IBAN) in its signed payload, so the stored mandate stays in step with the payment method on file without an API call; `subscription.resumed` clears the stored end date so a resume reactivates the derived state; `order.canceled` mirrors Vatly's `canceled` status onto the local order.
+
+**Subscription changes** come in two flavours. `subscription.updated` is an **immediate** plan / price / interval / quantity change — `SyncSubscriptionOnUpdated` refreshes the stored plan, name, and quantity from the signed payload (price is not persisted locally; fluent's `Store*Data` DTOs track plan/name/quantity, not the recurring money). `subscription.update_scheduled` is a change **scheduled for the next billing cycle**: the subscription's current state is unchanged, so there is no built-in reaction — the typed `SubscriptionUpdateScheduled` event carries the target values in a typed `scheduledUpdate` (`Vatly\API\Types\ScheduledSubscriptionUpdate`: plan id, name, description, base price, quantity, interval, interval count) and is dispatched for you to handle (e.g. warn the customer of an upcoming price change).
 
 **Refunds** are opt-in: supply a `RefundRepositoryInterface` via `Wiring(refunds: …)` and the built-in `SyncRefundOnStatusChange` reaction persists `refund.*` webhooks (store-or-update, like orders) — unblocking terminal-state refund reconciliation. Omit it and the typed refund events are still dispatched for you to handle. The refund webhook payload already carries the full tax breakdown (like `order.paid`), so the event is built straight from it — no API call.
 
@@ -592,12 +619,12 @@ This makes `foreach ($user->subscriptions as $sub) $sub->cancel()` work naturall
 ## What `Vatly` (the composition root) exposes
 
 ```php
-$vatly->getApiClient();                            // raw VatlyApiClient
+$vatly->getApiClient();                            // raw VatlyApiClient (also: ->webhookEndpoints, ->subscriptionPlans, ->oneOffProducts, ->testHelpers, ->webhookEvents)
 $vatly->getSignatureVerifier();                    // raw webhook signature verifier
 $vatly->getWebhookEventFactory();                  // api-php Vatly\API\Webhooks\WebhookEventFactory (parses webhook payloads)
 
 // Actions (lazy, cached)
-$vatly->createCustomer();    $vatly->getCustomer();
+$vatly->createCustomer();    $vatly->getCustomer();    $vatly->updateCustomer();
 $vatly->getOrder();          $vatly->createCheckout();
 $vatly->getSubscription();   $vatly->cancelSubscription();
 $vatly->resumeSubscription(); $vatly->swapSubscriptionPlan();
@@ -642,6 +669,8 @@ Dispatched by webhook reactions through your `EventDispatcherInterface`. Subscri
 - `RefundCompleted` / `RefundFailed` / `RefundCanceled` — each with full `taxSummary` breakdown
 - `SubscriptionStarted`
 - `SubscriptionBillingUpdated` — billing/mandate changed; carries the refreshed mandate summary
+- `SubscriptionUpdated` — an immediate plan/price/interval/quantity change (effective now)
+- `SubscriptionUpdateScheduled` — a change scheduled for the next billing cycle; target values in `scheduledUpdate`
 - `SubscriptionResumed`
 - `SubscriptionCanceledImmediately`
 - `SubscriptionCanceledWithGracePeriod`

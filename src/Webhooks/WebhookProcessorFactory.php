@@ -25,6 +25,7 @@ use Vatly\Fluent\Webhooks\Reactions\SyncChargebackOnStatusChange;
 use Vatly\Fluent\Webhooks\Reactions\SyncRefundOnStatusChange;
 use Vatly\Fluent\Webhooks\Reactions\SyncSubscriptionOnBillingUpdated;
 use Vatly\Fluent\Webhooks\Reactions\SyncSubscriptionOnStarted;
+use Vatly\Fluent\Webhooks\Reactions\SyncSubscriptionOnUpdated;
 
 class WebhookProcessorFactory
 {
@@ -62,6 +63,7 @@ class WebhookProcessorFactory
         $reactions = [
             new SyncSubscriptionOnStarted($subscriptions, $bindings, $dispatcher),
             new SyncSubscriptionOnBillingUpdated($subscriptions),
+            new SyncSubscriptionOnUpdated($subscriptions),
             new ResumeSubscriptionOnResumed($subscriptions),
             new CancelSubscriptionOnCanceled($subscriptions),
             new EndSubscriptionOnGracePeriodCompleted($subscriptions),

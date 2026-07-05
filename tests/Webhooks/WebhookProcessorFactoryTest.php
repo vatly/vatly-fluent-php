@@ -26,6 +26,7 @@ use Vatly\Fluent\Webhooks\Reactions\SyncChargebackOnStatusChange;
 use Vatly\Fluent\Webhooks\Reactions\SyncRefundOnStatusChange;
 use Vatly\Fluent\Webhooks\Reactions\SyncSubscriptionOnBillingUpdated;
 use Vatly\Fluent\Webhooks\Reactions\SyncSubscriptionOnStarted;
+use Vatly\Fluent\Webhooks\Reactions\SyncSubscriptionOnUpdated;
 use Vatly\Fluent\Webhooks\WebhookProcessor;
 use Vatly\Fluent\Webhooks\WebhookProcessorFactory;
 
@@ -47,15 +48,16 @@ class WebhookProcessorFactoryTest extends TestCase
 
         $reactions = $processor->getReactions();
 
-        $this->assertCount(8, $reactions);
+        $this->assertCount(9, $reactions);
         $this->assertInstanceOf(SyncSubscriptionOnStarted::class, $reactions[0]);
         $this->assertInstanceOf(SyncSubscriptionOnBillingUpdated::class, $reactions[1]);
-        $this->assertInstanceOf(ResumeSubscriptionOnResumed::class, $reactions[2]);
-        $this->assertInstanceOf(CancelSubscriptionOnCanceled::class, $reactions[3]);
-        $this->assertInstanceOf(EndSubscriptionOnGracePeriodCompleted::class, $reactions[4]);
-        $this->assertInstanceOf(StoreOrderOnPaid::class, $reactions[5]);
-        $this->assertInstanceOf(StoreOrderOnPaymentFailed::class, $reactions[6]);
-        $this->assertInstanceOf(CancelOrderOnCanceled::class, $reactions[7]);
+        $this->assertInstanceOf(SyncSubscriptionOnUpdated::class, $reactions[2]);
+        $this->assertInstanceOf(ResumeSubscriptionOnResumed::class, $reactions[3]);
+        $this->assertInstanceOf(CancelSubscriptionOnCanceled::class, $reactions[4]);
+        $this->assertInstanceOf(EndSubscriptionOnGracePeriodCompleted::class, $reactions[5]);
+        $this->assertInstanceOf(StoreOrderOnPaid::class, $reactions[6]);
+        $this->assertInstanceOf(StoreOrderOnPaymentFailed::class, $reactions[7]);
+        $this->assertInstanceOf(CancelOrderOnCanceled::class, $reactions[8]);
     }
 
     public function test_it_builds_a_processor_without_optional_repositories(): void
@@ -76,7 +78,7 @@ class WebhookProcessorFactoryTest extends TestCase
         $reactions = $processor->getReactions();
 
         $this->assertInstanceOf(WebhookProcessor::class, $processor);
-        $this->assertCount(8, $reactions);
+        $this->assertCount(9, $reactions);
         foreach ($reactions as $reaction) {
             $this->assertNotInstanceOf(SyncRefundOnStatusChange::class, $reaction);
             $this->assertNotInstanceOf(SyncChargebackOnStatusChange::class, $reaction);
@@ -98,8 +100,8 @@ class WebhookProcessorFactoryTest extends TestCase
 
         $reactions = $processor->getReactions();
 
-        $this->assertCount(9, $reactions);
-        $this->assertInstanceOf(SyncRefundOnStatusChange::class, $reactions[8]);
+        $this->assertCount(10, $reactions);
+        $this->assertInstanceOf(SyncRefundOnStatusChange::class, $reactions[9]);
     }
 
     public function test_it_registers_the_chargeback_reactions_only_when_a_chargeback_repository_is_supplied(): void
@@ -117,9 +119,9 @@ class WebhookProcessorFactoryTest extends TestCase
 
         $reactions = $processor->getReactions();
 
-        // 8 standard + 1 chargeback persistence reaction (no refunds wired here).
-        $this->assertCount(9, $reactions);
-        $this->assertInstanceOf(SyncChargebackOnStatusChange::class, $reactions[8]);
+        // 9 standard + 1 chargeback persistence reaction (no refunds wired here).
+        $this->assertCount(10, $reactions);
+        $this->assertInstanceOf(SyncChargebackOnStatusChange::class, $reactions[9]);
     }
 
     public function test_it_does_not_register_chargeback_reactions_without_a_repository(): void
@@ -156,8 +158,8 @@ class WebhookProcessorFactoryTest extends TestCase
 
         $reactions = $processor->getReactions();
 
-        $this->assertCount(9, $reactions);
-        $this->assertSame($custom, $reactions[8]);
+        $this->assertCount(10, $reactions);
+        $this->assertSame($custom, $reactions[9]);
     }
 
     public function test_it_tolerates_a_null_webhook_secret(): void
