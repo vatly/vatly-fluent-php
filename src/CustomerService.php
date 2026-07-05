@@ -7,14 +7,15 @@ namespace Vatly\Fluent;
 use Vatly\API\Resources\Customer as ApiCustomer;
 use Vatly\Fluent\Actions\CreateCustomer;
 use Vatly\Fluent\Actions\GetCustomer;
+use Vatly\Fluent\Actions\UpdateCustomer;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
 use Vatly\Fluent\Exceptions\CustomerAlreadyBoundException;
 
 /**
  * Customer-related operations: create + bind, fetch, attribute.
  *
- * Reached via {@see Vatly::customers()}. Composes a {@see CreateCustomer}
- * and {@see GetCustomer} action with a driver-supplied
+ * Reached via {@see Vatly::customers()}. Composes {@see CreateCustomer},
+ * {@see GetCustomer} and {@see UpdateCustomer} actions with a driver-supplied
  * {@see CustomerBindingRepository} so callers don't have to remember to
  * record the host ↔ Vatly link after creating a customer.
  */
@@ -23,6 +24,7 @@ class CustomerService
     public function __construct(
         private CreateCustomer $createCustomer,
         private GetCustomer $getCustomer,
+        private UpdateCustomer $updateCustomer,
         private CustomerBindingRepository $bindings,
     ) {
     }
@@ -100,6 +102,21 @@ class CustomerService
     public function findByVatlyCustomerId(string $vatlyCustomerId): ApiCustomer
     {
         return $this->getCustomer->execute($vatlyCustomerId);
+    }
+
+    /**
+     * Update a Vatly customer's identity fields (`name`, `email`).
+     *
+     * Both fields are optional — pass whichever you want to change. Billing
+     * address details (company name, tax id, street, …) are not editable here;
+     * amend those through the hosted billing-update flow instead. The host ↔
+     * Vatly binding is unaffected.
+     *
+     * @param  array<string, mixed>  $data  Any of `name`, `email`.
+     */
+    public function update(string $vatlyCustomerId, array $data): ApiCustomer
+    {
+        return $this->updateCustomer->execute($vatlyCustomerId, $data);
     }
 
     public function hostCustomerIdFor(string $vatlyCustomerId): ?string

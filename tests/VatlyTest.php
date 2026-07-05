@@ -58,6 +58,7 @@ class VatlyTest extends TestCase
         $vatly = Vatly::apiOnly('test_abcdefghijklmnopqrstuvwxyz');
 
         $this->assertSame($vatly->createCustomer(), $vatly->createCustomer());
+        $this->assertSame($vatly->updateCustomer(), $vatly->updateCustomer());
         $this->assertSame($vatly->getOrder(), $vatly->getOrder());
     }
 
@@ -187,9 +188,9 @@ class VatlyTest extends TestCase
         $reactions = $ref->getValue($processor);
 
         $this->assertContains($customReaction, $reactions);
-        // The 8 standard reactions stay on top, plus our extra one = 9.
+        // The 9 standard reactions stay on top, plus our extra one = 10.
         // (No refund repo wired here, so the refund reaction isn't registered.)
-        $this->assertCount(9, $reactions);
+        $this->assertCount(10, $reactions);
     }
 
     public function test_subscription_handle_wraps_the_given_subscription(): void
