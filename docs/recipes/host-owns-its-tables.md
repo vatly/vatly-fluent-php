@@ -1,6 +1,6 @@
 # Recipe: adapting fluent contracts to a host that already owns its tables
 
-The README's driver guide implicitly assumes you're modeling subscriptions/orders from scratch in your own schema. The other common case is the inverse: you're bolting onto an ecosystem plugin — **FluentCart, PMPro, MemberPress, Easy Digital Downloads, WooCommerce**, a Cashier-style Spark app — that **already owns** its `subscriptions`, `orders`, and `customers` tables. You don't want a parallel set of tables; you want fluent's contracts to read and write the host's existing ones.
+The README's driver guide implicitly assumes you're modeling subscriptions/orders from scratch in your own schema. The other common case is the inverse: you're bolting onto an ecosystem plugin - **FluentCart, PMPro, MemberPress, Easy Digital Downloads, WooCommerce**, a Cashier-style Spark app - that **already owns** its `subscriptions`, `orders`, and `customers` tables. You don't want a parallel set of tables; you want fluent's contracts to read and write the host's existing ones.
 
 The v0.8 contract shape makes this clean (v0.5's `Billable` forced a host-model shape that was wrong for non-Laravel drivers). This recipe is the sanctioned pattern.
 
@@ -8,7 +8,7 @@ The v0.8 contract shape makes this clean (v0.5's `Billable` forced a host-model 
 
 ## 1. Adapter wrappers, not native implementations
 
-Don't make the host's own Order/Subscription model implement `OrderInterface` — you usually can't edit it, and you don't want fluent's surface bleeding into the host's model. Instead wrap it in a thin adapter that holds the host record and exposes only the fluent surface:
+Don't make the host's own Order/Subscription model implement `OrderInterface` - you usually can't edit it, and you don't want fluent's surface bleeding into the host's model. Instead wrap it in a thin adapter that holds the host record and exposes only the fluent surface:
 
 ```php
 use Vatly\Fluent\Contracts\OrderInterface;
@@ -32,19 +32,19 @@ final class FluentCartOrder implements OrderInterface
 
 ## 2. Route inside `store()` instead of literally storing
 
-When the host already created the row at checkout time (before the webhook arrives), `OrderWriter::store(StoreOrderData)` is the place to **confirm** the existing row rather than `INSERT` a new one. Look up the host row by some signal the checkout stamped — most commonly a host id round-tripped through the Vatly order's `metadata` — update its status, write the Vatly id back, and return the adapter:
+When the host already created the row at checkout time (before the webhook arrives), `OrderWriter::store(StoreOrderData)` is the place to **confirm** the existing row rather than `INSERT` a new one. Look up the host row by some signal the checkout stamped - most commonly a host id round-tripped through the Vatly order's `metadata` - update its status, write the Vatly id back, and return the adapter:
 
 ```php
 public function store(StoreOrderData $data): ?OrderInterface
 {
     $txnId = $data->metadata['fluentcart_transaction_id'] ?? null;
     if ($txnId === null) {
-        return null; // anonymous / audit-only delivery — nothing local to attach to
+        return null; // anonymous / audit-only delivery - nothing local to attach to
     }
 
     $txn = OrderTransaction::find($txnId);
     if ($txn === null) {
-        return null; // host row gone — tolerate rather than throw
+        return null; // host row gone - tolerate rather than throw
     }
 
     $txn->vatly_id = $data->vatlyId; // <-- the idempotency hinge (see step 3)
@@ -59,7 +59,7 @@ Returning `null` is a first-class outcome: the built-in reactions tolerate it (a
 
 ## 3. `findByVatlyId` as the idempotency hinge
 
-Every entity reaction calls `findByVatlyId()` first: a null return routes to `store()`, a hit routes to `update()`. So the moment `store()` writes the Vatly id onto the host row (step 2), **every subsequent re-delivery of that webhook hits `update()` instead of `store()`** — which is exactly what you want, because Vatly retries deliveries and you must be idempotent.
+Every entity reaction calls `findByVatlyId()` first: a null return routes to `store()`, a hit routes to `update()`. So the moment `store()` writes the Vatly id onto the host row (step 2), **every subsequent re-delivery of that webhook hits `update()` instead of `store()`** - which is exactly what you want, because Vatly retries deliveries and you must be idempotent.
 
 ```php
 public function findByVatlyId(string $vatlyId): ?OrderInterface
@@ -80,11 +80,11 @@ public function update(OrderInterface $order, UpdateOrderData $data): OrderInter
 }
 ```
 
-The result: a `store()` that *confirms* a pre-existing row on first delivery, and an `update()` that *reconciles* it on every re-delivery — with no duplicate rows and no host-side unique-constraint violations.
+The result: a `store()` that *confirms* a pre-existing row on first delivery, and an `update()` that *reconciles* it on every re-delivery - with no duplicate rows and no host-side unique-constraint violations.
 
 ## 4. Discriminating renewal vs. initial payment inside `store()`
 
-Some ecosystems split "first payment" and "renewal payment" into different service calls. FluentCart is the canonical example: `Confirmations::confirmPaymentSuccessByCharge` for the initial order vs. `SubscriptionRenewal::recordRenewalPayment` for renewals. A single `order.paid` webhook flows into your one `OrderWriter::store` — so you have to discriminate.
+Some ecosystems split "first payment" and "renewal payment" into different service calls. FluentCart is the canonical example: `Confirmations::confirmPaymentSuccessByCharge` for the initial order vs. `SubscriptionRenewal::recordRenewalPayment` for renewals. A single `order.paid` webhook flows into your one `OrderWriter::store` - so you have to discriminate.
 
 Use the same metadata round-trip plus `$data->hostCustomerId` (pre-resolved by fluent via your `CustomerBindingRepository`):
 
@@ -96,16 +96,16 @@ public function store(StoreOrderData $data): ?OrderInterface
     $txnId = $data->metadata['fluentcart_transaction_id'] ?? null;
 
     if ($txnId !== null && ($txn = OrderTransaction::find($txnId)) !== null) {
-        // INITIAL payment — confirm the row the customer's checkout created.
+        // INITIAL payment - confirm the row the customer's checkout created.
         Confirmations::confirmPaymentSuccessByCharge($txn, $data->vatlyId);
 
         return new FluentCartOrder($txn->refresh());
     }
 
-    // RENEWAL — no initial host row. Resolve the owning customer (via the
+    // RENEWAL - no initial host row. Resolve the owning customer (via the
     // binding fluent already mapped) and let the host mint a renewal order.
     if ($data->hostCustomerId === null) {
-        return null; // unattributed renewal — nothing to route to
+        return null; // unattributed renewal - nothing to route to
     }
 
     $renewal = SubscriptionRenewal::recordRenewalPayment(
@@ -119,7 +119,7 @@ public function store(StoreOrderData $data): ?OrderInterface
 }
 ```
 
-The discriminator is "did *this* charge originate from a host-side checkout?" — answered by the presence of the metadata id. `hostCustomerId` then tells you *who* the renewal belongs to without an API re-fetch.
+The discriminator is "did *this* charge originate from a host-side checkout?" - answered by the presence of the metadata id. `hostCustomerId` then tells you *who* the renewal belongs to without an API re-fetch.
 
 ## Summary
 

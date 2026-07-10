@@ -6,7 +6,7 @@
 [![Tests](https://github.com/Vatly/vatly-fluent-php/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Vatly/vatly-fluent-php/actions/workflows/tests.yml)
 [![Total Downloads](https://img.shields.io/packagist/dt/vatly/vatly-fluent-php.svg?style=flat-square)](https://packagist.org/packages/vatly/vatly-fluent-php)
 
-> **Alpha — under active development. Expect breaking changes between minor versions.**
+> **Alpha - under active development. Expect breaking changes between minor versions.**
 
 Framework-agnostic SDK for [Vatly](https://vatly.com). Sits between `vatly/vatly-api-php` (the raw HTTP client) and a framework driver (e.g. `vatly/vatly-laravel`).
 
@@ -14,7 +14,7 @@ Framework-agnostic SDK for [Vatly](https://vatly.com). Sits between `vatly/vatly
 
 | Use case | Package |
 | --- | --- |
-| Laravel app | [`vatly/vatly-laravel`](https://github.com/Vatly/vatly-laravel) — already wires fluent for you |
+| Laravel app | [`vatly/vatly-laravel`](https://github.com/Vatly/vatly-laravel) - already wires fluent for you |
 | Building a driver for another framework (Symfony, Yii, …) | **`vatly/vatly-fluent-php`** (this) |
 | Standalone PHP script / CLI tool | **`vatly/vatly-fluent-php`** (this, api-only mode) |
 | Just need raw HTTP requests, no domain model | [`vatly/vatly-api-php`](https://github.com/Vatly/vatly-api-php) |
@@ -26,12 +26,12 @@ Framework-agnostic SDK for [Vatly](https://vatly.com). Sits between `vatly/vatly
 | Concern | `vatly-api-php` | `vatly-fluent-php` |
 | --- | --- | --- |
 | Make API calls | ✓ | ✓ (via `vatly-api-php` underneath) |
-| Domain model (`Subscription`, `Order`, `CustomerService` helper) | — | ✓ |
-| Repository contracts for persisting subscriptions / orders / customer bindings | — | ✓ |
+| Domain model (`Subscription`, `Order`, `CustomerService` helper) | - | ✓ |
+| Repository contracts for persisting subscriptions / orders / customer bindings | - | ✓ |
 | Webhook signature verification | ✓ (low-level) | ✓ (full pipeline incl. parsing, reactions, dispatch) |
-| Typed domain events (`OrderPaid`, `SubscriptionStarted`, …) | — | ✓ |
-| Builders for checkout / subscription flows | — | ✓ |
-| Single composition root (`Vatly`) that wires everything from contracts | — | ✓ |
+| Typed domain events (`OrderPaid`, `SubscriptionStarted`, …) | - | ✓ |
+| Builders for checkout / subscription flows | - | ✓ |
+| Single composition root (`Vatly`) that wires everything from contracts | - | ✓ |
 
 If you only need to fetch a customer or create a checkout from a script, `vatly-api-php` is enough. As soon as you want webhook handling, subscription state tracking, or anything resembling an integration, use fluent.
 
@@ -47,7 +47,7 @@ Pin to an exact version during alpha.
 
 ---
 
-## Quick start — standalone / api-only
+## Quick start - standalone / api-only
 
 For one-off scripts that just hit the API. No persistence, no webhook processing, no event dispatching.
 
@@ -77,7 +77,7 @@ For one-off scripts that just hit the API. No persistence, no webhook processing
 
    ```php
    // Register the delivery endpoint from code / IaC (at most one per mode).
-   // The signing secret is write-only — keep the value you send; it's never returned.
+   // The signing secret is write-only - keep the value you send; it's never returned.
    $endpoint = $vatly->getApiClient()->webhookEndpoints->create([
        'url'    => 'https://merchant.example/webhooks/vatly',
        'secret' => getenv('VATLY_WEBHOOK_SECRET'), // min 10 chars
@@ -116,19 +116,19 @@ Methods that need persistence or event dispatching (`customers()`, `webhookProce
 
 ---
 
-## Step-by-step — building a framework driver
+## Step-by-step - building a framework driver
 
 A driver is a thin glue package (e.g. `vatly-laravel`) that supplies fluent with concrete implementations of its contracts and exposes the API surface idiomatically for its framework.
 
 ### Webhook pipeline at a glance
 
-For incoming Vatly webhooks, fluent dispatches a typed event and runs a built-in reaction that calls back into your repos. A driver author only needs to implement the repo methods — the wiring is fixed. For the full event → reaction → repo-method matrix **including the fields each `Store*Data` / event carries**, see [docs/webhook-flow.md](docs/webhook-flow.md).
+For incoming Vatly webhooks, fluent dispatches a typed event and runs a built-in reaction that calls back into your repos. A driver author only needs to implement the repo methods - the wiring is fixed. For the full event → reaction → repo-method matrix **including the fields each `Store*Data` / event carries**, see [docs/webhook-flow.md](docs/webhook-flow.md).
 
-> **No API round-trip.** Vatly sends **fat, HMAC-signed** webhook deliveries: the payload's `object` is the full resource — byte-identical to the corresponding `GET /…/{id}` body (subtotal, the complete tax summary, lines, mandate). The HMAC signature is the trust boundary, so fluent builds every typed event straight from the signed payload — the money/tax-bearing events by hydrating the matching api-php Resource in memory, the rest from the envelope. There is **no follow-up `GET` to "enrich"**, so a transient API blip can never block a webhook.
+> **No API round-trip.** Vatly sends **fat, HMAC-signed** webhook deliveries: the payload's `object` is the full resource - byte-identical to the corresponding `GET /…/{id}` body (subtotal, the complete tax summary, lines, mandate). The HMAC signature is the trust boundary, so fluent builds every typed event straight from the signed payload - the money/tax-bearing events by hydrating the matching api-php Resource in memory, the rest from the envelope. There is **no follow-up `GET` to "enrich"**, so a transient API blip can never block a webhook.
 
-> The typed webhook event DTOs (`OrderPaid`, `OrderPaymentFailed`, `SubscriptionStarted`, …) live in **`vatly-api-php`** under the `Vatly\API\Webhooks\Events\*` namespace and are consumed by fluent — fluent no longer ships its own copies. Import them from `Vatly\API\Webhooks\Events\…` when you handle dispatched events. The factory that turns a signed payload into those typed events, `Vatly\API\Webhooks\WebhookEventFactory`, also lives in **`vatly-api-php`** (verify → parse → map). Fluent consumes it and owns the downstream orchestration (the reactions and `WebhookProcessor`, which record → react → dispatch) plus the driver-side `Vatly\Fluent\Events\{SubscriptionWasCreatedFromWebhook,OrderWasCreatedFromWebhook,NullEventDispatcher}`.
+> The typed webhook event DTOs (`OrderPaid`, `OrderPaymentFailed`, `SubscriptionStarted`, …) live in **`vatly-api-php`** under the `Vatly\API\Webhooks\Events\*` namespace and are consumed by fluent - fluent no longer ships its own copies. Import them from `Vatly\API\Webhooks\Events\…` when you handle dispatched events. The factory that turns a signed payload into those typed events, `Vatly\API\Webhooks\WebhookEventFactory`, also lives in **`vatly-api-php`** (verify → parse → map). Fluent consumes it and owns the downstream orchestration (the reactions and `WebhookProcessor`, which record → react → dispatch) plus the driver-side `Vatly\Fluent\Events\{SubscriptionWasCreatedFromWebhook,OrderWasCreatedFromWebhook,NullEventDispatcher}`.
 
-> **Event money is `Money`, not int cents (api-php ≥ `0.1.0-alpha.18`):** the `total` / `subtotal` fields on the money-bearing events are `Vatly\API\Types\Money` value objects (decimal-string `value` + `currency`). Read the currency with `$event->total->currency` and flatten to integer cents with `$event->total->toCents()`. The standalone `currency` field was **removed** from `OrderPaid`, `OrderPaymentFailed`, and the `Refund*` events (their `total` / `subtotal` are non-null `Money`); the chargeback events (`OrderChargebackReceived` / `OrderChargebackReversed`) instead carry **nullable** `?Money` and **keep** a standalone `currency` string. Order lines moved to `Vatly\API\Types\OrderLineData[]` (from the old `Vatly\API\Data\`), and a line's `basePrice` / `total` / `subtotal` are `Money` too. Fluent's built-in reactions flatten `Money → int` at the persistence edge, so the `Store*Data` / `Update*Data` DTOs your driver implements against still receive integer-cents `total` / `subtotal` and a `currency` string — no driver change required.
+> **Event money is `Money`, not int cents (api-php ≥ `0.1.0-alpha.18`):** the `total` / `subtotal` fields on the money-bearing events are `Vatly\API\Types\Money` value objects (decimal-string `value` + `currency`). Read the currency with `$event->total->currency` and flatten to integer cents with `$event->total->toCents()`. The standalone `currency` field was **removed** from `OrderPaid`, `OrderPaymentFailed`, and the `Refund*` events (their `total` / `subtotal` are non-null `Money`); the chargeback events (`OrderChargebackReceived` / `OrderChargebackReversed`) instead carry **nullable** `?Money` and **keep** a standalone `currency` string. Order lines moved to `Vatly\API\Types\OrderLineData[]` (from the old `Vatly\API\Data\`), and a line's `basePrice` / `total` / `subtotal` are `Money` too. Fluent's built-in reactions flatten `Money → int` at the persistence edge, so the `Store*Data` / `Update*Data` DTOs your driver implements against still receive integer-cents `total` / `subtotal` and a `currency` string - no driver change required.
 
 | Vatly event              | Dispatched event class                                            | Built-in reaction              | Repo method(s) called                                |
 |--------------------------|-------------------------------------------------------------------|--------------------------------|------------------------------------------------------|
@@ -141,30 +141,30 @@ For incoming Vatly webhooks, fluent dispatches a typed event and runs a built-in
 | `subscription.started`   | `SubscriptionStarted`                                             | `SyncSubscriptionOnStarted`    | `SubscriptionWriter::store` (new) / `::update` (existing) |
 | `subscription.billing_updated` | `SubscriptionBillingUpdated`                               | `SyncSubscriptionOnBillingUpdated` | `SubscriptionWriter::update` (refreshes mandate)    |
 | `subscription.updated`   | `SubscriptionUpdated`                                            | `SyncSubscriptionOnUpdated`    | `SubscriptionWriter::update` (immediate plan/price/quantity change) |
-| `subscription.update_scheduled` | `SubscriptionUpdateScheduled`                           | — (dispatched only)            | none — change applies next cycle; target values in `scheduledUpdate` |
+| `subscription.update_scheduled` | `SubscriptionUpdateScheduled`                           | - (dispatched only)            | none - change applies next cycle; target values in `scheduledUpdate` |
 | `subscription.resumed`   | `SubscriptionResumed`                                             | `ResumeSubscriptionOnResumed`  | `SubscriptionWriter::update` (clears end date)       |
 | `subscription.canceled`  | `SubscriptionCanceledImmediately` / `SubscriptionCanceledWithGracePeriod` | `CancelSubscriptionOnCanceled` | `SubscriptionWriter::update`                         |
 | `subscription.cancellation_grace_period_completed` | `SubscriptionCancellationGracePeriodCompleted` | `EndSubscriptionOnGracePeriodCompleted` | `SubscriptionWriter::update` (stamps actual end date) |
-| `checkout.paid` / `checkout.failed` / `checkout.canceled` / `checkout.expired` | `CheckoutPaid` / `CheckoutFailed` / `CheckoutCanceled` / `CheckoutExpired` | — (dispatched only) | none — driver-handled |
-| `webhook.setup`          | `WebhookSetupReceived`                                            | — (dispatched only)            | none — endpoint verification ping; acknowledge with `2xx` |
+| `checkout.paid` / `checkout.failed` / `checkout.canceled` / `checkout.expired` | `CheckoutPaid` / `CheckoutFailed` / `CheckoutCanceled` / `CheckoutExpired` | - (dispatched only) | none - driver-handled |
+| `webhook.setup`          | `WebhookSetupReceived`                                            | - (dispatched only)            | none - endpoint verification ping; acknowledge with `2xx` |
 
-`OrderWriter::store`, `SubscriptionWriter::store`, and `RefundWriter::store` may return `null` if your driver can't route the data (see the adapter recipe below). Built-in reactions tolerate null — `SyncSubscriptionOnStarted` skips its follow-up `SubscriptionWasCreatedFromWebhook` dispatch (and `StoreOrderOnPaid` its `OrderWasCreatedFromWebhook` dispatch) when store returns null. Both driver-side events fire exactly once per brand-new local row (not on the update path).
+`OrderWriter::store`, `SubscriptionWriter::store`, and `RefundWriter::store` may return `null` if your driver can't route the data (see the adapter recipe below). Built-in reactions tolerate null - `SyncSubscriptionOnStarted` skips its follow-up `SubscriptionWasCreatedFromWebhook` dispatch (and `StoreOrderOnPaid` its `OrderWasCreatedFromWebhook` dispatch) when store returns null. Both driver-side events fire exactly once per brand-new local row (not on the update path).
 
 `subscription.billing_updated`, `subscription.updated`, `subscription.resumed`, and `order.canceled` are find-or-skip: they update an existing local record but never create one. `subscription.billing_updated` carries the fresh mandate (card last-4, masked IBAN) in its signed payload, so the stored mandate stays in step with the payment method on file without an API call; `subscription.resumed` clears the stored end date so a resume reactivates the derived state; `order.canceled` mirrors Vatly's `canceled` status onto the local order.
 
-**Subscription changes** come in two flavours. `subscription.updated` is an **immediate** plan / price / interval / quantity change — `SyncSubscriptionOnUpdated` refreshes the stored plan, name, and quantity from the signed payload (price is not persisted locally; fluent's `Store*Data` DTOs track plan/name/quantity, not the recurring money). `subscription.update_scheduled` is a change **scheduled for the next billing cycle**: the subscription's current state is unchanged, so there is no built-in reaction — the typed `SubscriptionUpdateScheduled` event carries the target values in a typed `scheduledUpdate` (`Vatly\API\Types\ScheduledSubscriptionUpdate`: plan id, name, description, base price, quantity, interval, interval count) and is dispatched for you to handle (e.g. warn the customer of an upcoming price change).
+**Subscription changes** come in two flavours. `subscription.updated` is an **immediate** plan / price / interval / quantity change - `SyncSubscriptionOnUpdated` refreshes the stored plan, name, and quantity from the signed payload (price is not persisted locally; fluent's `Store*Data` DTOs track plan/name/quantity, not the recurring money). `subscription.update_scheduled` is a change **scheduled for the next billing cycle**: the subscription's current state is unchanged, so there is no built-in reaction - the typed `SubscriptionUpdateScheduled` event carries the target values in a typed `scheduledUpdate` (`Vatly\API\Types\ScheduledSubscriptionUpdate`: plan id, name, description, base price, quantity, interval, interval count) and is dispatched for you to handle (e.g. warn the customer of an upcoming price change).
 
-**Refunds** are opt-in: supply a `RefundRepositoryInterface` via `Wiring(refunds: …)` and the built-in `SyncRefundOnStatusChange` reaction persists `refund.*` webhooks (store-or-update, like orders) — unblocking terminal-state refund reconciliation. Omit it and the typed refund events are still dispatched for you to handle. The refund webhook payload already carries the full tax breakdown (like `order.paid`), so the event is built straight from it — no API call.
+**Refunds** are opt-in: supply a `RefundRepositoryInterface` via `Wiring(refunds: …)` and the built-in `SyncRefundOnStatusChange` reaction persists `refund.*` webhooks (store-or-update, like orders) - unblocking terminal-state refund reconciliation. Omit it and the typed refund events are still dispatched for you to handle. The refund webhook payload already carries the full tax breakdown (like `order.paid`), so the event is built straight from it - no API call.
 
 Read the refunds back idiomatically with `RefundReader::listForOrder` / `listForCustomer`, or via the handle: `$vatly->order($localOrder)->refunds()` returns the `RefundInterface[]` recorded against that order (local read, no API call; empty array when no refund repo is wired).
 
-The order's reversal progress is read live from the Vatly API rather than synthesized into a local status — the order's own `status` stays terminal `paid`. `OrderHandle` exposes `reversedSubtotal()` / `refundableSubtotal()` (integer cents) and `isReversed()` / `isPartiallyReversed()` / `isFullyReversed()`, fetched once and memoized per handle instance. Because the API's `reversedSubtotal` combines refunds **and** chargebacks, these helpers answer "did money come back, and how much" regardless of how it was reversed.
+The order's reversal progress is read live from the Vatly API rather than synthesized into a local status - the order's own `status` stays terminal `paid`. `OrderHandle` exposes `reversedSubtotal()` / `refundableSubtotal()` (integer cents) and `isReversed()` / `isPartiallyReversed()` / `isFullyReversed()`, fetched once and memoized per handle instance. Because the API's `reversedSubtotal` combines refunds **and** chargebacks, these helpers answer "did money come back, and how much" regardless of how it was reversed.
 
-**Chargebacks** mirror refunds and are opt-in: supply a `ChargebackRepositoryInterface` via `Wiring(chargebacks: …)` and the built-in `SyncChargebackOnStatusChange` reaction persists `order.chargeback_*` webhooks store-or-update (storing on receipt, updating on reversal). It does **not** mutate the order's status — the order stays `paid`, and whether money came back (chargebacks included) is read via the `OrderHandle` reversal helpers above. Omit the repository and the typed `OrderChargebackReceived` / `OrderChargebackReversed` events are still dispatched for you to handle (e.g. suspend access on receipt, reinstate on reversal). The chargeback webhook payload already carries the customer id, dispute status, and full tax breakdown, so the events are built straight from it (no second API call) and the reversed VAT can be reconciled directly. Read chargebacks back via `ChargebackReader::listForOrder` / `listForCustomer` or `$vatly->order($localOrder)->chargebacks()`.
+**Chargebacks** mirror refunds and are opt-in: supply a `ChargebackRepositoryInterface` via `Wiring(chargebacks: …)` and the built-in `SyncChargebackOnStatusChange` reaction persists `order.chargeback_*` webhooks store-or-update (storing on receipt, updating on reversal). It does **not** mutate the order's status - the order stays `paid`, and whether money came back (chargebacks included) is read via the `OrderHandle` reversal helpers above. Omit the repository and the typed `OrderChargebackReceived` / `OrderChargebackReversed` events are still dispatched for you to handle (e.g. suspend access on receipt, reinstate on reversal). The chargeback webhook payload already carries the customer id, dispute status, and full tax breakdown, so the events are built straight from it (no second API call) and the reversed VAT can be reconciled directly. Read chargebacks back via `ChargebackReader::listForOrder` / `listForCustomer` or `$vatly->order($localOrder)->chargebacks()`.
 
-**Checkout events** are dispatched only — no built-in reaction. The `checkout.*` deliveries carry the full Checkout resource (status, `customerId`, `orderId`, `metadata`). Use `CheckoutPaid` for an analytics/receipt handoff at the earliest "customer paid" moment — ahead of `order.paid` — and `CheckoutFailed` / `CheckoutCanceled` / `CheckoutExpired` for retry and cart-abandonment funnel hooks. `customerId` is nullable: an anonymous checkout only gets a customer attributed once payment completes.
+**Checkout events** are dispatched only - no built-in reaction. The `checkout.*` deliveries carry the full Checkout resource (status, `customerId`, `orderId`, `metadata`). Use `CheckoutPaid` for an analytics/receipt handoff at the earliest "customer paid" moment - ahead of `order.paid` - and `CheckoutFailed` / `CheckoutCanceled` / `CheckoutExpired` for retry and cart-abandonment funnel hooks. `customerId` is nullable: an anonymous checkout only gets a customer attributed once payment completes.
 
-**`subscription.cancellation_grace_period_completed`** stamps the actual end date onto the local row via `EndSubscriptionOnGracePeriodCompleted`. In the happy path the grace end was already stamped by `CancelSubscriptionOnCanceled` when the cancellation arrived, so this is an idempotent re-write — but it self-heals a missed or out-of-order cancellation webhook (which would otherwise leave `endsAt` null and the subscription looking active forever) and corrects any drift between the scheduled and actual end. The event is also dispatched so a driver can flip local state atomically instead of polling `endsAt < now` on a scheduled job; whether to additionally write a `fully_ended` status is driver-specific (Vatly has no such status to mirror), so that's left to the consumer.
+**`subscription.cancellation_grace_period_completed`** stamps the actual end date onto the local row via `EndSubscriptionOnGracePeriodCompleted`. In the happy path the grace end was already stamped by `CancelSubscriptionOnCanceled` when the cancellation arrived, so this is an idempotent re-write - but it self-heals a missed or out-of-order cancellation webhook (which would otherwise leave `endsAt` null and the subscription looking active forever) and corrects any drift between the scheduled and actual end. The event is also dispatched so a driver can flip local state atomically instead of polling `endsAt < now` on a scheduled job; whether to additionally write a `fully_ended` status is driver-specific (Vatly has no such status to mirror), so that's left to the consumer.
 
 `additionalWebhookReactions` (on `WebhookProcessorFactory::create`) lets you append driver-specific reactions without losing the built-ins.
 
@@ -202,7 +202,7 @@ final class SymfonyVatlyConfig implements ConfigurationInterface
 
 ### 2. Implement `CustomerBindingRepository`
 
-The binding repository links a Vatly customer id (`cus_...`) to whatever id your app uses for its billing entity (User, Organization, Tenant, …). Fluent never touches your host model directly — it only asks "what is the Vatly customer id for this host customer id?" and the reverse.
+The binding repository links a Vatly customer id (`cus_...`) to whatever id your app uses for its billing entity (User, Organization, Tenant, …). Fluent never touches your host model directly - it only asks "what is the Vatly customer id for this host customer id?" and the reverse.
 
 ```php
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
@@ -239,7 +239,7 @@ final class SymfonyCustomerBindingRepository implements CustomerBindingRepositor
 ```
 
 <details>
-<summary><strong>What if I can't add a <code>vatly_id</code> column?</strong> — vendor user model, third-party identity provider, multi-tenant…</summary>
+<summary><strong>What if I can't add a <code>vatly_id</code> column?</strong> - vendor user model, third-party identity provider, multi-tenant…</summary>
 
 Implement the same four methods against a dedicated join table. The host class itself stays untouched.
 
@@ -253,9 +253,9 @@ CREATE TABLE vatly_customer_bindings (
 );
 ```
 
-`bind` `INSERT … ON CONFLICT … DO UPDATE`; `hostCustomerIdFor` / `vatlyCustomerIdFor` are single-column lookups; `record` is allowed to be a no-op (or insert a row with an empty host id if you want an audit trail for unattributed customers — `attribute()` can fill it in later).
+`bind` `INSERT … ON CONFLICT … DO UPDATE`; `hostCustomerIdFor` / `vatlyCustomerIdFor` are single-column lookups; `record` is allowed to be a no-op (or insert a row with an empty host id if you want an audit trail for unattributed customers - `attribute()` can fill it in later).
 
-**Multi-tenant fan-out.** If multiple host types (User, Organization, Tenant) should all participate as Vatly customers, add an `owner_type` column to the primary key and inject which type the repository handles at construction time — one repository instance per host type.
+**Multi-tenant fan-out.** If multiple host types (User, Organization, Tenant) should all participate as Vatly customers, add an `owner_type` column to the primary key and inject which type the repository handles at construction time - one repository instance per host type.
 
 </details>
 
@@ -280,7 +280,7 @@ class Subscription implements SubscriptionInterface
     public function getQuantity(): int { /* ... */ }
     public function getEndsAt(): ?DateTimeInterface { /* ... */ }
 
-    // Mandate summary on file — persist these alongside the rest so portals
+    // Mandate summary on file - persist these alongside the rest so portals
     // render "card ending in 4242" without a per-request API roundtrip.
     public function getMandateMethod(): ?string { /* 'card', 'sepa_debit', null, ... */ }
     public function getMandateMaskedIdentifier(): ?string { /* '4242', 'NL91****4300', null */ }
@@ -306,7 +306,7 @@ class Order implements OrderInterface
 ```
 
 <details>
-<summary><strong>What if my host already has Order / Subscription tables?</strong> — bolting onto an ecosystem plugin (FluentCart, PMPro, MemberPress, EDD…)</summary>
+<summary><strong>What if my host already has Order / Subscription tables?</strong> - bolting onto an ecosystem plugin (FluentCart, PMPro, MemberPress, EDD…)</summary>
 
 This is the common case for ecosystem-plugin drivers: the host already models orders and subscriptions, and you can't (or shouldn't) add a parallel set. **Adapt, don't duplicate.** Write a thin wrapper that implements fluent's interface against the host's record:
 
@@ -328,14 +328,14 @@ final class FluentCartOrder implements OrderInterface
 }
 ```
 
-Your `OrderRepositoryInterface::store` then routes the incoming `StoreOrderData` to the right host record — typically by reading `$data->metadata` to find a host-side id the original checkout stamped onto the Vatly order. When the routing legitimately doesn't match (metadata is missing, host record was deleted, etc.), return `null`:
+Your `OrderRepositoryInterface::store` then routes the incoming `StoreOrderData` to the right host record - typically by reading `$data->metadata` to find a host-side id the original checkout stamped onto the Vatly order. When the routing legitimately doesn't match (metadata is missing, host record was deleted, etc.), return `null`:
 
 ```php
 public function store(StoreOrderData $data): ?OrderInterface
 {
     $txnId = $data->metadata['fluentcart_transaction_id'] ?? null;
     if ($txnId === null) {
-        return null; // anonymous / audit-only — nothing to attach to
+        return null; // anonymous / audit-only - nothing to attach to
     }
 
     $txn = OrderTransaction::find($txnId);
@@ -352,7 +352,7 @@ public function store(StoreOrderData $data): ?OrderInterface
 
 Same shape for `SubscriptionRepositoryInterface::store`. Built-in reactions tolerate null returns.
 
-**Full walkthrough:** [docs/recipes/host-owns-its-tables.md](docs/recipes/host-owns-its-tables.md) — covers the adapter wrapper, confirming (not duplicating) rows in `store()`, `findByVatlyId` as the idempotency hinge for safe re-deliveries, and discriminating renewal-vs-initial payments inside one `store()`.
+**Full walkthrough:** [docs/recipes/host-owns-its-tables.md](docs/recipes/host-owns-its-tables.md) - covers the adapter wrapper, confirming (not duplicating) rows in `store()`, `findByVatlyId` as the idempotency hinge for safe re-deliveries, and discriminating renewal-vs-initial payments inside one `store()`.
 
 </details>
 
@@ -360,15 +360,15 @@ Same shape for `SubscriptionRepositoryInterface::store`. Built-in reactions tole
 
 Each entity-side contract has three methods. See [src/Contracts](src/Contracts) for signatures.
 
-- `SubscriptionRepositoryInterface` — `findByVatlyId`, `store`, `update`
-- `OrderRepositoryInterface` — `findByVatlyId`, `store`, `update`
-- `RefundRepositoryInterface` — `findByVatlyId`, `listForOrder`, `listForCustomer`, `store`, `update` (**optional** — only needed to persist `refund.*` webhooks)
-- `ChargebackRepositoryInterface` — `findByVatlyId`, `listForOrder`, `listForCustomer`, `store`, `update` (**optional** — only needed to persist `order.chargeback_*` webhooks)
-- `WebhookCallRepositoryInterface` — record received webhook calls (audit log)
+- `SubscriptionRepositoryInterface` - `findByVatlyId`, `store`, `update`
+- `OrderRepositoryInterface` - `findByVatlyId`, `store`, `update`
+- `RefundRepositoryInterface` - `findByVatlyId`, `listForOrder`, `listForCustomer`, `store`, `update` (**optional** - only needed to persist `refund.*` webhooks)
+- `ChargebackRepositoryInterface` - `findByVatlyId`, `listForOrder`, `listForCustomer`, `store`, `update` (**optional** - only needed to persist `order.chargeback_*` webhooks)
+- `WebhookCallRepositoryInterface` - record received webhook calls (audit log)
 
 `StoreSubscriptionData` and `StoreOrderData` both carry an optional `hostCustomerId` resolved from the binding repo when fluent persists from a webhook reaction. Use it to fill your host-side owner column when it's set, and accept `null` for the anonymous-checkout flow.
 
-Every `Store*Data` (order/subscription/refund/chargeback) also carries a required `testmode` bool, sourced from the originating Vatly record. Persist it on your local row and surface it through the matching entity interface's `isTestmode()` — this keeps test and live records segregated and lets you select the matching API key per record (vs. the global config mode). Note this is per-record `isTestmode()`, distinct from `ConfigurationInterface::isTestmode()`, which reflects the configured key.
+Every `Store*Data` (order/subscription/refund/chargeback) also carries a required `testmode` bool, sourced from the originating Vatly record. Persist it on your local row and surface it through the matching entity interface's `isTestmode()` - this keeps test and live records segregated and lets you select the matching API key per record (vs. the global config mode). Note this is per-record `isTestmode()`, distinct from `ConfigurationInterface::isTestmode()`, which reflects the configured key.
 
 ```php
 public function store(StoreSubscriptionData $data): SubscriptionInterface
@@ -391,16 +391,16 @@ public function store(StoreSubscriptionData $data): SubscriptionInterface
 
 > Each entity-side repo is also exposed as a Reader / Writer pair (`SubscriptionReader` + `SubscriptionWriter`, etc.). The combined interface extends both. Typehint the narrowest role you actually need.
 
-> **If your repo needs to call back into the SDK** — e.g. `GetOrder` to read a fresh resource on demand — don't inject `Vatly` directly. `Vatly` is being constructed *with* your repo, so a direct dependency is circular. Instead, inject a lazy resolver (your host's container, a singleton accessor, or a closure that returns `Vatly`) and resolve at call time.
+> **If your repo needs to call back into the SDK** - e.g. `GetOrder` to read a fresh resource on demand - don't inject `Vatly` directly. `Vatly` is being constructed *with* your repo, so a direct dependency is circular. Instead, inject a lazy resolver (your host's container, a singleton accessor, or a closure that returns `Vatly`) and resolve at call time.
 >
 > ```php
-> // ✗ Circular — $vatly doesn't exist yet at Wiring-construction time:
+> // ✗ Circular - $vatly doesn't exist yet at Wiring-construction time:
 > new Vatly(new Wiring(orders: new MyOrderRepository($vatly), …));
 >
-> // ✓ Closure resolver — the repo only touches Vatly at call time:
+> // ✓ Closure resolver - the repo only touches Vatly at call time:
 > new Vatly(new Wiring(orders: new MyOrderRepository(fn () => $container->get(Vatly::class)), …));
 >
-> // ✓ Singleton accessor — same idea via a static entry point:
+> // ✓ Singleton accessor - same idea via a static entry point:
 > new Vatly(new Wiring(orders: new MyOrderRepository(Plugin::vatly(...)), …));
 > ```
 >
@@ -457,23 +457,23 @@ $vatly = new Vatly(new Wiring(
 
 They run after fluent's built-in reactions (subscription sync, order persistence, cancellation handling).
 
-### 8. Use the SDK — two paths
+### 8. Use the SDK - two paths
 
 **Action-driven.** For drivers that want consumers to reach the SDK explicitly. Reach `Vatly` through your container:
 
 ```php
 $vatly = $container->get(Vatly::class);
 
-// Vatly ids are prefixed — subscription plans are `subscription_plan_…`,
+// Vatly ids are prefixed - subscription plans are `subscription_plan_…`,
 // one-off products `one_off_product_…`. Find them in the Vatly dashboard
 // or via `GET /subscription-plans`.
 
-// Create a checkout — pass in a CustomerProfile carrying whatever the host knows.
+// Create a checkout - pass in a CustomerProfile carrying whatever the host knows.
 use Vatly\Fluent\CustomerProfile;
 
 // Each checkout item id is a Vatly product: `one_off_product_…` for a one-off
 // product or `subscription_plan_…` for a subscription plan. Create the product
-// in the Vatly dashboard first — there is no API to make one on the fly.
+// in the Vatly dashboard first - there is no API to make one on the fly.
 $checkout = $vatly
     ->checkoutBuilder(new CustomerProfile(vatlyId: $user->vatly_id))
     ->withRedirectUrlSuccess('https://app.example.com/done')
@@ -511,7 +511,7 @@ $vatly->subscription($localSubscription)->cancel();
 $vatly->order($localOrder)->invoiceUrl();
 
 // Billing address / VAT / company name changes go through a hosted Vatly
-// flow. Returns a fresh redirect URL per call — don't cache.
+// flow. Returns a fresh redirect URL per call - don't cache.
 // `redirectUrlSuccess` and `redirectUrlCanceled` are filled in from the
 // config defaults when omitted; pass them in $prefillData to override.
 $url = $vatly->subscription($localSubscription)->updateBilling();
@@ -549,7 +549,7 @@ $customer = $vatly->customers()->createFor(
 $existing = $vatly->customers()->findByHostCustomerId((string) $user->id);
 ```
 
-Drivers commonly wrap these calls in idiomatic shortcuts — e.g. a Laravel trait that adds `$user->subscribe()->toPlan(...)->create()` on top of `subscriptionBuilder($user->customerProfile())`.
+Drivers commonly wrap these calls in idiomatic shortcuts - e.g. a Laravel trait that adds `$user->subscribe()->toPlan(...)->create()` on top of `subscriptionBuilder($user->customerProfile())`.
 
 ### 9. Wire the webhook receiver
 
@@ -630,7 +630,7 @@ $vatly->getSubscription();   $vatly->cancelSubscription();
 $vatly->resumeSubscription(); $vatly->swapSubscriptionPlan();
 $vatly->updateSubscriptionBilling();
 
-// Composed services — require repos in Wiring
+// Composed services - require repos in Wiring
 $vatly->customers();                               // CustomerService (lazy, cached)
 $vatly->checkoutBuilder($profile);                 // CheckoutBuilder (per-call)
 $vatly->subscriptionBuilder($profile);             // SubscriptionBuilder (per-call)
@@ -645,44 +645,44 @@ Calling a composed-services method without the required repos in `Wiring` throws
 
 In [src/Contracts](src/Contracts):
 
-- `SubscriptionInterface` — local subscription state + derived predicates
-- `OrderInterface` — local order state
-- `CustomerBindingRepository` — bidirectional mapping between Vatly customer ids and host ids
-- `SubscriptionRepositoryInterface` — subscription persistence (3 methods). Splits into `SubscriptionReader` (find) + `SubscriptionWriter` (store/update).
-- `OrderRepositoryInterface` — order persistence (3 methods). Splits into `OrderReader` (find) + `OrderWriter` (store/update).
-- `RefundRepositoryInterface` — refund persistence (optional). Splits into `RefundReader` (find + `listForOrder` / `listForCustomer`) + `RefundWriter` (store/update).
-- `ChargebackRepositoryInterface` — chargeback persistence (optional). Splits into `ChargebackReader` (find + `listForOrder` / `listForCustomer`) + `ChargebackWriter` (store/update).
-- `WebhookCallRepositoryInterface` — webhook audit log (write-only by nature)
-- `EventDispatcherInterface` — fire domain events
-- `ConfigurationInterface` — API key, URL, version, webhook secret, redirect defaults
-- `WebhookReactionInterface` — extension point for adding your own webhook reactions. Compose multiple via `Webhooks\Reactions\WebhookReactionChain` (variadic constructor; the chain itself implements the same interface).
+- `SubscriptionInterface` - local subscription state + derived predicates
+- `OrderInterface` - local order state
+- `CustomerBindingRepository` - bidirectional mapping between Vatly customer ids and host ids
+- `SubscriptionRepositoryInterface` - subscription persistence (3 methods). Splits into `SubscriptionReader` (find) + `SubscriptionWriter` (store/update).
+- `OrderRepositoryInterface` - order persistence (3 methods). Splits into `OrderReader` (find) + `OrderWriter` (store/update).
+- `RefundRepositoryInterface` - refund persistence (optional). Splits into `RefundReader` (find + `listForOrder` / `listForCustomer`) + `RefundWriter` (store/update).
+- `ChargebackRepositoryInterface` - chargeback persistence (optional). Splits into `ChargebackReader` (find + `listForOrder` / `listForCustomer`) + `ChargebackWriter` (store/update).
+- `WebhookCallRepositoryInterface` - webhook audit log (write-only by nature)
+- `EventDispatcherInterface` - fire domain events
+- `ConfigurationInterface` - API key, URL, version, webhook secret, redirect defaults
+- `WebhookReactionInterface` - extension point for adding your own webhook reactions. Compose multiple via `Webhooks\Reactions\WebhookReactionChain` (variadic constructor; the chain itself implements the same interface).
 
 ## Domain events
 
 Dispatched by webhook reactions through your `EventDispatcherInterface`. Subscribe to them in your framework's event bus.
 
-- `WebhookReceived` — raw webhook envelope (typed shape; `object` is the resource payload)
-- `OrderPaid` — order with full `taxSummary` breakdown, ready to materialize local invoices
-- `OrderPaymentFailed` — failed payment attempt (typically the start of dunning); carries the full order shape, mirroring `OrderPaid`
+- `WebhookReceived` - raw webhook envelope (typed shape; `object` is the resource payload)
+- `OrderPaid` - order with full `taxSummary` breakdown, ready to materialize local invoices
+- `OrderPaymentFailed` - failed payment attempt (typically the start of dunning); carries the full order shape, mirroring `OrderPaid`
 - `OrderCanceled`
-- `OrderChargebackReceived` / `OrderChargebackReversed` — dispute signals carrying the affected `orderId`
-- `RefundCompleted` / `RefundFailed` / `RefundCanceled` — each with full `taxSummary` breakdown
+- `OrderChargebackReceived` / `OrderChargebackReversed` - dispute signals carrying the affected `orderId`
+- `RefundCompleted` / `RefundFailed` / `RefundCanceled` - each with full `taxSummary` breakdown
 - `SubscriptionStarted`
-- `SubscriptionBillingUpdated` — billing/mandate changed; carries the refreshed mandate summary
-- `SubscriptionUpdated` — an immediate plan/price/interval/quantity change (effective now)
-- `SubscriptionUpdateScheduled` — a change scheduled for the next billing cycle; target values in `scheduledUpdate`
+- `SubscriptionBillingUpdated` - billing/mandate changed; carries the refreshed mandate summary
+- `SubscriptionUpdated` - an immediate plan/price/interval/quantity change (effective now)
+- `SubscriptionUpdateScheduled` - a change scheduled for the next billing cycle; target values in `scheduledUpdate`
 - `SubscriptionResumed`
 - `SubscriptionCanceledImmediately`
 - `SubscriptionCanceledWithGracePeriod`
 - `SubscriptionCancellationGracePeriodCompleted`
 - `CheckoutPaid` / `CheckoutFailed` / `CheckoutCanceled` / `CheckoutExpired`
-- `WebhookSetupReceived` — endpoint verification ping (`webhook.setup`); dispatched-only, acknowledge with `2xx`
+- `WebhookSetupReceived` - endpoint verification ping (`webhook.setup`); dispatched-only, acknowledge with `2xx`
 - `UnsupportedWebhookReceived`
 
-Driver-side events (namespace `Vatly\Fluent\Events`, carrying the freshly persisted local record — fired exactly once per brand-new row):
+Driver-side events (namespace `Vatly\Fluent\Events`, carrying the freshly persisted local record - fired exactly once per brand-new row):
 
-- `SubscriptionWasCreatedFromWebhook` — dispatched by `SyncSubscriptionOnStarted` on a brand-new subscription
-- `OrderWasCreatedFromWebhook` — dispatched by `StoreOrderOnPaid` on a brand-new order
+- `SubscriptionWasCreatedFromWebhook` - dispatched by `SyncSubscriptionOnStarted` on a brand-new subscription
+- `OrderWasCreatedFromWebhook` - dispatched by `StoreOrderOnPaid` on a brand-new order
 
 ## Testing
 
@@ -710,9 +710,9 @@ $fake->assertSubscriptionCreated('plan_pro');
 $fake->assertNothingCanceled();
 ```
 
-- **`FakeVatly`** — drop-in `Vatly` that hands out recording builders/handles and returns scriptable `Checkout`s (`onSubscriptionCreate` / `onCheckoutCreate` / `withDefaultCheckout`).
-- **`FakeCheckout::make($url)`** — a minimal `Checkout` with a working `links->checkoutUrl->href`.
-- **Assertions** — `assertSubscriptionCreated($planId)`, `assertCheckoutCreated(productId:)`, `assertSubscriptionSwapped(from:, to:)`, `assertSubscriptionCanceled($id)`, `assertNothingCanceled()`, `assertNothingCreated()`.
+- **`FakeVatly`** - drop-in `Vatly` that hands out recording builders/handles and returns scriptable `Checkout`s (`onSubscriptionCreate` / `onCheckoutCreate` / `withDefaultCheckout`).
+- **`FakeCheckout::make($url)`** - a minimal `Checkout` with a working `links->checkoutUrl->href`.
+- **Assertions** - `assertSubscriptionCreated($planId)`, `assertCheckoutCreated(productId:)`, `assertSubscriptionSwapped(from:, to:)`, `assertSubscriptionCanceled($id)`, `assertNothingCanceled()`, `assertNothingCreated()`.
 
 Swap/cancel/resume routed through `$fake->subscription($localSub)` are recorded too. Ships in-package (like Cashier's helpers); the PHPUnit dependency is only touched from the `assert*` methods.
 
