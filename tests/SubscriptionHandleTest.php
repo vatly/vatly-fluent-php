@@ -9,6 +9,7 @@ use Mockery;
 use ReflectionClass;
 use Vatly\API\Resources\Subscription as ApiSubscription;
 use Vatly\API\Types\Link;
+use Vatly\API\Types\ScheduledSubscriptionUpdate;
 use Vatly\Fluent\Actions\CancelSubscription;
 use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Actions\GetSubscription;
@@ -433,6 +434,84 @@ class SubscriptionHandleTest extends TestCase
 
         $this->assertSame($handle, $returned);
         $this->assertSame($updatedSubscription, $handle->model());
+    }
+
+    public function test_scheduled_update_returns_the_live_pending_change(): void
+    {
+        $subscription = $this->stubSubscription('subscription_abc');
+
+        $scheduled = new ScheduledSubscriptionUpdate(
+            subscriptionPlanId: 'plan_premium',
+            name: 'Premium Annual',
+            description: 'Premium, billed yearly',
+            basePrice: self::money(9900),
+            quantity: 3,
+            interval: 'year',
+            intervalCount: 1,
+            effectiveAt: '2024-03-15T10:30:00Z',
+        );
+
+        $getSubscriptionAction = Mockery::mock(GetSubscription::class);
+        $getSubscriptionAction->shouldReceive('execute')
+            ->once()
+            ->with('subscription_abc')
+            ->andReturn($this->makeApiSubscription(['scheduledUpdate' => $scheduled]));
+
+        $handle = $this->buildHandle(
+            subscription: $subscription,
+            getSubscriptionAction: $getSubscriptionAction,
+        );
+
+        $result = $handle->scheduledUpdate();
+
+        $this->assertInstanceOf(ScheduledSubscriptionUpdate::class, $result);
+        $this->assertSame($scheduled, $result);
+        $this->assertSame('plan_premium', $result->subscriptionPlanId);
+        $this->assertSame('2024-03-15T10:30:00Z', $result->effectiveAt);
+    }
+
+    public function test_scheduled_update_returns_null_when_nothing_is_pending(): void
+    {
+        $subscription = $this->stubSubscription('subscription_abc');
+
+        $getSubscriptionAction = Mockery::mock(GetSubscription::class);
+        $getSubscriptionAction->shouldReceive('execute')
+            ->with('subscription_abc')
+            ->andReturn($this->makeApiSubscription(['scheduledUpdate' => null]));
+
+        $handle = $this->buildHandle(
+            subscription: $subscription,
+            getSubscriptionAction: $getSubscriptionAction,
+        );
+
+        $this->assertNull($handle->scheduledUpdate());
+        $this->assertFalse($handle->hasScheduledUpdate());
+    }
+
+    public function test_has_scheduled_update_is_true_when_a_change_is_pending(): void
+    {
+        $subscription = $this->stubSubscription('subscription_abc');
+
+        $getSubscriptionAction = Mockery::mock(GetSubscription::class);
+        $getSubscriptionAction->shouldReceive('execute')
+            ->with('subscription_abc')
+            ->andReturn($this->makeApiSubscription(['scheduledUpdate' => new ScheduledSubscriptionUpdate(
+                subscriptionPlanId: 'plan_premium',
+                name: 'Premium',
+                description: 'Premium plan',
+                basePrice: self::money(4900),
+                quantity: 2,
+                interval: 'month',
+                intervalCount: 1,
+                effectiveAt: '2024-03-15T10:30:00Z',
+            )]));
+
+        $handle = $this->buildHandle(
+            subscription: $subscription,
+            getSubscriptionAction: $getSubscriptionAction,
+        );
+
+        $this->assertTrue($handle->hasScheduledUpdate());
     }
 
     private function stubSubscription(string $vatlyId): SubscriptionInterface

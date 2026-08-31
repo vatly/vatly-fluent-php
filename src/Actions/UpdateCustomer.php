@@ -19,7 +19,7 @@ class UpdateCustomer extends BaseAction
      */
     public function execute(string $customerId, array $data, array $filters = []): Customer
     {
-        $customer = $this->vatlyApiClient->customers->update($customerId, $data, $filters);
+        $customer = $this->guardApiCall(fn () => $this->vatlyApiClient->customers->update($customerId, $data, $filters));
 
         assert($customer instanceof Customer);
 

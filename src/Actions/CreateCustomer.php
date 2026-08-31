@@ -6,6 +6,7 @@ namespace Vatly\Fluent\Actions;
 
 use Vatly\API\Exceptions\ApiException;
 use Vatly\API\Resources\Customer;
+use Vatly\Fluent\Exceptions\ApiCallFailedException;
 
 class CreateCustomer extends BaseAction
 {
@@ -27,13 +28,14 @@ class CreateCustomer extends BaseAction
             return $customer;
         } catch (ApiException $e) {
             if ($returnExistingOnDuplicate && $existingCustomerId = $this->extractExistingCustomerId($e)) {
-                $customer = $this->vatlyApiClient->customers->get($existingCustomerId);
+                $customer = $this->guardApiCall(fn () => $this->vatlyApiClient->customers->get($existingCustomerId));
                 assert($customer instanceof Customer);
 
                 return $customer;
             }
 
-            throw $e;
+            // Re-surface under the fluent marker so `catch (VatlyException)` works.
+            throw ApiCallFailedException::from($e);
         }
     }
 

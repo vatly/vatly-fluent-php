@@ -13,7 +13,7 @@ class GetChargeback extends BaseAction
      */
     public function execute(string $chargebackId, array $parameters = []): Chargeback
     {
-        $chargeback = $this->vatlyApiClient->chargebacks->get($chargebackId, $parameters);
+        $chargeback = $this->guardApiCall(fn () => $this->vatlyApiClient->chargebacks->get($chargebackId, $parameters));
 
         assert($chargeback instanceof Chargeback);
 

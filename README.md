@@ -71,9 +71,50 @@ For one-off scripts that just hit the API. No persistence, no webhook processing
    $sub   = $vatly->getSubscription()->execute('sub_xyz789');
    ```
 
-   Available accessors: `createCustomer`, `getCustomer`, `updateCustomer`, `getOrder`, `createCheckout`, `getSubscription`, `cancelSubscription`, `resumeSubscription`, `swapSubscriptionPlan`, `updateSubscriptionBilling`.
+   Available accessors: `createCustomer`, `getCustomer`, `updateCustomer`, `listCustomersByEmail`, `getOrder`, `createCheckout`, `getSubscription`, `cancelSubscription`, `resumeSubscription`, `swapSubscriptionPlan`, `updateSubscriptionBilling`.
 
-   Admin/CRUD resources that fluent doesn't wrap (test helpers, webhook events, **webhook endpoints**, and the **subscription-plan / one-off-product** catalog) are reachable on the raw client via `$vatly->getApiClient()`:
+   Higher-level composed services (also api-only, no wiring required): `oneOffProducts()` and `subscriptionPlans()` for managing products, and `testHelpers()` for driving test-mode subscription flows (see below).
+
+   ### Managing products
+
+   Manage your products through the fluent services (delegates to
+   api-php ≥ 0.1.0-alpha.25). A `live_` token creates products/plans in `pending`
+   (await Vatly approval); a `test_` token auto-approves to `active`. Read the
+   price via `$plan->basePrice->value`.
+
+   ```php
+   $plan = $vatly->subscriptionPlans()->create([
+       'name'          => 'Pro Monthly',
+       'description'   => 'Full access to all Pro features, billed monthly',
+       'basePrice'     => ['value' => '29.00', 'currency' => 'EUR'],
+       'taxBehavior'   => 'exclusive', // or 'inclusive'; defaults to 'exclusive'
+       'productType'   => 'saas',
+       'interval'      => 'month',
+       'intervalCount' => 1,
+   ]);
+
+   // Submit an update. In live mode the change is held as a pending update and
+   // reviewed by Vatly before it takes effect; in test mode it applies at once.
+   // The returned plan carries $plan->pendingUpdates and $plan->updateStatus.
+   $plan = $vatly->subscriptionPlans()->update($plan->id, [
+       'basePrice' => ['value' => '39.00', 'currency' => 'EUR'],
+   ]);
+
+   // Archive (close to new business) / unarchive (re-open). Existing subscribers
+   // are untouched. `$plan->isArchived()` / `$plan->archivedAt` reflect the state.
+   $vatly->subscriptionPlans()->archive($plan->id);
+   $plan = $vatly->subscriptionPlans()->unarchive($plan->id);
+
+   // List (a single page). Archived plans are hidden unless you opt in.
+   $plans = $vatly->subscriptionPlans()->list(limit: 20, parameters: ['includeArchived' => true]);
+   ```
+
+   `oneOffProducts()` exposes the same surface (`create`, `find`, `update`,
+   `archive`, `unarchive`, `list`) and returns `OneOffProduct` resources.
+
+   Admin/CRUD resources that fluent still doesn't wrap (webhook events and
+   **webhook endpoints**) remain reachable on the raw client via
+   `$vatly->getApiClient()`:
 
    ```php
    // Register the delivery endpoint from code / IaC (at most one per mode).
@@ -81,18 +122,6 @@ For one-off scripts that just hit the API. No persistence, no webhook processing
    $endpoint = $vatly->getApiClient()->webhookEndpoints->create([
        'url'    => 'https://merchant.example/webhooks/vatly',
        'secret' => getenv('VATLY_WEBHOOK_SECRET'), // min 10 chars
-   ]);
-
-   // Create catalog products/plans from code (api-php ≥ 0.1.0-alpha.24).
-   // A live_ token creates them in `pending` (await Vatly approval); a test_
-   // token auto-approves to `active`. Read the price via $plan->basePrice->value.
-   $plan = $vatly->getApiClient()->subscriptionPlans->create([
-       'name'          => 'Pro Monthly',
-       'description'   => 'Full access to all Pro features, billed monthly',
-       'basePrice'     => ['value' => '29.00', 'currency' => 'EUR'],
-       'productType'   => 'saas',
-       'interval'      => 'month',
-       'intervalCount' => 1,
    ]);
    ```
 
@@ -152,7 +181,7 @@ For incoming Vatly webhooks, fluent dispatches a typed event and runs a built-in
 
 `subscription.billing_updated`, `subscription.updated`, `subscription.resumed`, and `order.canceled` are find-or-skip: they update an existing local record but never create one. `subscription.billing_updated` carries the fresh mandate (card last-4, masked IBAN) in its signed payload, so the stored mandate stays in step with the payment method on file without an API call; `subscription.resumed` clears the stored end date so a resume reactivates the derived state; `order.canceled` mirrors Vatly's `canceled` status onto the local order.
 
-**Subscription changes** come in two flavours. `subscription.updated` is an **immediate** plan / price / interval / quantity change - `SyncSubscriptionOnUpdated` refreshes the stored plan, name, and quantity from the signed payload (price is not persisted locally; fluent's `Store*Data` DTOs track plan/name/quantity, not the recurring money). `subscription.update_scheduled` is a change **scheduled for the next billing cycle**: the subscription's current state is unchanged, so there is no built-in reaction - the typed `SubscriptionUpdateScheduled` event carries the target values in a typed `scheduledUpdate` (`Vatly\API\Types\ScheduledSubscriptionUpdate`: plan id, name, description, base price, quantity, interval, interval count) and is dispatched for you to handle (e.g. warn the customer of an upcoming price change).
+**Subscription changes** come in two flavours. `subscription.updated` is an **immediate** plan / price / interval / quantity change - `SyncSubscriptionOnUpdated` refreshes the stored plan, name, and quantity from the signed payload (price is not persisted locally; fluent's `Store*Data` DTOs track plan/name/quantity, not the recurring money). `subscription.update_scheduled` is a change **scheduled for the next billing cycle**: the subscription's current state is unchanged, so there is no built-in reaction - the typed `SubscriptionUpdateScheduled` event carries the target values in a typed `scheduledUpdate` (`Vatly\API\Types\ScheduledSubscriptionUpdate`: plan id, name, description, base price, quantity, interval, interval count, and effective at - the next-renewal date the change applies, nullable) and is dispatched for you to handle (e.g. warn the customer of an upcoming price change).
 
 **Refunds** are opt-in: supply a `RefundRepositoryInterface` via `Wiring(refunds: …)` and the built-in `SyncRefundOnStatusChange` reaction persists `refund.*` webhooks (store-or-update, like orders) - unblocking terminal-state refund reconciliation. Omit it and the typed refund events are still dispatched for you to handle. The refund webhook payload already carries the full tax breakdown (like `order.paid`), so the event is built straight from it - no API call.
 
@@ -506,9 +535,50 @@ $checkout = $vatly
     ->withTrialDays(14)
     ->create();
 
+// Present the hosted checkout in the customer's language when you already know
+// it (a better signal than their browser). withLocale() is on both builders and
+// accepts a bare code (`de`), a BCP 47 tag (`de-AT`), or a POSIX locale
+// (`de_DE`) - all fold to the language. Supported: en, de, fr, nl, es, it, pt,
+// pl. Omit it (or pass null) to detect from the browser. `$checkout->locale`
+// echoes back the folded language.
+$checkout = $vatly
+    ->subscriptionBuilder(new CustomerProfile(vatlyId: $user->vatly_id))
+    ->toPlan('subscription_plan_7Hd9Kf2Lm')
+    ->withLocale('de')
+    ->create();
+
+// Recover a customer id you no longer have, by email. The address is
+// canonicalized before matching and may be held by more than one customer, so
+// this returns a (possibly empty) collection; findOneByEmail() returns the
+// first match or null.
+$customers = $vatly->customers()->findByEmail('jane@example.com');
+$customer  = $vatly->customers()->findOneByEmail('jane@example.com');
+
+// Read back a customer's identity fields for an "account details" view.
+['name' => $name, 'email' => $email] = $vatly->customers()->identity('customer_abc');
+
+// Update customer identity (name + email only - the 1:1 fields that carry no
+// tax consequence). Prefer the typed DTO; a plain array is also accepted (and
+// is the way to send an explicit null, e.g. to clear the name). Billing-address
+// amendments stay on the hosted flow via subscription()->updateBilling().
+use Vatly\Fluent\Data\UpdateCustomerData;
+
+$vatly->customers()->update('customer_abc', new UpdateCustomerData(
+    name: 'New Name',
+    email: 'new@example.com',
+));
+
 // Operate on a stored Subscription / Order
 $vatly->subscription($localSubscription)->cancel();
 $vatly->order($localOrder)->invoiceUrl();
+
+// Read a change scheduled for the next billing cycle (created by an update sent
+// with applyImmediately: false), read live from Vatly. Returns the typed
+// Vatly\API\Types\ScheduledSubscriptionUpdate (nullable).
+if ($vatly->subscription($localSubscription)->hasScheduledUpdate()) {
+    $pending = $vatly->subscription($localSubscription)->scheduledUpdate();
+    // e.g. $pending->subscriptionPlanId, $pending->quantity, $pending->effectiveAt
+}
 
 // Billing address / VAT / company name changes go through a hosted Vatly
 // flow. Returns a fresh redirect URL per call - don't cache.
@@ -625,13 +695,19 @@ $vatly->getWebhookEventFactory();                  // api-php Vatly\API\Webhooks
 
 // Actions (lazy, cached)
 $vatly->createCustomer();    $vatly->getCustomer();    $vatly->updateCustomer();
+$vatly->listCustomersByEmail();
 $vatly->getOrder();          $vatly->createCheckout();
 $vatly->getSubscription();   $vatly->cancelSubscription();
 $vatly->resumeSubscription(); $vatly->swapSubscriptionPlan();
 $vatly->updateSubscriptionBilling();
 
+// Products + test helpers (api-only - no Wiring required)
+$vatly->oneOffProducts();                          // OneOffProductService (create/find/update/archive/unarchive/list)
+$vatly->subscriptionPlans();                       // SubscriptionPlanService (same surface)
+$vatly->testHelpers();                             // TestHelpers (fast-forward subscription renewals, test mode)
+
 // Composed services - require repos in Wiring
-$vatly->customers();                               // CustomerService (lazy, cached)
+$vatly->customers();                               // CustomerService (lazy, cached; incl. findByEmail / findOneByEmail, identity(), update())
 $vatly->checkoutBuilder($profile);                 // CheckoutBuilder (per-call)
 $vatly->subscriptionBuilder($profile);             // SubscriptionBuilder (per-call)
 $vatly->subscription($localSubscription);          // SubscriptionHandle wrapping local state
@@ -640,6 +716,26 @@ $vatly->webhookProcessor();                        // WebhookProcessor (also nee
 ```
 
 Calling a composed-services method without the required repos in `Wiring` throws `IncompleteWiringException` with a message naming what's missing.
+
+## Error handling
+
+Every exception fluent throws implements the `Vatly\Fluent\Exceptions\VatlyException` marker, so one catch covers both fluent-level and API-level failures:
+
+```php
+use Vatly\Fluent\Exceptions\VatlyException;
+
+try {
+    $vatly->subscriptionBuilder($profile)->toPlan('subscription_plan_x')->create();
+} catch (VatlyException $e) {
+    // Unknown plan (404), validation (422), a Vatly outage (5xx), a network
+    // failure - all land here, including errors raised by the underlying
+    // vatly-api-php call.
+    report($e);
+    return back()->withErrors('Could not start checkout, please try again.');
+}
+```
+
+API transport / HTTP errors from `vatly-api-php` are wrapped at the fluent boundary in `Vatly\Fluent\Exceptions\ApiCallFailedException` (implements `VatlyException`). It preserves the original code + message - `$e->getCode() === 404` still works - and the untouched api-php exception is reachable via `$e->apiException()`. Every fluent surface that delegates to api-php (actions, `SubscriptionHandle`, checkout/subscribe builders, the product services, `testHelpers()`) goes through this wrapper, so nothing leaks a bare `ApiException` past the marker.
 
 ## Contracts at a glance
 
@@ -676,8 +772,11 @@ Dispatched by webhook reactions through your `EventDispatcherInterface`. Subscri
 - `SubscriptionCanceledWithGracePeriod`
 - `SubscriptionCancellationGracePeriodCompleted`
 - `CheckoutPaid` / `CheckoutFailed` / `CheckoutCanceled` / `CheckoutExpired`
+- **Product events** (api-php ≥ 0.1.0-alpha.25) - each carries the hydrated api-php resource, built straight from the signed payload (no follow-up GET):
+  - `OneOffProductUpdateSubmitted` / `OneOffProductUpdateApproved` / `OneOffProductUpdateRejected` / `OneOffProductArchived` / `OneOffProductUnarchived` - expose `$event->oneOffProductId`, `$event->testmode`, and `$event->oneOffProduct` (an `OneOffProduct` resource carrying `updateStatus`, `pendingUpdates`, `archivedAt`, …)
+  - `SubscriptionPlanUpdateSubmitted` / `SubscriptionPlanUpdateApproved` / `SubscriptionPlanUpdateRejected` / `SubscriptionPlanArchived` / `SubscriptionPlanUnarchived` - expose `$event->subscriptionPlanId`, `$event->testmode`, and `$event->subscriptionPlan`
 - `WebhookSetupReceived` - endpoint verification ping (`webhook.setup`); dispatched-only, acknowledge with `2xx`
-- `UnsupportedWebhookReceived`
+- `UnsupportedWebhookReceived` - the fallback for any event without a dedicated typed class. Match on `$event->eventName` to handle these.
 
 Driver-side events (namespace `Vatly\Fluent\Events`, carrying the freshly persisted local record - fired exactly once per brand-new row):
 
@@ -715,6 +814,25 @@ $fake->assertNothingCanceled();
 - **Assertions** - `assertSubscriptionCreated($planId)`, `assertCheckoutCreated(productId:)`, `assertSubscriptionSwapped(from:, to:)`, `assertSubscriptionCanceled($id)`, `assertNothingCanceled()`, `assertNothingCreated()`.
 
 Swap/cancel/resume routed through `$fake->subscription($localSub)` are recorded too. Ships in-package (like Cashier's helpers); the PHPUnit dependency is only touched from the `assert*` methods.
+
+### Driving the Vatly sandbox (`testHelpers()`)
+
+Distinct from the fakes above: `$vatly->testHelpers()` calls the real Vatly API in **test mode** to advance server-side subscription state and provoke real webhooks - useful for integration tests of your renewal / payment-recovery handling.
+
+```php
+// Advance the billing cycle, leaving the renewal payment pending.
+$vatly->testHelpers()->advanceRenewal('subscription_7Hd9Kf2Lm');
+
+// Settle the renewal payment (fires order.paid).
+$vatly->testHelpers()->forceRenewalPaid('subscription_7Hd9Kf2Lm');
+
+// Decline the renewal and start a payment recovery (fires order.payment_failed).
+// Pass a failureReason to pick which decline to simulate: a soft decline
+// (insufficient_funds, temporary_decline, general_failure) retries over weeks;
+// any other value (e.g. card_expired) is a hard decline that drives the
+// customer to supply a new payment method.
+$vatly->testHelpers()->forceRenewalFailed('subscription_7Hd9Kf2Lm', 'card_expired');
+```
 
 ## Contributing
 

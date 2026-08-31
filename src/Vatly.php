@@ -6,6 +6,7 @@ namespace Vatly\Fluent;
 
 use Vatly\API\Exceptions\ApiException;
 use Vatly\API\VatlyApiClient;
+use Vatly\Fluent\Exceptions\ApiCallFailedException;
 use Vatly\API\Webhooks\WebhookEventFactory;
 use Vatly\Fluent\Actions\CancelSubscription;
 use Vatly\Fluent\Actions\CreateCheckout;
@@ -16,12 +17,15 @@ use Vatly\Fluent\Actions\GetCustomer;
 use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Actions\GetRefund;
 use Vatly\Fluent\Actions\GetSubscription;
+use Vatly\Fluent\Actions\ListCustomersByEmail;
 use Vatly\Fluent\Actions\ResumeSubscription;
 use Vatly\Fluent\Actions\SwapSubscriptionPlan;
 use Vatly\Fluent\Actions\UpdateCustomer;
 use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Builders\CheckoutBuilder;
 use Vatly\Fluent\Builders\SubscriptionBuilder;
+use Vatly\Fluent\Products\OneOffProductService;
+use Vatly\Fluent\Products\SubscriptionPlanService;
 use Vatly\Fluent\Configuration\ArrayConfiguration;
 use Vatly\Fluent\Contracts\OrderInterface;
 use Vatly\Fluent\Contracts\SubscriptionInterface;
@@ -50,6 +54,7 @@ class Vatly
     private ?CreateCustomer $createCustomer = null;
     private ?GetCustomer $getCustomer = null;
     private ?UpdateCustomer $updateCustomer = null;
+    private ?ListCustomersByEmail $listCustomersByEmail = null;
     private ?GetOrder $getOrder = null;
     private ?GetRefund $getRefund = null;
     private ?GetChargeback $getChargeback = null;
@@ -63,6 +68,9 @@ class Vatly
 
     // Lazy-loaded composed services
     private ?CustomerService $customers = null;
+    private ?OneOffProductService $oneOffProducts = null;
+    private ?SubscriptionPlanService $subscriptionPlans = null;
+    private ?TestHelpers $testHelpers = null;
     private ?WebhookProcessor $webhookProcessor = null;
     private ?WebhookEventFactory $webhookEventFactory = null;
     private ?SignatureVerifier $signatureVerifier = null;
@@ -145,7 +153,37 @@ class Vatly
             updateCustomer: $this->updateCustomer(),
             bindings: $this->wiring->customerBindings
                 ?? throw IncompleteWiringException::missing('customerBindings', 'CustomerService'),
+            listCustomersByEmail: $this->listCustomersByEmail(),
         );
+    }
+
+    // --- Products composition ---
+
+    /**
+     * Manage one-off products (create, update, archive, unarchive, list).
+     * API-only: no driver wiring is required.
+     */
+    public function oneOffProducts(): OneOffProductService
+    {
+        return $this->oneOffProducts ??= new OneOffProductService($this->apiClient);
+    }
+
+    /**
+     * Manage subscription plans (create, update, archive, unarchive, list).
+     * API-only: no driver wiring is required.
+     */
+    public function subscriptionPlans(): SubscriptionPlanService
+    {
+        return $this->subscriptionPlans ??= new SubscriptionPlanService($this->apiClient);
+    }
+
+    /**
+     * Test-mode helpers for driving time-based subscription flows (renewals,
+     * payment recovery) against the Vatly sandbox. API-only.
+     */
+    public function testHelpers(): TestHelpers
+    {
+        return $this->testHelpers ??= new TestHelpers($this->apiClient);
     }
 
     /**
@@ -163,7 +201,10 @@ class Vatly
     {
         try {
             $customerId = $this->getCheckout()->execute($checkoutId)->customerId;
-        } catch (ApiException $e) {
+        } catch (ApiCallFailedException|ApiException $e) {
+            // GetCheckout wraps api-php's ApiException in ApiCallFailedException;
+            // the bare ApiException arm keeps direct/mocked callers working. Both
+            // preserve the HTTP status code.
             if ($e->getCode() === 404) {
                 return null; // Unknown / out-of-scope checkout id — nothing to resolve.
             }
@@ -270,6 +311,11 @@ class Vatly
     public function updateCustomer(): UpdateCustomer
     {
         return $this->updateCustomer ??= new UpdateCustomer($this->apiClient);
+    }
+
+    public function listCustomersByEmail(): ListCustomersByEmail
+    {
+        return $this->listCustomersByEmail ??= new ListCustomersByEmail($this->apiClient);
     }
 
     public function getOrder(): GetOrder

@@ -14,10 +14,10 @@ class CreateCheckout extends BaseAction
      */
     public function execute(array $payload, array $filters = []): Checkout
     {
-        $checkout = $this->vatlyApiClient->checkouts->create(
+        $checkout = $this->guardApiCall(fn () => $this->vatlyApiClient->checkouts->create(
             payload: $payload,
             filters: $filters,
-        );
+        ));
 
         assert($checkout instanceof Checkout);
 

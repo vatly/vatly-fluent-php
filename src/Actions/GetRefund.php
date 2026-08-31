@@ -13,7 +13,7 @@ class GetRefund extends BaseAction
      */
     public function execute(string $refundId, array $parameters = []): Refund
     {
-        $refund = $this->vatlyApiClient->refunds->get($refundId, $parameters);
+        $refund = $this->guardApiCall(fn () => $this->vatlyApiClient->refunds->get($refundId, $parameters));
 
         assert($refund instanceof Refund);
 

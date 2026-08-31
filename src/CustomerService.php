@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Vatly\Fluent;
 
 use Vatly\API\Resources\Customer as ApiCustomer;
+use Vatly\API\Resources\CustomerCollection;
 use Vatly\Fluent\Actions\CreateCustomer;
 use Vatly\Fluent\Actions\GetCustomer;
+use Vatly\Fluent\Actions\ListCustomersByEmail;
 use Vatly\Fluent\Actions\UpdateCustomer;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
+use Vatly\Fluent\Data\UpdateCustomerData;
 use Vatly\Fluent\Exceptions\CustomerAlreadyBoundException;
 
 /**
@@ -26,6 +29,7 @@ class CustomerService
         private GetCustomer $getCustomer,
         private UpdateCustomer $updateCustomer,
         private CustomerBindingRepository $bindings,
+        private ListCustomersByEmail $listCustomersByEmail,
     ) {
     }
 
@@ -105,18 +109,67 @@ class CustomerService
     }
 
     /**
+     * Recover customers by email address — the way back to a Vatly customer id
+     * you no longer have (e.g. an anonymous checkout whose binding was never
+     * recorded). The address is canonicalized before matching, exactly as on
+     * write, and may be held by more than one customer, so this always returns a
+     * (possibly empty) collection. The host ↔ Vatly binding is not consulted or
+     * touched — use {@see self::attribute()} afterwards to (re)link a recovered
+     * customer to a host id.
+     */
+    public function findByEmail(string $email): CustomerCollection
+    {
+        return $this->listCustomersByEmail->execute($email);
+    }
+
+    /**
+     * Recover a single Vatly customer by email, or `null` when none match.
+     *
+     * Convenience over {@see self::findByEmail()} for the common recovery case.
+     * When an address is held by more than one customer the first match is
+     * returned; reach for {@see self::findByEmail()} when you need to disambiguate.
+     */
+    public function findOneByEmail(string $email): ?ApiCustomer
+    {
+        $customer = $this->findByEmail($email)->getArrayCopy()[0] ?? null;
+
+        assert($customer === null || $customer instanceof ApiCustomer);
+
+        return $customer;
+    }
+
+    /**
      * Update a Vatly customer's identity fields (`name`, `email`).
      *
-     * Both fields are optional — pass whichever you want to change. Billing
+     * Both fields are optional — pass whichever you want to change. Prefer the
+     * typed {@see UpdateCustomerData} DTO; a plain array is also accepted (and is
+     * the way to send an explicit `null`, e.g. to clear the name). Billing
      * address details (company name, tax id, street, …) are not editable here;
      * amend those through the hosted billing-update flow instead. The host ↔
      * Vatly binding is unaffected.
      *
-     * @param  array<string, mixed>  $data  Any of `name`, `email`.
+     * @param  UpdateCustomerData|array<string, mixed>  $data  Any of `name`, `email`.
      */
-    public function update(string $vatlyCustomerId, array $data): ApiCustomer
+    public function update(string $vatlyCustomerId, UpdateCustomerData|array $data): ApiCustomer
     {
-        return $this->updateCustomer->execute($vatlyCustomerId, $data);
+        $payload = $data instanceof UpdateCustomerData ? $data->toPayload() : $data;
+
+        return $this->updateCustomer->execute($vatlyCustomerId, $payload);
+    }
+
+    /**
+     * Read back a customer's identity fields (`name`, `email`) for rendering an
+     * "account details" view. Thin convenience over
+     * {@see self::findByVatlyCustomerId()} — both are on the `Customer` resource;
+     * `name` reads null until the customer has one on file.
+     *
+     * @return array{name: ?string, email: ?string}
+     */
+    public function identity(string $vatlyCustomerId): array
+    {
+        $customer = $this->findByVatlyCustomerId($vatlyCustomerId);
+
+        return ['name' => $customer->name, 'email' => $customer->email];
     }
 
     public function hostCustomerIdFor(string $vatlyCustomerId): ?string

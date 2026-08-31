@@ -13,7 +13,7 @@ class GetCustomer extends BaseAction
      */
     public function execute(string $customerId, array $parameters = []): Customer
     {
-        $customer = $this->vatlyApiClient->customers->get($customerId, $parameters);
+        $customer = $this->guardApiCall(fn () => $this->vatlyApiClient->customers->get($customerId, $parameters));
 
         assert($customer instanceof Customer);
 

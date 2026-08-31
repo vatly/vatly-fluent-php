@@ -68,6 +68,29 @@ class CheckoutBuilderTest extends TestCase
         $this->assertSame(['order_id' => '12345'], $payload['metadata']);
     }
 
+    public function test_it_includes_locale_in_payload(): void
+    {
+        $this->builder->withLocale('de');
+
+        $payload = $this->builder->payload();
+
+        $this->assertSame('de', $payload['locale']);
+    }
+
+    public function test_it_omits_locale_from_payload_by_default(): void
+    {
+        $payload = $this->builder->payload();
+
+        $this->assertArrayNotHasKey('locale', $payload);
+    }
+
+    public function test_with_locale_returns_builder_instance(): void
+    {
+        $result = $this->builder->withLocale('nl');
+
+        $this->assertSame($this->builder, $result);
+    }
+
     public function test_it_includes_testmode_in_payload(): void
     {
         $this->builder->withTestmode(true);

@@ -13,7 +13,7 @@ class GetSubscription extends BaseAction
      */
     public function execute(string $subscriptionId, array $parameters = []): Subscription
     {
-        $subscription = $this->vatlyApiClient->subscriptions->get($subscriptionId, $parameters);
+        $subscription = $this->guardApiCall(fn () => $this->vatlyApiClient->subscriptions->get($subscriptionId, $parameters));
 
         assert($subscription instanceof Subscription);
 

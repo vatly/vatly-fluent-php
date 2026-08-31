@@ -13,7 +13,7 @@ class GetOrder extends BaseAction
      */
     public function execute(string $orderId, array $parameters = []): Order
     {
-        $order = $this->vatlyApiClient->orders->get($orderId, $parameters);
+        $order = $this->guardApiCall(fn () => $this->vatlyApiClient->orders->get($orderId, $parameters));
 
         assert($order instanceof Order);
 

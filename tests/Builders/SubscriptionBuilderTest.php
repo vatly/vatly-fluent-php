@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Tests\Builders;
 
+use Mockery;
 use Vatly\API\Resources\Checkout;
+use Vatly\API\VatlyApiClient;
 use Vatly\Fluent\Actions\CreateCheckout;
 use Vatly\Fluent\Builders\CheckoutBuilder;
 use Vatly\Fluent\Builders\SubscriptionBuilder;
@@ -47,6 +49,65 @@ class SubscriptionBuilderTest extends TestCase
 
         $this->assertSame($this->builder, $result);
         $this->assertSame(5, $subscriptionPayload['quantity']);
+    }
+
+    public function test_with_locale_returns_builder(): void
+    {
+        $result = $this->builder->withLocale('de');
+
+        $this->assertSame($this->builder, $result);
+    }
+
+    public function test_create_threads_the_locale_into_the_checkout_payload(): void
+    {
+        $createCheckout = $this->capturingCreateCheckout();
+
+        $checkoutBuilder = new CheckoutBuilder($this->customer, $createCheckout);
+        $builder = new SubscriptionBuilder($this->config, $this->customer, $checkoutBuilder);
+
+        $builder->toPlan('plan_pro')->withLocale('de')->create();
+
+        $this->assertIsArray($createCheckout->captured);
+        $this->assertSame('de', $createCheckout->captured['locale']);
+    }
+
+    public function test_create_omits_locale_when_not_set(): void
+    {
+        $createCheckout = $this->capturingCreateCheckout();
+
+        $checkoutBuilder = new CheckoutBuilder($this->customer, $createCheckout);
+        $builder = new SubscriptionBuilder($this->config, $this->customer, $checkoutBuilder);
+
+        $builder->toPlan('plan_pro')->create();
+
+        $this->assertIsArray($createCheckout->captured);
+        $this->assertArrayNotHasKey('locale', $createCheckout->captured);
+    }
+
+    /**
+     * A {@see CreateCheckout} double that records the payload it was handed.
+     */
+    private function capturingCreateCheckout(): CreateCheckout
+    {
+        return new class extends CreateCheckout {
+            /** @var array<string, mixed>|null */
+            public ?array $captured = null;
+
+            public function __construct()
+            {
+            }
+
+            public function execute(array $payload, array $filters = []): Checkout
+            {
+                $this->captured = $payload;
+
+                $checkout = new Checkout(Mockery::mock(VatlyApiClient::class));
+                $checkout->id = 'chk_sub_123';
+                $checkout->status = 'created';
+
+                return $checkout;
+            }
+        };
     }
 
     public function test_with_redirect_url_success_returns_builder(): void

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Vatly\Fluent;
 
 use DateTimeInterface;
+use Vatly\API\Types\ScheduledSubscriptionUpdate;
 use Vatly\Fluent\Actions\CancelSubscription;
 use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Actions\GetSubscription;
@@ -242,6 +243,36 @@ class SubscriptionHandle
     public function cancel(): void
     {
         $this->cancelAction->execute($this->subscription->getVatlyId());
+    }
+
+    /**
+     * The change scheduled to take effect at the next billing cycle, read live
+     * from Vatly, or `null` when nothing is pending.
+     *
+     * A scheduled update is created by an update sent with `applyImmediately:
+     * false`; it is cleared when the change is applied at renewal or discarded on
+     * cancellation. Returns the typed
+     * {@see \Vatly\API\Types\ScheduledSubscriptionUpdate} (plan id, name,
+     * description, base price, quantity, interval, interval count, and
+     * `effectiveAt` — the next-renewal date the change applies, nullable), so
+     * consumers read its fields directly (e.g.
+     * `->scheduledUpdate()?->effectiveAt`). This performs a live `GET` on the
+     * subscription.
+     */
+    public function scheduledUpdate(): ?ScheduledSubscriptionUpdate
+    {
+        return $this->getSubscriptionAction
+            ->execute($this->subscription->getVatlyId())
+            ->scheduledUpdate;
+    }
+
+    /**
+     * Whether the subscription currently has a change scheduled for its next
+     * billing cycle. Performs a live `GET` on the subscription.
+     */
+    public function hasScheduledUpdate(): bool
+    {
+        return $this->scheduledUpdate() !== null;
     }
 
     /**
