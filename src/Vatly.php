@@ -16,12 +16,15 @@ use Vatly\Fluent\Actions\GetCustomer;
 use Vatly\Fluent\Actions\GetOrder;
 use Vatly\Fluent\Actions\GetRefund;
 use Vatly\Fluent\Actions\GetSubscription;
+use Vatly\Fluent\Actions\ListCustomersByEmail;
 use Vatly\Fluent\Actions\ResumeSubscription;
 use Vatly\Fluent\Actions\SwapSubscriptionPlan;
 use Vatly\Fluent\Actions\UpdateCustomer;
 use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Builders\CheckoutBuilder;
 use Vatly\Fluent\Builders\SubscriptionBuilder;
+use Vatly\Fluent\Catalogue\OneOffProductService;
+use Vatly\Fluent\Catalogue\SubscriptionPlanService;
 use Vatly\Fluent\Configuration\ArrayConfiguration;
 use Vatly\Fluent\Contracts\OrderInterface;
 use Vatly\Fluent\Contracts\SubscriptionInterface;
@@ -50,6 +53,7 @@ class Vatly
     private ?CreateCustomer $createCustomer = null;
     private ?GetCustomer $getCustomer = null;
     private ?UpdateCustomer $updateCustomer = null;
+    private ?ListCustomersByEmail $listCustomersByEmail = null;
     private ?GetOrder $getOrder = null;
     private ?GetRefund $getRefund = null;
     private ?GetChargeback $getChargeback = null;
@@ -63,6 +67,9 @@ class Vatly
 
     // Lazy-loaded composed services
     private ?CustomerService $customers = null;
+    private ?OneOffProductService $oneOffProducts = null;
+    private ?SubscriptionPlanService $subscriptionPlans = null;
+    private ?TestHelpers $testHelpers = null;
     private ?WebhookProcessor $webhookProcessor = null;
     private ?WebhookEventFactory $webhookEventFactory = null;
     private ?SignatureVerifier $signatureVerifier = null;
@@ -145,7 +152,37 @@ class Vatly
             updateCustomer: $this->updateCustomer(),
             bindings: $this->wiring->customerBindings
                 ?? throw IncompleteWiringException::missing('customerBindings', 'CustomerService'),
+            listCustomersByEmail: $this->listCustomersByEmail(),
         );
+    }
+
+    // --- Catalogue composition ---
+
+    /**
+     * Manage one-off products in the Vatly catalogue (create, update, archive,
+     * unarchive, list). API-only: no driver wiring is required.
+     */
+    public function oneOffProducts(): OneOffProductService
+    {
+        return $this->oneOffProducts ??= new OneOffProductService($this->apiClient);
+    }
+
+    /**
+     * Manage subscription plans in the Vatly catalogue (create, update, archive,
+     * unarchive, list). API-only: no driver wiring is required.
+     */
+    public function subscriptionPlans(): SubscriptionPlanService
+    {
+        return $this->subscriptionPlans ??= new SubscriptionPlanService($this->apiClient);
+    }
+
+    /**
+     * Test-mode helpers for driving time-based subscription flows (renewals,
+     * payment recovery) against the Vatly sandbox. API-only.
+     */
+    public function testHelpers(): TestHelpers
+    {
+        return $this->testHelpers ??= new TestHelpers($this->apiClient);
     }
 
     /**
@@ -270,6 +307,11 @@ class Vatly
     public function updateCustomer(): UpdateCustomer
     {
         return $this->updateCustomer ??= new UpdateCustomer($this->apiClient);
+    }
+
+    public function listCustomersByEmail(): ListCustomersByEmail
+    {
+        return $this->listCustomersByEmail ??= new ListCustomersByEmail($this->apiClient);
     }
 
     public function getOrder(): GetOrder

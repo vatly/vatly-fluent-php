@@ -21,6 +21,8 @@ class CheckoutBuilder
     /** @var array<string, mixed>|null */
     protected ?array $metadata = null;
 
+    protected ?string $locale = null;
+
     /** @var array<int, array<string, mixed>> */
     protected array $items = [];
 
@@ -48,6 +50,7 @@ class CheckoutBuilder
             'redirectUrlCanceled' => $this->redirectUrlCanceled,
             'testmode' => $this->testmode,
             'metadata' => $this->metadata,
+            'locale' => $this->locale,
         ], $overrides);
 
         return $filtered ? array_filter($payload, fn ($value) => $value !== null) : $payload;
@@ -100,6 +103,23 @@ class CheckoutBuilder
     public function withMetadata(array $metadata): static
     {
         $this->metadata = $metadata;
+
+        return $this;
+    }
+
+    /**
+     * Set the language the hosted checkout is presented in.
+     *
+     * Set this when you already know the customer's language — it is a better
+     * signal than their browser's. Accepts a bare language code (`de`), a BCP 47
+     * tag (`de-AT`), or a POSIX / ISO 15897 locale (`de_DE`); all three fold to
+     * the same language. Supported languages: `en`, `de`, `fr`, `nl`, `es`, `it`,
+     * `pt`, `pl`. Pass `null` (the default) to let the checkout detect the
+     * language from the shopper's browser.
+     */
+    public function withLocale(?string $locale): static
+    {
+        $this->locale = $locale;
 
         return $this;
     }

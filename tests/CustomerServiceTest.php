@@ -6,9 +6,11 @@ namespace Vatly\Fluent\Tests;
 
 use Mockery;
 use Vatly\API\Resources\Customer as ApiCustomer;
+use Vatly\API\Resources\CustomerCollection;
 use Vatly\API\VatlyApiClient;
 use Vatly\Fluent\Actions\CreateCustomer;
 use Vatly\Fluent\Actions\GetCustomer;
+use Vatly\Fluent\Actions\ListCustomersByEmail;
 use Vatly\Fluent\Actions\UpdateCustomer;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
 use Vatly\Fluent\CustomerProfile;
@@ -17,6 +19,27 @@ use Vatly\Fluent\Exceptions\CustomerAlreadyBoundException;
 
 class CustomerServiceTest extends TestCase
 {
+    /**
+     * Build a {@see CustomerService} for the tests. The email-recovery action is
+     * only exercised by the dedicated find-by-email tests, so it defaults to a
+     * bare mock everywhere else.
+     */
+    private function makeCustomerService(
+        CreateCustomer $createCustomer,
+        GetCustomer $getCustomer,
+        UpdateCustomer $updateCustomer,
+        CustomerBindingRepository $bindings,
+        ?ListCustomersByEmail $listCustomersByEmail = null,
+    ): CustomerService {
+        return new CustomerService(
+            $createCustomer,
+            $getCustomer,
+            $updateCustomer,
+            $bindings,
+            $listCustomersByEmail ?? Mockery::mock(ListCustomersByEmail::class),
+        );
+    }
+
     public function test_create_for_creates_customer_and_binds_to_host(): void
     {
         $apiCustomer = $this->makeApiCustomer('cus_new');
@@ -31,7 +54,7 @@ class CustomerServiceTest extends TestCase
         $bindings->shouldReceive('vatlyCustomerIdFor')->with('host_1')->once()->andReturnNull();
         $bindings->shouldReceive('bind')->with('cus_new', 'host_1')->once();
 
-        $customers = new CustomerService($createCustomer, Mockery::mock(GetCustomer::class), Mockery::mock(UpdateCustomer::class), $bindings);
+        $customers = $this->makeCustomerService($createCustomer, Mockery::mock(GetCustomer::class), Mockery::mock(UpdateCustomer::class), $bindings);
         $profile = new CustomerProfile(email: 'host@example.test', name: 'Host Name');
 
         $result = $customers->createFor('host_1', $profile);
@@ -47,7 +70,7 @@ class CustomerServiceTest extends TestCase
         $createCustomer = Mockery::mock(CreateCustomer::class);
         $createCustomer->shouldNotReceive('execute');
 
-        $customers = new CustomerService($createCustomer, Mockery::mock(GetCustomer::class), Mockery::mock(UpdateCustomer::class), $bindings);
+        $customers = $this->makeCustomerService($createCustomer, Mockery::mock(GetCustomer::class), Mockery::mock(UpdateCustomer::class), $bindings);
 
         try {
             $customers->createFor('host_1', new CustomerProfile(email: 'host@example.test'));
@@ -75,7 +98,7 @@ class CustomerServiceTest extends TestCase
         $bindings->shouldReceive('record')->with('cus_anon')->once();
         $bindings->shouldNotReceive('bind');
 
-        $customers = new CustomerService($createCustomer, Mockery::mock(GetCustomer::class), Mockery::mock(UpdateCustomer::class), $bindings);
+        $customers = $this->makeCustomerService($createCustomer, Mockery::mock(GetCustomer::class), Mockery::mock(UpdateCustomer::class), $bindings);
 
         $result = $customers->createUnattributed(new CustomerProfile(email: 'anon@example.test'));
 
@@ -101,7 +124,7 @@ class CustomerServiceTest extends TestCase
         $bindings->shouldReceive('vatlyCustomerIdFor')->with('host_1')->once()->andReturnNull();
         $bindings->shouldReceive('bind')->with('cus_new', 'host_1')->once();
 
-        $customers = new CustomerService($createCustomer, Mockery::mock(GetCustomer::class), Mockery::mock(UpdateCustomer::class), $bindings);
+        $customers = $this->makeCustomerService($createCustomer, Mockery::mock(GetCustomer::class), Mockery::mock(UpdateCustomer::class), $bindings);
         $profile = new CustomerProfile(email: 'host@example.test', name: 'Host Name');
 
         $customers->createFor('host_1', $profile, [
@@ -125,7 +148,7 @@ class CustomerServiceTest extends TestCase
         $bindings->shouldReceive('vatlyCustomerIdFor')->andReturnNull();
         $bindings->shouldReceive('bind');
 
-        $customers = new CustomerService($createCustomer, Mockery::mock(GetCustomer::class), Mockery::mock(UpdateCustomer::class), $bindings);
+        $customers = $this->makeCustomerService($createCustomer, Mockery::mock(GetCustomer::class), Mockery::mock(UpdateCustomer::class), $bindings);
         $profile = new CustomerProfile(email: 'host@example.test', name: 'Host Name');
 
         $customers->createFor('host_1', $profile, ['email' => 'override@example.test']);
@@ -147,7 +170,7 @@ class CustomerServiceTest extends TestCase
         $bindings = Mockery::mock(CustomerBindingRepository::class);
         $bindings->shouldReceive('record')->with('cus_anon')->once();
 
-        $customers = new CustomerService($createCustomer, Mockery::mock(GetCustomer::class), Mockery::mock(UpdateCustomer::class), $bindings);
+        $customers = $this->makeCustomerService($createCustomer, Mockery::mock(GetCustomer::class), Mockery::mock(UpdateCustomer::class), $bindings);
 
         $customers->createUnattributed(
             new CustomerProfile(email: 'anon@example.test'),
@@ -161,7 +184,7 @@ class CustomerServiceTest extends TestCase
         $bindings->shouldReceive('vatlyCustomerIdFor')->with('host_x')->once()->andReturnNull();
         $bindings->shouldReceive('bind')->with('cus_x', 'host_x')->once();
 
-        $customers = new CustomerService(
+        $customers = $this->makeCustomerService(
             Mockery::mock(CreateCustomer::class),
             Mockery::mock(GetCustomer::class),
             Mockery::mock(UpdateCustomer::class),
@@ -177,7 +200,7 @@ class CustomerServiceTest extends TestCase
         $bindings->shouldReceive('vatlyCustomerIdFor')->with('host_x')->once()->andReturn('cus_x');
         $bindings->shouldReceive('bind')->with('cus_x', 'host_x')->once();
 
-        $customers = new CustomerService(
+        $customers = $this->makeCustomerService(
             Mockery::mock(CreateCustomer::class),
             Mockery::mock(GetCustomer::class),
             Mockery::mock(UpdateCustomer::class),
@@ -193,7 +216,7 @@ class CustomerServiceTest extends TestCase
         $bindings->shouldReceive('vatlyCustomerIdFor')->with('host_x')->once()->andReturn('cus_other');
         $bindings->shouldNotReceive('bind');
 
-        $customers = new CustomerService(
+        $customers = $this->makeCustomerService(
             Mockery::mock(CreateCustomer::class),
             Mockery::mock(GetCustomer::class),
             Mockery::mock(UpdateCustomer::class),
@@ -223,7 +246,7 @@ class CustomerServiceTest extends TestCase
         $getCustomer = Mockery::mock(GetCustomer::class);
         $getCustomer->shouldReceive('execute')->with('cus_bound')->once()->andReturn($apiCustomer);
 
-        $customers = new CustomerService(Mockery::mock(CreateCustomer::class), $getCustomer, Mockery::mock(UpdateCustomer::class), $bindings);
+        $customers = $this->makeCustomerService(Mockery::mock(CreateCustomer::class), $getCustomer, Mockery::mock(UpdateCustomer::class), $bindings);
 
         $this->assertSame($apiCustomer, $customers->findByHostCustomerId('host_1'));
     }
@@ -236,7 +259,7 @@ class CustomerServiceTest extends TestCase
         $getCustomer = Mockery::mock(GetCustomer::class);
         $getCustomer->shouldNotReceive('execute');
 
-        $customers = new CustomerService(Mockery::mock(CreateCustomer::class), $getCustomer, Mockery::mock(UpdateCustomer::class), $bindings);
+        $customers = $this->makeCustomerService(Mockery::mock(CreateCustomer::class), $getCustomer, Mockery::mock(UpdateCustomer::class), $bindings);
 
         $this->assertNull($customers->findByHostCustomerId('host_unknown'));
     }
@@ -248,7 +271,7 @@ class CustomerServiceTest extends TestCase
         $getCustomer = Mockery::mock(GetCustomer::class);
         $getCustomer->shouldReceive('execute')->with('cus_zzz')->once()->andReturn($apiCustomer);
 
-        $customers = new CustomerService(
+        $customers = $this->makeCustomerService(
             Mockery::mock(CreateCustomer::class),
             $getCustomer,
             Mockery::mock(UpdateCustomer::class),
@@ -268,7 +291,7 @@ class CustomerServiceTest extends TestCase
             ->with('cus_upd', ['name' => 'Jane Doe', 'email' => 'jane@example.test'])
             ->andReturn($apiCustomer);
 
-        $customers = new CustomerService(
+        $customers = $this->makeCustomerService(
             Mockery::mock(CreateCustomer::class),
             Mockery::mock(GetCustomer::class),
             $updateCustomer,
@@ -295,7 +318,7 @@ class CustomerServiceTest extends TestCase
         $bindings->shouldNotReceive('bind');
         $bindings->shouldNotReceive('record');
 
-        $customers = new CustomerService(
+        $customers = $this->makeCustomerService(
             Mockery::mock(CreateCustomer::class),
             Mockery::mock(GetCustomer::class),
             $updateCustomer,
@@ -310,7 +333,7 @@ class CustomerServiceTest extends TestCase
         $bindings = Mockery::mock(CustomerBindingRepository::class);
         $bindings->shouldReceive('hostCustomerIdFor')->with('cus_a')->once()->andReturn('host_a');
 
-        $customers = new CustomerService(
+        $customers = $this->makeCustomerService(
             Mockery::mock(CreateCustomer::class),
             Mockery::mock(GetCustomer::class),
             Mockery::mock(UpdateCustomer::class),
@@ -320,6 +343,65 @@ class CustomerServiceTest extends TestCase
         $this->assertSame('host_a', $customers->hostCustomerIdFor('cus_a'));
     }
 
+    public function test_find_by_email_returns_the_collection_from_the_action(): void
+    {
+        $collection = $this->makeCustomerCollection([
+            $this->makeApiCustomer('cus_1'),
+            $this->makeApiCustomer('cus_2'),
+        ]);
+
+        $listByEmail = Mockery::mock(ListCustomersByEmail::class);
+        $listByEmail->shouldReceive('execute')
+            ->once()
+            ->with('jane@example.test')
+            ->andReturn($collection);
+
+        $customers = $this->makeCustomerService(
+            Mockery::mock(CreateCustomer::class),
+            Mockery::mock(GetCustomer::class),
+            Mockery::mock(UpdateCustomer::class),
+            Mockery::mock(CustomerBindingRepository::class),
+            $listByEmail,
+        );
+
+        $this->assertSame($collection, $customers->findByEmail('jane@example.test'));
+    }
+
+    public function test_find_one_by_email_returns_the_first_match(): void
+    {
+        $first = $this->makeApiCustomer('cus_1');
+        $collection = $this->makeCustomerCollection([$first, $this->makeApiCustomer('cus_2')]);
+
+        $listByEmail = Mockery::mock(ListCustomersByEmail::class);
+        $listByEmail->shouldReceive('execute')->with('jane@example.test')->andReturn($collection);
+
+        $customers = $this->makeCustomerService(
+            Mockery::mock(CreateCustomer::class),
+            Mockery::mock(GetCustomer::class),
+            Mockery::mock(UpdateCustomer::class),
+            Mockery::mock(CustomerBindingRepository::class),
+            $listByEmail,
+        );
+
+        $this->assertSame($first, $customers->findOneByEmail('jane@example.test'));
+    }
+
+    public function test_find_one_by_email_returns_null_when_no_customer_matches(): void
+    {
+        $listByEmail = Mockery::mock(ListCustomersByEmail::class);
+        $listByEmail->shouldReceive('execute')->with('nobody@example.test')->andReturn($this->makeCustomerCollection([]));
+
+        $customers = $this->makeCustomerService(
+            Mockery::mock(CreateCustomer::class),
+            Mockery::mock(GetCustomer::class),
+            Mockery::mock(UpdateCustomer::class),
+            Mockery::mock(CustomerBindingRepository::class),
+            $listByEmail,
+        );
+
+        $this->assertNull($customers->findOneByEmail('nobody@example.test'));
+    }
+
     private function makeApiCustomer(string $id): ApiCustomer
     {
         $client = Mockery::mock(VatlyApiClient::class);
@@ -327,5 +409,19 @@ class CustomerServiceTest extends TestCase
         $customer->id = $id;
 
         return $customer;
+    }
+
+    /**
+     * @param array<int, ApiCustomer> $customers
+     */
+    private function makeCustomerCollection(array $customers): CustomerCollection
+    {
+        $collection = new CustomerCollection(Mockery::mock(VatlyApiClient::class), count($customers), null);
+
+        foreach ($customers as $customer) {
+            $collection[] = $customer;
+        }
+
+        return $collection;
     }
 }

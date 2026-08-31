@@ -320,6 +320,57 @@ class WebhookProcessorTest extends TestCase
     }
 
     /**
+     * The ten new catalogue events are recorded and dispatched, but — following
+     * api-php's lead — resolve to {@see UnsupportedWebhookReceived} until the
+     * vatlify spec defines a persisted object shape for them and typed DTOs ship.
+     *
+     * @dataProvider catalogueEventNameProvider
+     */
+    public function test_it_passes_catalogue_events_through_as_unsupported(string $eventName, string $entityType): void
+    {
+        $payload = $this->makePayload(
+            id: 'webhook_event_cat',
+            eventName: $eventName,
+            entityType: $entityType,
+            entityId: $entityType . '_123',
+            object: [],
+        );
+
+        $signature = $this->makeSignatureHeader($payload, $this->secret);
+
+        $this->repository
+            ->shouldReceive('record')
+            ->once()
+            ->withArgs(fn (string $id, string $resource, string $recordedEventName) => $recordedEventName === $eventName);
+
+        $this->dispatcher
+            ->shouldReceive('dispatch')
+            ->once()
+            ->withArgs(fn (object $event) => $event instanceof UnsupportedWebhookReceived && $event->eventName === $eventName);
+
+        $this->processor->handle($payload, $signature);
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function catalogueEventNameProvider(): array
+    {
+        return [
+            'one_off_product.update_submitted' => ['one_off_product.update_submitted', 'one_off_product'],
+            'one_off_product.update_approved' => ['one_off_product.update_approved', 'one_off_product'],
+            'one_off_product.update_rejected' => ['one_off_product.update_rejected', 'one_off_product'],
+            'one_off_product.archived' => ['one_off_product.archived', 'one_off_product'],
+            'one_off_product.unarchived' => ['one_off_product.unarchived', 'one_off_product'],
+            'subscription_plan.update_submitted' => ['subscription_plan.update_submitted', 'subscription_plan'],
+            'subscription_plan.update_approved' => ['subscription_plan.update_approved', 'subscription_plan'],
+            'subscription_plan.update_rejected' => ['subscription_plan.update_rejected', 'subscription_plan'],
+            'subscription_plan.archived' => ['subscription_plan.archived', 'subscription_plan'],
+            'subscription_plan.unarchived' => ['subscription_plan.unarchived', 'subscription_plan'],
+        ];
+    }
+
+    /**
      * @param array<string, mixed> $object
      */
     private function makePayload(

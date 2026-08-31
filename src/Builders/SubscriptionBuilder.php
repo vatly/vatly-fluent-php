@@ -25,6 +25,8 @@ class SubscriptionBuilder
 
     protected ?int $trialDays = null;
 
+    protected ?string $locale = null;
+
     public function __construct(
         /** @readonly */
         protected ConfigurationInterface $config,
@@ -61,6 +63,20 @@ class SubscriptionBuilder
     public function withQuantity(int $quantity): static
     {
         $this->quantity = $quantity;
+
+        return $this;
+    }
+
+    /**
+     * Set the language the hosted checkout is presented in.
+     *
+     * See {@see CheckoutBuilder::withLocale()} for the accepted formats and the
+     * supported language set. Pass `null` (the default) to let the checkout
+     * detect the language from the shopper's browser.
+     */
+    public function withLocale(?string $locale): static
+    {
+        $this->locale = $locale;
 
         return $this;
     }
@@ -117,6 +133,10 @@ class SubscriptionBuilder
      */
     public function create(array $checkoutOptions = []): Checkout
     {
+        if ($this->locale !== null) {
+            $this->checkoutBuilder->withLocale($this->locale);
+        }
+
         return $this
             ->checkoutBuilder
             ->withTestmode($this->testmode)

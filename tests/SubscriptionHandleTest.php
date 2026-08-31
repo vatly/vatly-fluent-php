@@ -435,6 +435,67 @@ class SubscriptionHandleTest extends TestCase
         $this->assertSame($updatedSubscription, $handle->model());
     }
 
+    public function test_scheduled_update_returns_the_live_pending_change(): void
+    {
+        $subscription = $this->stubSubscription('subscription_abc');
+
+        $scheduled = (object) [
+            'subscriptionPlanId' => 'plan_premium',
+            'quantity' => 3,
+        ];
+
+        $getSubscriptionAction = Mockery::mock(GetSubscription::class);
+        $getSubscriptionAction->shouldReceive('execute')
+            ->once()
+            ->with('subscription_abc')
+            ->andReturn($this->makeApiSubscription(['scheduledUpdate' => $scheduled]));
+
+        $handle = $this->buildHandle(
+            subscription: $subscription,
+            getSubscriptionAction: $getSubscriptionAction,
+        );
+
+        $result = $handle->scheduledUpdate();
+
+        $this->assertSame($scheduled, $result);
+        $this->assertSame('plan_premium', $result->subscriptionPlanId);
+    }
+
+    public function test_scheduled_update_returns_null_when_nothing_is_pending(): void
+    {
+        $subscription = $this->stubSubscription('subscription_abc');
+
+        $getSubscriptionAction = Mockery::mock(GetSubscription::class);
+        $getSubscriptionAction->shouldReceive('execute')
+            ->with('subscription_abc')
+            ->andReturn($this->makeApiSubscription(['scheduledUpdate' => null]));
+
+        $handle = $this->buildHandle(
+            subscription: $subscription,
+            getSubscriptionAction: $getSubscriptionAction,
+        );
+
+        $this->assertNull($handle->scheduledUpdate());
+        $this->assertFalse($handle->hasScheduledUpdate());
+    }
+
+    public function test_has_scheduled_update_is_true_when_a_change_is_pending(): void
+    {
+        $subscription = $this->stubSubscription('subscription_abc');
+
+        $getSubscriptionAction = Mockery::mock(GetSubscription::class);
+        $getSubscriptionAction->shouldReceive('execute')
+            ->with('subscription_abc')
+            ->andReturn($this->makeApiSubscription(['scheduledUpdate' => (object) ['quantity' => 2]]));
+
+        $handle = $this->buildHandle(
+            subscription: $subscription,
+            getSubscriptionAction: $getSubscriptionAction,
+        );
+
+        $this->assertTrue($handle->hasScheduledUpdate());
+    }
+
     private function stubSubscription(string $vatlyId): SubscriptionInterface
     {
         $subscription = Mockery::mock(SubscriptionInterface::class);

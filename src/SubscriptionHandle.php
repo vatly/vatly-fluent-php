@@ -245,6 +245,35 @@ class SubscriptionHandle
     }
 
     /**
+     * The change scheduled to take effect at the next billing cycle, read live
+     * from Vatly, or `null` when nothing is pending.
+     *
+     * A scheduled update is created by an update sent with `applyImmediately:
+     * false`; it is cleared when the change is applied at renewal or discarded on
+     * cancellation. Vatly's persisted webhook schema does not yet define a typed
+     * shape for this payload, so — mirroring api-php's
+     * {@see \Vatly\API\Resources\Subscription::$scheduledUpdate} — it is returned
+     * untyped (`\stdClass|null`) for now; consumers read its fields directly
+     * (e.g. `->scheduledUpdate()?->subscriptionPlanId`). This performs a live
+     * `GET` on the subscription.
+     */
+    public function scheduledUpdate(): ?object
+    {
+        return $this->getSubscriptionAction
+            ->execute($this->subscription->getVatlyId())
+            ->scheduledUpdate;
+    }
+
+    /**
+     * Whether the subscription currently has a change scheduled for its next
+     * billing cycle. Performs a live `GET` on the subscription.
+     */
+    public function hasScheduledUpdate(): bool
+    {
+        return $this->scheduledUpdate() !== null;
+    }
+
+    /**
      * Refresh the local subscription record from Vatly.
      */
     public function sync(): self
