@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Vatly\Fluent\Catalogue;
+namespace Vatly\Fluent\Products;
 
 use Vatly\API\Resources\SubscriptionPlan;
 use Vatly\API\Resources\SubscriptionPlanCollection;
@@ -10,12 +10,12 @@ use Vatly\API\VatlyApiClient;
 use Vatly\Fluent\Concerns\GuardsApiCalls;
 
 /**
- * Fluent surface for managing subscription plans in the Vatly catalogue.
+ * Fluent surface for managing subscription plans.
  *
  * Reached via {@see \Vatly\Fluent\Vatly::subscriptionPlans()}. Thin, discoverable
  * wrapper over api-php's {@see \Vatly\API\Endpoints\SubscriptionPlanEndpoint},
  * returning the hydrated api-php {@see SubscriptionPlan} resource (which carries
- * the catalogue-lifecycle fields `taxBehavior`, `productType`, `archivedAt`,
+ * the product-lifecycle fields `taxBehavior`, `productType`, `archivedAt`,
  * `pendingUpdates`, `updateStatus` and the `isArchived()` convenience).
  *
  * Live-mode create/update submissions are held for Vatly review before they take

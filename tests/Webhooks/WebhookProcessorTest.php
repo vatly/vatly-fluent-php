@@ -330,14 +330,14 @@ class WebhookProcessorTest extends TestCase
     }
 
     /**
-     * The ten catalogue events resolve to their typed api-php DTOs (api-php
+     * The ten product events resolve to their typed api-php DTOs (api-php
      * ≥ 0.1.0-alpha.25 hydrates the OneOffProduct / SubscriptionPlan resource
      * straight from the signed webhook payload). The processor records and
      * dispatches them like any other typed event — no Unsupported fallback.
      *
-     * @dataProvider catalogueEventProvider
+     * @dataProvider productEventProvider
      */
-    public function test_it_dispatches_typed_catalogue_events(
+    public function test_it_dispatches_typed_product_events(
         string $eventName,
         string $entityType,
         string $expectedClass,
@@ -345,7 +345,7 @@ class WebhookProcessorTest extends TestCase
         string $id,
     ): void {
         $payload = $this->makePayload(
-            id: 'webhook_event_cat',
+            id: 'webhook_event_prod',
             eventName: $eventName,
             entityType: $entityType,
             entityId: $id,
@@ -372,7 +372,7 @@ class WebhookProcessorTest extends TestCase
     /**
      * @return array<string, array{string, string, class-string, string, string}>
      */
-    public static function catalogueEventProvider(): array
+    public static function productEventProvider(): array
     {
         return [
             'one_off_product.update_submitted' => ['one_off_product.update_submitted', 'one_off_product', OneOffProductUpdateSubmitted::class, 'oneOffProductId', 'one_off_product_1'],

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Vatly\Fluent\Catalogue;
+namespace Vatly\Fluent\Products;
 
 use Vatly\API\Resources\OneOffProduct;
 use Vatly\API\Resources\OneOffProductCollection;
@@ -10,12 +10,12 @@ use Vatly\API\VatlyApiClient;
 use Vatly\Fluent\Concerns\GuardsApiCalls;
 
 /**
- * Fluent surface for managing one-off products in the Vatly catalogue.
+ * Fluent surface for managing one-off products.
  *
  * Reached via {@see \Vatly\Fluent\Vatly::oneOffProducts()}. Thin, discoverable
  * wrapper over api-php's {@see \Vatly\API\Endpoints\OneOffProductEndpoint},
  * returning the hydrated api-php {@see OneOffProduct} resource (which carries the
- * catalogue-lifecycle fields `taxBehavior`, `productType`, `archivedAt`,
+ * product-lifecycle fields `taxBehavior`, `productType`, `archivedAt`,
  * `pendingUpdates`, `updateStatus` and the `isArchived()` convenience).
  *
  * Live-mode create/update submissions are held for Vatly review before they take
@@ -83,7 +83,7 @@ class OneOffProductService
     }
 
     /**
-     * Archive a one-off product, taking it out of the sellable catalogue.
+     * Archive a one-off product, taking it out of your sellable products.
      * Archived products are hidden from listings unless `includeArchived` is
      * passed, and refused by new checkouts. Returns nothing (the API replies
      * `204 No Content`).

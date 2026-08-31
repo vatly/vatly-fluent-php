@@ -21,7 +21,7 @@ use Throwable;
  * (404 unknown resource, 422 validation, 5xx outage, connection failure) in an
  * {@see ApiCallFailedException}, which implements this marker and preserves the
  * original code + message. So a single `catch (VatlyException $e)` around a
- * checkout, subscribe, swap, cancel, customer update, or catalogue call handles
+ * checkout, subscribe, swap, cancel, customer update, or product call handles
  * both fluent-level and API-level failures; `$e->getCode() === 404` still works,
  * and the raw exception is reachable via {@see ApiCallFailedException::apiException()}.
  *

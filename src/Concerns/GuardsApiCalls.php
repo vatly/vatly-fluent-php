@@ -13,7 +13,7 @@ use Vatly\Fluent\Exceptions\ApiCallFailedException;
  * {@see \Vatly\Fluent\Exceptions\VatlyException} marker — instead of leaking the
  * raw api-php exception past the fluent boundary.
  *
- * Used by the action base class, the catalogue services, and the test helpers:
+ * Used by the action base class, the product services, and the test helpers:
  * every fluent surface that delegates to api-php routes the call through
  * {@see self::guardApiCall()}.
  */

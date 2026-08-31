@@ -24,8 +24,8 @@ use Vatly\Fluent\Actions\UpdateCustomer;
 use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Builders\CheckoutBuilder;
 use Vatly\Fluent\Builders\SubscriptionBuilder;
-use Vatly\Fluent\Catalogue\OneOffProductService;
-use Vatly\Fluent\Catalogue\SubscriptionPlanService;
+use Vatly\Fluent\Products\OneOffProductService;
+use Vatly\Fluent\Products\SubscriptionPlanService;
 use Vatly\Fluent\Configuration\ArrayConfiguration;
 use Vatly\Fluent\Contracts\OrderInterface;
 use Vatly\Fluent\Contracts\SubscriptionInterface;
@@ -157,11 +157,11 @@ class Vatly
         );
     }
 
-    // --- Catalogue composition ---
+    // --- Products composition ---
 
     /**
-     * Manage one-off products in the Vatly catalogue (create, update, archive,
-     * unarchive, list). API-only: no driver wiring is required.
+     * Manage one-off products (create, update, archive, unarchive, list).
+     * API-only: no driver wiring is required.
      */
     public function oneOffProducts(): OneOffProductService
     {
@@ -169,8 +169,8 @@ class Vatly
     }
 
     /**
-     * Manage subscription plans in the Vatly catalogue (create, update, archive,
-     * unarchive, list). API-only: no driver wiring is required.
+     * Manage subscription plans (create, update, archive, unarchive, list).
+     * API-only: no driver wiring is required.
      */
     public function subscriptionPlans(): SubscriptionPlanService
     {

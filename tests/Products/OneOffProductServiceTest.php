@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Vatly\Fluent\Tests\Catalogue;
+namespace Vatly\Fluent\Tests\Products;
 
 use Mockery;
 use Vatly\API\Endpoints\OneOffProductEndpoint;
@@ -10,7 +10,7 @@ use Vatly\API\Exceptions\ApiException;
 use Vatly\API\Resources\OneOffProduct;
 use Vatly\API\Resources\OneOffProductCollection;
 use Vatly\API\VatlyApiClient;
-use Vatly\Fluent\Catalogue\OneOffProductService;
+use Vatly\Fluent\Products\OneOffProductService;
 use Vatly\Fluent\Exceptions\ApiCallFailedException;
 use Vatly\Fluent\Tests\TestCase;
 

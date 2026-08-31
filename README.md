@@ -73,11 +73,11 @@ For one-off scripts that just hit the API. No persistence, no webhook processing
 
    Available accessors: `createCustomer`, `getCustomer`, `updateCustomer`, `listCustomersByEmail`, `getOrder`, `createCheckout`, `getSubscription`, `cancelSubscription`, `resumeSubscription`, `swapSubscriptionPlan`, `updateSubscriptionBilling`.
 
-   Higher-level composed services (also api-only, no wiring required): `oneOffProducts()` and `subscriptionPlans()` for catalogue management, and `testHelpers()` for driving test-mode subscription flows (see below).
+   Higher-level composed services (also api-only, no wiring required): `oneOffProducts()` and `subscriptionPlans()` for managing products, and `testHelpers()` for driving test-mode subscription flows (see below).
 
-   ### Catalogue management
+   ### Managing products
 
-   Manage the sellable catalogue through the fluent services (delegates to
+   Manage your products through the fluent services (delegates to
    api-php ≥ 0.1.0-alpha.25). A `live_` token creates products/plans in `pending`
    (await Vatly approval); a `test_` token auto-approves to `active`. Read the
    price via `$plan->basePrice->value`.
@@ -701,7 +701,7 @@ $vatly->getSubscription();   $vatly->cancelSubscription();
 $vatly->resumeSubscription(); $vatly->swapSubscriptionPlan();
 $vatly->updateSubscriptionBilling();
 
-// Catalogue + test helpers (api-only - no Wiring required)
+// Products + test helpers (api-only - no Wiring required)
 $vatly->oneOffProducts();                          // OneOffProductService (create/find/update/archive/unarchive/list)
 $vatly->subscriptionPlans();                       // SubscriptionPlanService (same surface)
 $vatly->testHelpers();                             // TestHelpers (fast-forward subscription renewals, test mode)
@@ -735,7 +735,7 @@ try {
 }
 ```
 
-API transport / HTTP errors from `vatly-api-php` are wrapped at the fluent boundary in `Vatly\Fluent\Exceptions\ApiCallFailedException` (implements `VatlyException`). It preserves the original code + message - `$e->getCode() === 404` still works - and the untouched api-php exception is reachable via `$e->apiException()`. Every fluent surface that delegates to api-php (actions, `SubscriptionHandle`, checkout/subscribe builders, the catalogue services, `testHelpers()`) goes through this wrapper, so nothing leaks a bare `ApiException` past the marker.
+API transport / HTTP errors from `vatly-api-php` are wrapped at the fluent boundary in `Vatly\Fluent\Exceptions\ApiCallFailedException` (implements `VatlyException`). It preserves the original code + message - `$e->getCode() === 404` still works - and the untouched api-php exception is reachable via `$e->apiException()`. Every fluent surface that delegates to api-php (actions, `SubscriptionHandle`, checkout/subscribe builders, the product services, `testHelpers()`) goes through this wrapper, so nothing leaks a bare `ApiException` past the marker.
 
 ## Contracts at a glance
 
@@ -772,7 +772,7 @@ Dispatched by webhook reactions through your `EventDispatcherInterface`. Subscri
 - `SubscriptionCanceledWithGracePeriod`
 - `SubscriptionCancellationGracePeriodCompleted`
 - `CheckoutPaid` / `CheckoutFailed` / `CheckoutCanceled` / `CheckoutExpired`
-- **Catalogue events** (api-php ≥ 0.1.0-alpha.25) - each carries the hydrated api-php resource, built straight from the signed payload (no follow-up GET):
+- **Product events** (api-php ≥ 0.1.0-alpha.25) - each carries the hydrated api-php resource, built straight from the signed payload (no follow-up GET):
   - `OneOffProductUpdateSubmitted` / `OneOffProductUpdateApproved` / `OneOffProductUpdateRejected` / `OneOffProductArchived` / `OneOffProductUnarchived` - expose `$event->oneOffProductId`, `$event->testmode`, and `$event->oneOffProduct` (an `OneOffProduct` resource carrying `updateStatus`, `pendingUpdates`, `archivedAt`, …)
   - `SubscriptionPlanUpdateSubmitted` / `SubscriptionPlanUpdateApproved` / `SubscriptionPlanUpdateRejected` / `SubscriptionPlanArchived` / `SubscriptionPlanUnarchived` - expose `$event->subscriptionPlanId`, `$event->testmode`, and `$event->subscriptionPlan`
 - `WebhookSetupReceived` - endpoint verification ping (`webhook.setup`); dispatched-only, acknowledge with `2xx`
