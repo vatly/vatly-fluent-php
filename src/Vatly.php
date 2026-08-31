@@ -6,6 +6,7 @@ namespace Vatly\Fluent;
 
 use Vatly\API\Exceptions\ApiException;
 use Vatly\API\VatlyApiClient;
+use Vatly\Fluent\Exceptions\ApiCallFailedException;
 use Vatly\API\Webhooks\WebhookEventFactory;
 use Vatly\Fluent\Actions\CancelSubscription;
 use Vatly\Fluent\Actions\CreateCheckout;
@@ -200,7 +201,10 @@ class Vatly
     {
         try {
             $customerId = $this->getCheckout()->execute($checkoutId)->customerId;
-        } catch (ApiException $e) {
+        } catch (ApiCallFailedException|ApiException $e) {
+            // GetCheckout wraps api-php's ApiException in ApiCallFailedException;
+            // the bare ApiException arm keeps direct/mocked callers working. Both
+            // preserve the HTTP status code.
             if ($e->getCode() === 404) {
                 return null; // Unknown / out-of-scope checkout id — nothing to resolve.
             }

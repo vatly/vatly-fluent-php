@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Vatly\Fluent\Tests;
 
 use Mockery;
+use Vatly\API\Endpoints\CheckoutEndpoint;
 use Vatly\API\Exceptions\ApiException;
 use Vatly\API\Resources\Checkout;
 use Vatly\Fluent\Actions\GetCheckout;
 use Vatly\Fluent\Configuration\ArrayConfiguration;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
+use Vatly\Fluent\Exceptions\ApiCallFailedException;
 use Vatly\Fluent\Exceptions\CustomerAlreadyBoundException;
+use Vatly\Fluent\Exceptions\VatlyException;
 use Vatly\Fluent\Vatly;
 use Vatly\Fluent\Wiring;
 
@@ -148,6 +151,39 @@ class ClaimCustomerFromCheckoutTest extends TestCase
         $this->fakeCheckout($vatly, null);
 
         $this->assertNull($vatly->customerIdFromCheckout(self::CHECKOUT_ID));
+    }
+
+    public function test_customer_id_from_checkout_treats_a_wrapped_404_as_not_found(): void
+    {
+        // Production path: the real GetCheckout action wraps api-php's
+        // ApiException in ApiCallFailedException; customerIdFromCheckout must
+        // still read the 404 off it and return null.
+        $vatly = $this->vatlyWithBindings(Mockery::mock(CustomerBindingRepository::class));
+
+        $endpoint = Mockery::mock(CheckoutEndpoint::class);
+        $endpoint->shouldReceive('get')->with(self::CHECKOUT_ID, [])
+            ->andThrow(new ApiException('Error 404 executing API call', 404));
+        $vatly->getApiClient()->checkouts = $endpoint;
+
+        $this->assertNull($vatly->customerIdFromCheckout(self::CHECKOUT_ID));
+    }
+
+    public function test_customer_id_from_checkout_rethrows_a_wrapped_non_404_as_a_vatly_exception(): void
+    {
+        $vatly = $this->vatlyWithBindings(Mockery::mock(CustomerBindingRepository::class));
+
+        $endpoint = Mockery::mock(CheckoutEndpoint::class);
+        $endpoint->shouldReceive('get')->with(self::CHECKOUT_ID, [])
+            ->andThrow(new ApiException('Error 500 executing API call', 500));
+        $vatly->getApiClient()->checkouts = $endpoint;
+
+        try {
+            $vatly->customerIdFromCheckout(self::CHECKOUT_ID);
+            $this->fail('Expected an ApiCallFailedException.');
+        } catch (VatlyException $e) {
+            $this->assertInstanceOf(ApiCallFailedException::class, $e);
+            $this->assertSame(500, $e->getCode());
+        }
     }
 
     private function vatlyWithBindings(CustomerBindingRepository $bindings): Vatly

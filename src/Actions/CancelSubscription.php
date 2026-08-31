@@ -8,6 +8,6 @@ class CancelSubscription extends BaseAction
 {
     public function execute(string $subscriptionId): void
     {
-        $this->vatlyApiClient->subscriptions->cancel($subscriptionId);
+        $this->guardApiCall(fn () => $this->vatlyApiClient->subscriptions->cancel($subscriptionId));
     }
 }

@@ -11,6 +11,7 @@ use Vatly\Fluent\Actions\GetCustomer;
 use Vatly\Fluent\Actions\ListCustomersByEmail;
 use Vatly\Fluent\Actions\UpdateCustomer;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
+use Vatly\Fluent\Data\UpdateCustomerData;
 use Vatly\Fluent\Exceptions\CustomerAlreadyBoundException;
 
 /**
@@ -140,16 +141,35 @@ class CustomerService
     /**
      * Update a Vatly customer's identity fields (`name`, `email`).
      *
-     * Both fields are optional — pass whichever you want to change. Billing
+     * Both fields are optional — pass whichever you want to change. Prefer the
+     * typed {@see UpdateCustomerData} DTO; a plain array is also accepted (and is
+     * the way to send an explicit `null`, e.g. to clear the name). Billing
      * address details (company name, tax id, street, …) are not editable here;
      * amend those through the hosted billing-update flow instead. The host ↔
      * Vatly binding is unaffected.
      *
-     * @param  array<string, mixed>  $data  Any of `name`, `email`.
+     * @param  UpdateCustomerData|array<string, mixed>  $data  Any of `name`, `email`.
      */
-    public function update(string $vatlyCustomerId, array $data): ApiCustomer
+    public function update(string $vatlyCustomerId, UpdateCustomerData|array $data): ApiCustomer
     {
-        return $this->updateCustomer->execute($vatlyCustomerId, $data);
+        $payload = $data instanceof UpdateCustomerData ? $data->toPayload() : $data;
+
+        return $this->updateCustomer->execute($vatlyCustomerId, $payload);
+    }
+
+    /**
+     * Read back a customer's identity fields (`name`, `email`) for rendering an
+     * "account details" view. Thin convenience over
+     * {@see self::findByVatlyCustomerId()} — both are on the `Customer` resource;
+     * `name` reads null until the customer has one on file.
+     *
+     * @return array{name: ?string, email: ?string}
+     */
+    public function identity(string $vatlyCustomerId): array
+    {
+        $customer = $this->findByVatlyCustomerId($vatlyCustomerId);
+
+        return ['name' => $customer->name, 'email' => $customer->email];
     }
 
     public function hostCustomerIdFor(string $vatlyCustomerId): ?string

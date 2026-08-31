@@ -11,7 +11,7 @@ class ResumeSubscription extends BaseAction
     public function execute(string $subscriptionId): Subscription
     {
         /** @var Subscription $resource */
-        $resource = $this->vatlyApiClient->subscriptions->resume($subscriptionId);
+        $resource = $this->guardApiCall(fn () => $this->vatlyApiClient->subscriptions->resume($subscriptionId));
 
         return $resource;
     }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Vatly\Fluent;
 
 use Vatly\API\VatlyApiClient;
+use Vatly\Fluent\Concerns\GuardsApiCalls;
 
 /**
  * Fluent wrapper over Vatly's test-mode helpers.
@@ -19,6 +20,8 @@ use Vatly\API\VatlyApiClient;
  */
 class TestHelpers
 {
+    use GuardsApiCalls;
+
     public function __construct(
         /** @readonly */
         private VatlyApiClient $apiClient,
@@ -37,7 +40,7 @@ class TestHelpers
      */
     public function fastForwardRenewal(string $subscriptionId, array $body = []): ?object
     {
-        return $this->apiClient->testHelpers->fastForwardSubscriptionRenewal($subscriptionId, $body);
+        return $this->guardApiCall(fn () => $this->apiClient->testHelpers->fastForwardSubscriptionRenewal($subscriptionId, $body));
     }
 
     /**

@@ -13,7 +13,7 @@ class GetCheckout extends BaseAction
      */
     public function execute(string $checkoutId, array $parameters = []): Checkout
     {
-        $checkout = $this->vatlyApiClient->checkouts->get($checkoutId, $parameters);
+        $checkout = $this->guardApiCall(fn () => $this->vatlyApiClient->checkouts->get($checkoutId, $parameters));
 
         assert($checkout instanceof Checkout);
 

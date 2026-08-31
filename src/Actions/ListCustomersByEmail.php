@@ -18,7 +18,7 @@ class ListCustomersByEmail extends BaseAction
      */
     public function execute(string $email, array $parameters = []): CustomerCollection
     {
-        $collection = $this->vatlyApiClient->customers->listByEmail($email, $parameters);
+        $collection = $this->guardApiCall(fn () => $this->vatlyApiClient->customers->listByEmail($email, $parameters));
 
         assert($collection instanceof CustomerCollection);
 

@@ -16,10 +16,10 @@ class SwapSubscriptionPlan extends BaseAction
         string $newPlanId,
         array $parameters = [],
     ): Subscription {
-        $subscription = $this->vatlyApiClient->subscriptions->update($subscriptionId, array_merge(
+        $subscription = $this->guardApiCall(fn () => $this->vatlyApiClient->subscriptions->update($subscriptionId, array_merge(
             ['subscriptionPlanId' => $newPlanId],
             $parameters,
-        ));
+        )));
 
         assert($subscription instanceof Subscription);
 

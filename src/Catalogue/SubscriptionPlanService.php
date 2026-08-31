@@ -7,6 +7,7 @@ namespace Vatly\Fluent\Catalogue;
 use Vatly\API\Resources\SubscriptionPlan;
 use Vatly\API\Resources\SubscriptionPlanCollection;
 use Vatly\API\VatlyApiClient;
+use Vatly\Fluent\Concerns\GuardsApiCalls;
 
 /**
  * Fluent surface for managing subscription plans in the Vatly catalogue.
@@ -23,6 +24,8 @@ use Vatly\API\VatlyApiClient;
  */
 class SubscriptionPlanService
 {
+    use GuardsApiCalls;
+
     public function __construct(
         /** @readonly */
         private VatlyApiClient $apiClient,
@@ -40,7 +43,7 @@ class SubscriptionPlanService
      */
     public function create(array $payload, array $filters = []): SubscriptionPlan
     {
-        $plan = $this->apiClient->subscriptionPlans->create($payload, $filters);
+        $plan = $this->guardApiCall(fn () => $this->apiClient->subscriptionPlans->create($payload, $filters));
 
         assert($plan instanceof SubscriptionPlan);
 
@@ -54,7 +57,7 @@ class SubscriptionPlanService
      */
     public function find(string $id, array $parameters = []): SubscriptionPlan
     {
-        $plan = $this->apiClient->subscriptionPlans->get($id, $parameters);
+        $plan = $this->guardApiCall(fn () => $this->apiClient->subscriptionPlans->get($id, $parameters));
 
         assert($plan instanceof SubscriptionPlan);
 
@@ -74,7 +77,7 @@ class SubscriptionPlanService
      */
     public function update(string $id, array $data = [], array $filters = []): ?SubscriptionPlan
     {
-        $plan = $this->apiClient->subscriptionPlans->update($id, $data, $filters);
+        $plan = $this->guardApiCall(fn () => $this->apiClient->subscriptionPlans->update($id, $data, $filters));
 
         assert($plan === null || $plan instanceof SubscriptionPlan);
 
@@ -90,7 +93,7 @@ class SubscriptionPlanService
      */
     public function archive(string $id, array $filters = []): void
     {
-        $this->apiClient->subscriptionPlans->archive($id, $filters);
+        $this->guardApiCall(fn () => $this->apiClient->subscriptionPlans->archive($id, $filters));
     }
 
     /**
@@ -100,7 +103,7 @@ class SubscriptionPlanService
      */
     public function unarchive(string $id, array $filters = []): ?SubscriptionPlan
     {
-        $plan = $this->apiClient->subscriptionPlans->unarchive($id, $filters);
+        $plan = $this->guardApiCall(fn () => $this->apiClient->subscriptionPlans->unarchive($id, $filters));
 
         assert($plan === null || $plan instanceof SubscriptionPlan);
 
@@ -119,7 +122,7 @@ class SubscriptionPlanService
         ?int $limit = null,
         array $parameters = [],
     ): SubscriptionPlanCollection {
-        $collection = $this->apiClient->subscriptionPlans->page($startingAfter, $endingBefore, $limit, $parameters);
+        $collection = $this->guardApiCall(fn () => $this->apiClient->subscriptionPlans->page($startingAfter, $endingBefore, $limit, $parameters));
 
         assert($collection instanceof SubscriptionPlanCollection);
 

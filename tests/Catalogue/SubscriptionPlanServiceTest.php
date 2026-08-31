@@ -6,10 +6,12 @@ namespace Vatly\Fluent\Tests\Catalogue;
 
 use Mockery;
 use Vatly\API\Endpoints\SubscriptionPlanEndpoint;
+use Vatly\API\Exceptions\ApiException;
 use Vatly\API\Resources\SubscriptionPlan;
 use Vatly\API\Resources\SubscriptionPlanCollection;
 use Vatly\API\VatlyApiClient;
 use Vatly\Fluent\Catalogue\SubscriptionPlanService;
+use Vatly\Fluent\Exceptions\ApiCallFailedException;
 use Vatly\Fluent\Tests\TestCase;
 
 class SubscriptionPlanServiceTest extends TestCase
@@ -116,6 +118,18 @@ class SubscriptionPlanServiceTest extends TestCase
         $result = $this->service->list(parameters: ['includeArchived' => true]);
 
         $this->assertSame($collection, $result);
+    }
+
+    public function test_it_wraps_api_exceptions_under_the_vatly_marker(): void
+    {
+        $this->endpoint->shouldReceive('update')
+            ->once()
+            ->andThrow(new ApiException('Error 422 executing API call', 422));
+
+        $this->expectException(ApiCallFailedException::class);
+        $this->expectExceptionCode(422);
+
+        $this->service->update('subscription_plan_1', ['name' => 'x']);
     }
 
     private function makePlan(string $id): SubscriptionPlan

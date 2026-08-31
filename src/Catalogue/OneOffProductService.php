@@ -7,6 +7,7 @@ namespace Vatly\Fluent\Catalogue;
 use Vatly\API\Resources\OneOffProduct;
 use Vatly\API\Resources\OneOffProductCollection;
 use Vatly\API\VatlyApiClient;
+use Vatly\Fluent\Concerns\GuardsApiCalls;
 
 /**
  * Fluent surface for managing one-off products in the Vatly catalogue.
@@ -23,6 +24,8 @@ use Vatly\API\VatlyApiClient;
  */
 class OneOffProductService
 {
+    use GuardsApiCalls;
+
     public function __construct(
         /** @readonly */
         private VatlyApiClient $apiClient,
@@ -39,7 +42,7 @@ class OneOffProductService
      */
     public function create(array $payload, array $filters = []): OneOffProduct
     {
-        $product = $this->apiClient->oneOffProducts->create($payload, $filters);
+        $product = $this->guardApiCall(fn () => $this->apiClient->oneOffProducts->create($payload, $filters));
 
         assert($product instanceof OneOffProduct);
 
@@ -53,7 +56,7 @@ class OneOffProductService
      */
     public function find(string $id, array $parameters = []): OneOffProduct
     {
-        $product = $this->apiClient->oneOffProducts->get($id, $parameters);
+        $product = $this->guardApiCall(fn () => $this->apiClient->oneOffProducts->get($id, $parameters));
 
         assert($product instanceof OneOffProduct);
 
@@ -72,7 +75,7 @@ class OneOffProductService
      */
     public function update(string $id, array $data = [], array $filters = []): ?OneOffProduct
     {
-        $product = $this->apiClient->oneOffProducts->update($id, $data, $filters);
+        $product = $this->guardApiCall(fn () => $this->apiClient->oneOffProducts->update($id, $data, $filters));
 
         assert($product === null || $product instanceof OneOffProduct);
 
@@ -89,7 +92,7 @@ class OneOffProductService
      */
     public function archive(string $id, array $filters = []): void
     {
-        $this->apiClient->oneOffProducts->archive($id, $filters);
+        $this->guardApiCall(fn () => $this->apiClient->oneOffProducts->archive($id, $filters));
     }
 
     /**
@@ -99,7 +102,7 @@ class OneOffProductService
      */
     public function unarchive(string $id, array $filters = []): ?OneOffProduct
     {
-        $product = $this->apiClient->oneOffProducts->unarchive($id, $filters);
+        $product = $this->guardApiCall(fn () => $this->apiClient->oneOffProducts->unarchive($id, $filters));
 
         assert($product === null || $product instanceof OneOffProduct);
 
@@ -118,7 +121,7 @@ class OneOffProductService
         ?int $limit = null,
         array $parameters = [],
     ): OneOffProductCollection {
-        $collection = $this->apiClient->oneOffProducts->page($startingAfter, $endingBefore, $limit, $parameters);
+        $collection = $this->guardApiCall(fn () => $this->apiClient->oneOffProducts->page($startingAfter, $endingBefore, $limit, $parameters));
 
         assert($collection instanceof OneOffProductCollection);
 

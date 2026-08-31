@@ -49,9 +49,9 @@ class UpdateSubscriptionBilling extends BaseAction
             }
         }
 
-        return $this->vatlyApiClient->subscriptions->updateBilling(
+        return $this->guardApiCall(fn () => $this->vatlyApiClient->subscriptions->updateBilling(
             $subscriptionId,
             $payload,
-        );
+        ));
     }
 }

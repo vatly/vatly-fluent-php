@@ -6,7 +6,9 @@ namespace Vatly\Fluent\Tests;
 
 use Mockery;
 use Vatly\API\Endpoints\TestHelpersEndpoint;
+use Vatly\API\Exceptions\ApiException;
 use Vatly\API\VatlyApiClient;
+use Vatly\Fluent\Exceptions\ApiCallFailedException;
 use Vatly\Fluent\TestHelpers;
 
 class TestHelpersTest extends TestCase
@@ -80,5 +82,17 @@ class TestHelpersTest extends TestCase
         ]);
 
         $this->assertSame($response, $result);
+    }
+
+    public function test_it_wraps_api_exceptions_under_the_vatly_marker(): void
+    {
+        $this->endpoint->shouldReceive('fastForwardSubscriptionRenewal')
+            ->once()
+            ->andThrow(new ApiException('Error 409 executing API call', 409));
+
+        $this->expectException(ApiCallFailedException::class);
+        $this->expectExceptionCode(409);
+
+        $this->helpers->advanceRenewal('subscription_1');
     }
 }

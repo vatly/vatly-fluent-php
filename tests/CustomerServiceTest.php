@@ -15,6 +15,7 @@ use Vatly\Fluent\Actions\UpdateCustomer;
 use Vatly\Fluent\Contracts\CustomerBindingRepository;
 use Vatly\Fluent\CustomerProfile;
 use Vatly\Fluent\CustomerService;
+use Vatly\Fluent\Data\UpdateCustomerData;
 use Vatly\Fluent\Exceptions\CustomerAlreadyBoundException;
 
 class CustomerServiceTest extends TestCase
@@ -341,6 +342,76 @@ class CustomerServiceTest extends TestCase
         );
 
         $this->assertSame('host_a', $customers->hostCustomerIdFor('cus_a'));
+    }
+
+    public function test_update_accepts_an_update_customer_data_dto(): void
+    {
+        $apiCustomer = $this->makeApiCustomer('cus_upd');
+
+        $updateCustomer = Mockery::mock(UpdateCustomer::class);
+        $updateCustomer->shouldReceive('execute')
+            ->once()
+            ->with('cus_upd', ['name' => 'Jane Doe', 'email' => 'jane@example.test'])
+            ->andReturn($apiCustomer);
+
+        $customers = $this->makeCustomerService(
+            Mockery::mock(CreateCustomer::class),
+            Mockery::mock(GetCustomer::class),
+            $updateCustomer,
+            Mockery::mock(CustomerBindingRepository::class),
+        );
+
+        $result = $customers->update('cus_upd', new UpdateCustomerData(
+            name: 'Jane Doe',
+            email: 'jane@example.test',
+        ));
+
+        $this->assertSame($apiCustomer, $result);
+    }
+
+    public function test_update_dto_sends_only_the_fields_that_are_set(): void
+    {
+        $apiCustomer = $this->makeApiCustomer('cus_upd');
+
+        $updateCustomer = Mockery::mock(UpdateCustomer::class);
+        // email is left null on the DTO, so it must not be sent.
+        $updateCustomer->shouldReceive('execute')
+            ->once()
+            ->with('cus_upd', ['name' => 'Only Name'])
+            ->andReturn($apiCustomer);
+
+        $customers = $this->makeCustomerService(
+            Mockery::mock(CreateCustomer::class),
+            Mockery::mock(GetCustomer::class),
+            $updateCustomer,
+            Mockery::mock(CustomerBindingRepository::class),
+        );
+
+        $customers->update('cus_upd', new UpdateCustomerData(name: 'Only Name'));
+    }
+
+    public function test_identity_reads_back_name_and_email(): void
+    {
+        $apiCustomer = $this->makeApiCustomer('cus_read');
+        $apiCustomer->name = 'Jane Doe';
+        $apiCustomer->email = 'jane@example.test';
+
+        $bindings = Mockery::mock(CustomerBindingRepository::class);
+
+        $getCustomer = Mockery::mock(GetCustomer::class);
+        $getCustomer->shouldReceive('execute')->with('cus_read')->once()->andReturn($apiCustomer);
+
+        $customers = $this->makeCustomerService(
+            Mockery::mock(CreateCustomer::class),
+            $getCustomer,
+            Mockery::mock(UpdateCustomer::class),
+            $bindings,
+        );
+
+        $this->assertSame(
+            ['name' => 'Jane Doe', 'email' => 'jane@example.test'],
+            $customers->identity('cus_read'),
+        );
     }
 
     public function test_find_by_email_returns_the_collection_from_the_action(): void

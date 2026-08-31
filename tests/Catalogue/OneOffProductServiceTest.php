@@ -6,10 +6,12 @@ namespace Vatly\Fluent\Tests\Catalogue;
 
 use Mockery;
 use Vatly\API\Endpoints\OneOffProductEndpoint;
+use Vatly\API\Exceptions\ApiException;
 use Vatly\API\Resources\OneOffProduct;
 use Vatly\API\Resources\OneOffProductCollection;
 use Vatly\API\VatlyApiClient;
 use Vatly\Fluent\Catalogue\OneOffProductService;
+use Vatly\Fluent\Exceptions\ApiCallFailedException;
 use Vatly\Fluent\Tests\TestCase;
 
 class OneOffProductServiceTest extends TestCase
@@ -113,6 +115,29 @@ class OneOffProductServiceTest extends TestCase
         $result = $this->service->list('after_1', null, 20, ['includeArchived' => true]);
 
         $this->assertSame($collection, $result);
+    }
+
+    public function test_it_wraps_api_exceptions_under_the_vatly_marker(): void
+    {
+        $this->endpoint->shouldReceive('create')
+            ->once()
+            ->andThrow(new ApiException('Error 422 executing API call', 422));
+
+        $this->expectException(ApiCallFailedException::class);
+        $this->expectExceptionCode(422);
+
+        $this->service->create(['name' => 'Ebook']);
+    }
+
+    public function test_archive_wraps_api_exceptions(): void
+    {
+        $this->endpoint->shouldReceive('archive')
+            ->once()
+            ->andThrow(new ApiException('Error 404 executing API call', 404));
+
+        $this->expectException(ApiCallFailedException::class);
+
+        $this->service->archive('one_off_product_1');
     }
 
     private function makeProduct(string $id): OneOffProduct
