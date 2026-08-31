@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Vatly\Fluent;
 
 use DateTimeInterface;
+use Vatly\API\Types\ScheduledSubscriptionUpdate;
 use Vatly\Fluent\Actions\CancelSubscription;
 use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Actions\GetSubscription;
@@ -250,14 +251,15 @@ class SubscriptionHandle
      *
      * A scheduled update is created by an update sent with `applyImmediately:
      * false`; it is cleared when the change is applied at renewal or discarded on
-     * cancellation. Vatly's persisted webhook schema does not yet define a typed
-     * shape for this payload, so — mirroring api-php's
-     * {@see \Vatly\API\Resources\Subscription::$scheduledUpdate} — it is returned
-     * untyped (`\stdClass|null`) for now; consumers read its fields directly
-     * (e.g. `->scheduledUpdate()?->subscriptionPlanId`). This performs a live
-     * `GET` on the subscription.
+     * cancellation. Returns the typed
+     * {@see \Vatly\API\Types\ScheduledSubscriptionUpdate} (plan id, name,
+     * description, base price, quantity, interval, interval count, and
+     * `effectiveAt` — the next-renewal date the change applies, nullable), so
+     * consumers read its fields directly (e.g.
+     * `->scheduledUpdate()?->effectiveAt`). This performs a live `GET` on the
+     * subscription.
      */
-    public function scheduledUpdate(): ?object
+    public function scheduledUpdate(): ?ScheduledSubscriptionUpdate
     {
         return $this->getSubscriptionAction
             ->execute($this->subscription->getVatlyId())

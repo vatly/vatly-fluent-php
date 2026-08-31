@@ -9,6 +9,7 @@ use Mockery;
 use ReflectionClass;
 use Vatly\API\Resources\Subscription as ApiSubscription;
 use Vatly\API\Types\Link;
+use Vatly\API\Types\ScheduledSubscriptionUpdate;
 use Vatly\Fluent\Actions\CancelSubscription;
 use Vatly\Fluent\Actions\UpdateSubscriptionBilling;
 use Vatly\Fluent\Actions\GetSubscription;
@@ -439,10 +440,16 @@ class SubscriptionHandleTest extends TestCase
     {
         $subscription = $this->stubSubscription('subscription_abc');
 
-        $scheduled = (object) [
-            'subscriptionPlanId' => 'plan_premium',
-            'quantity' => 3,
-        ];
+        $scheduled = new ScheduledSubscriptionUpdate(
+            subscriptionPlanId: 'plan_premium',
+            name: 'Premium Annual',
+            description: 'Premium, billed yearly',
+            basePrice: self::money(9900),
+            quantity: 3,
+            interval: 'year',
+            intervalCount: 1,
+            effectiveAt: '2024-03-15T10:30:00Z',
+        );
 
         $getSubscriptionAction = Mockery::mock(GetSubscription::class);
         $getSubscriptionAction->shouldReceive('execute')
@@ -457,8 +464,10 @@ class SubscriptionHandleTest extends TestCase
 
         $result = $handle->scheduledUpdate();
 
+        $this->assertInstanceOf(ScheduledSubscriptionUpdate::class, $result);
         $this->assertSame($scheduled, $result);
         $this->assertSame('plan_premium', $result->subscriptionPlanId);
+        $this->assertSame('2024-03-15T10:30:00Z', $result->effectiveAt);
     }
 
     public function test_scheduled_update_returns_null_when_nothing_is_pending(): void
@@ -486,7 +495,16 @@ class SubscriptionHandleTest extends TestCase
         $getSubscriptionAction = Mockery::mock(GetSubscription::class);
         $getSubscriptionAction->shouldReceive('execute')
             ->with('subscription_abc')
-            ->andReturn($this->makeApiSubscription(['scheduledUpdate' => (object) ['quantity' => 2]]));
+            ->andReturn($this->makeApiSubscription(['scheduledUpdate' => new ScheduledSubscriptionUpdate(
+                subscriptionPlanId: 'plan_premium',
+                name: 'Premium',
+                description: 'Premium plan',
+                basePrice: self::money(4900),
+                quantity: 2,
+                interval: 'month',
+                intervalCount: 1,
+                effectiveAt: '2024-03-15T10:30:00Z',
+            )]));
 
         $handle = $this->buildHandle(
             subscription: $subscription,

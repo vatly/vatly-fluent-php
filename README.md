@@ -573,12 +573,11 @@ $vatly->subscription($localSubscription)->cancel();
 $vatly->order($localOrder)->invoiceUrl();
 
 // Read a change scheduled for the next billing cycle (created by an update sent
-// with applyImmediately: false), read live from Vatly. Vatly's persisted schema
-// does not yet define a typed shape for this payload, so - mirroring api-php -
-// it is returned untyped (stdClass|null); read its fields directly.
+// with applyImmediately: false), read live from Vatly. Returns the typed
+// Vatly\API\Types\ScheduledSubscriptionUpdate (nullable).
 if ($vatly->subscription($localSubscription)->hasScheduledUpdate()) {
     $pending = $vatly->subscription($localSubscription)->scheduledUpdate();
-    // e.g. $pending->subscriptionPlanId, $pending->quantity
+    // e.g. $pending->subscriptionPlanId, $pending->quantity, $pending->effectiveAt
 }
 
 // Billing address / VAT / company name changes go through a hosted Vatly
