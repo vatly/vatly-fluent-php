@@ -739,22 +739,16 @@ Dispatched by webhook reactions through your `EventDispatcherInterface`. Subscri
 - `SubscriptionCanceledWithGracePeriod`
 - `SubscriptionCancellationGracePeriodCompleted`
 - `CheckoutPaid` / `CheckoutFailed` / `CheckoutCanceled` / `CheckoutExpired`
+- **Catalogue events** (api-php ≥ 0.1.0-alpha.25) - each carries the hydrated api-php resource, built straight from the signed payload (no follow-up GET):
+  - `OneOffProductUpdateSubmitted` / `OneOffProductUpdateApproved` / `OneOffProductUpdateRejected` / `OneOffProductArchived` / `OneOffProductUnarchived` - expose `$event->oneOffProductId`, `$event->testmode`, and `$event->oneOffProduct` (an `OneOffProduct` resource carrying `updateStatus`, `pendingUpdates`, `archivedAt`, …)
+  - `SubscriptionPlanUpdateSubmitted` / `SubscriptionPlanUpdateApproved` / `SubscriptionPlanUpdateRejected` / `SubscriptionPlanArchived` / `SubscriptionPlanUnarchived` - expose `$event->subscriptionPlanId`, `$event->testmode`, and `$event->subscriptionPlan`
 - `WebhookSetupReceived` - endpoint verification ping (`webhook.setup`); dispatched-only, acknowledge with `2xx`
-- `UnsupportedWebhookReceived` - the fallback for any event without a dedicated typed class. This currently includes the ten **catalogue events** (`one_off_product.update_submitted` / `update_approved` / `update_rejected` / `archived` / `unarchived` and the matching `subscription_plan.*`): they are recorded and dispatched, but resolve to `UnsupportedWebhookReceived` for now (see the deferral note below). Match on `$event->eventName` to handle them.
+- `UnsupportedWebhookReceived` - the fallback for any event without a dedicated typed class. Match on `$event->eventName` to handle these.
 
 Driver-side events (namespace `Vatly\Fluent\Events`, carrying the freshly persisted local record - fired exactly once per brand-new row):
 
 - `SubscriptionWasCreatedFromWebhook` - dispatched by `SyncSubscriptionOnStarted` on a brand-new subscription
 - `OrderWasCreatedFromWebhook` - dispatched by `StoreOrderOnPaid` on a brand-new order
-
-> **Deferral note - catalogue events.** The ten `one_off_product.*` /
-> `subscription_plan.*` events currently resolve to `UnsupportedWebhookReceived`
-> rather than dedicated typed events. This mirrors api-php: vatlify's persisted
-> `WebhookEvent.object` `oneOf`/discriminator omits `OneOffProduct` /
-> `SubscriptionPlan`, so there is no spec-defined payload shape to type against
-> yet. All three SDK layers stay consistent and untyped here until the vatlify
-> spec is fixed, at which point typed events can light up without breaking
-> consumers who match on `$event->eventName` today.
 
 ## Testing
 

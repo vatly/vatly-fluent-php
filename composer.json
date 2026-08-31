@@ -9,15 +9,9 @@
             "email": "sander@vanhooft.com"
         }
     ],
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/vatly/vatly-api-php"
-        }
-    ],
     "require": {
         "php": "^8.1",
-        "vatly/vatly-api-php": "dev-sync/openapi-2026-08 as 0.1.0-alpha.25"
+        "vatly/vatly-api-php": "^0.1.0-alpha.25"
     },
     "require-dev": {
         "mockery/mockery": "^1.6",

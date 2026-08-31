@@ -10,7 +10,17 @@ use Vatly\Fluent\Contracts\EventDispatcherInterface;
 use Vatly\Fluent\Contracts\WebhookCallRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
 use Vatly\API\Webhooks\Events\CheckoutPaid;
+use Vatly\API\Webhooks\Events\OneOffProductArchived;
+use Vatly\API\Webhooks\Events\OneOffProductUnarchived;
+use Vatly\API\Webhooks\Events\OneOffProductUpdateApproved;
+use Vatly\API\Webhooks\Events\OneOffProductUpdateRejected;
+use Vatly\API\Webhooks\Events\OneOffProductUpdateSubmitted;
 use Vatly\API\Webhooks\Events\OrderPaymentFailed;
+use Vatly\API\Webhooks\Events\SubscriptionPlanArchived;
+use Vatly\API\Webhooks\Events\SubscriptionPlanUnarchived;
+use Vatly\API\Webhooks\Events\SubscriptionPlanUpdateApproved;
+use Vatly\API\Webhooks\Events\SubscriptionPlanUpdateRejected;
+use Vatly\API\Webhooks\Events\SubscriptionPlanUpdateSubmitted;
 use Vatly\API\Webhooks\Events\SubscriptionStarted;
 use Vatly\API\Webhooks\Events\UnsupportedWebhookReceived;
 use Vatly\Fluent\Exceptions\InvalidWebhookSignatureException;
@@ -320,20 +330,28 @@ class WebhookProcessorTest extends TestCase
     }
 
     /**
-     * The ten new catalogue events are recorded and dispatched, but — following
-     * api-php's lead — resolve to {@see UnsupportedWebhookReceived} until the
-     * vatlify spec defines a persisted object shape for them and typed DTOs ship.
+     * The ten catalogue events resolve to their typed api-php DTOs (api-php
+     * ≥ 0.1.0-alpha.25 hydrates the OneOffProduct / SubscriptionPlan resource
+     * straight from the signed webhook payload). The processor records and
+     * dispatches them like any other typed event — no Unsupported fallback.
      *
-     * @dataProvider catalogueEventNameProvider
+     * @dataProvider catalogueEventProvider
      */
-    public function test_it_passes_catalogue_events_through_as_unsupported(string $eventName, string $entityType): void
-    {
+    public function test_it_dispatches_typed_catalogue_events(
+        string $eventName,
+        string $entityType,
+        string $expectedClass,
+        string $idProperty,
+        string $id,
+    ): void {
         $payload = $this->makePayload(
             id: 'webhook_event_cat',
             eventName: $eventName,
             entityType: $entityType,
-            entityId: $entityType . '_123',
-            object: [],
+            entityId: $id,
+            // The signed object is the full resource (GET-body shape); the
+            // factory hydrates it, so it needs at least id + testmode.
+            object: ['id' => $id, 'testmode' => false],
         );
 
         $signature = $this->makeSignatureHeader($payload, $this->secret);
@@ -341,32 +359,32 @@ class WebhookProcessorTest extends TestCase
         $this->repository
             ->shouldReceive('record')
             ->once()
-            ->withArgs(fn (string $id, string $resource, string $recordedEventName) => $recordedEventName === $eventName);
+            ->withArgs(fn (string $rid, string $resource, string $recordedEventName) => $recordedEventName === $eventName);
 
         $this->dispatcher
             ->shouldReceive('dispatch')
             ->once()
-            ->withArgs(fn (object $event) => $event instanceof UnsupportedWebhookReceived && $event->eventName === $eventName);
+            ->withArgs(fn (object $event) => $event instanceof $expectedClass && $event->{$idProperty} === $id);
 
         $this->processor->handle($payload, $signature);
     }
 
     /**
-     * @return array<string, array{string, string}>
+     * @return array<string, array{string, string, class-string, string, string}>
      */
-    public static function catalogueEventNameProvider(): array
+    public static function catalogueEventProvider(): array
     {
         return [
-            'one_off_product.update_submitted' => ['one_off_product.update_submitted', 'one_off_product'],
-            'one_off_product.update_approved' => ['one_off_product.update_approved', 'one_off_product'],
-            'one_off_product.update_rejected' => ['one_off_product.update_rejected', 'one_off_product'],
-            'one_off_product.archived' => ['one_off_product.archived', 'one_off_product'],
-            'one_off_product.unarchived' => ['one_off_product.unarchived', 'one_off_product'],
-            'subscription_plan.update_submitted' => ['subscription_plan.update_submitted', 'subscription_plan'],
-            'subscription_plan.update_approved' => ['subscription_plan.update_approved', 'subscription_plan'],
-            'subscription_plan.update_rejected' => ['subscription_plan.update_rejected', 'subscription_plan'],
-            'subscription_plan.archived' => ['subscription_plan.archived', 'subscription_plan'],
-            'subscription_plan.unarchived' => ['subscription_plan.unarchived', 'subscription_plan'],
+            'one_off_product.update_submitted' => ['one_off_product.update_submitted', 'one_off_product', OneOffProductUpdateSubmitted::class, 'oneOffProductId', 'one_off_product_1'],
+            'one_off_product.update_approved' => ['one_off_product.update_approved', 'one_off_product', OneOffProductUpdateApproved::class, 'oneOffProductId', 'one_off_product_1'],
+            'one_off_product.update_rejected' => ['one_off_product.update_rejected', 'one_off_product', OneOffProductUpdateRejected::class, 'oneOffProductId', 'one_off_product_1'],
+            'one_off_product.archived' => ['one_off_product.archived', 'one_off_product', OneOffProductArchived::class, 'oneOffProductId', 'one_off_product_1'],
+            'one_off_product.unarchived' => ['one_off_product.unarchived', 'one_off_product', OneOffProductUnarchived::class, 'oneOffProductId', 'one_off_product_1'],
+            'subscription_plan.update_submitted' => ['subscription_plan.update_submitted', 'subscription_plan', SubscriptionPlanUpdateSubmitted::class, 'subscriptionPlanId', 'subscription_plan_1'],
+            'subscription_plan.update_approved' => ['subscription_plan.update_approved', 'subscription_plan', SubscriptionPlanUpdateApproved::class, 'subscriptionPlanId', 'subscription_plan_1'],
+            'subscription_plan.update_rejected' => ['subscription_plan.update_rejected', 'subscription_plan', SubscriptionPlanUpdateRejected::class, 'subscriptionPlanId', 'subscription_plan_1'],
+            'subscription_plan.archived' => ['subscription_plan.archived', 'subscription_plan', SubscriptionPlanArchived::class, 'subscriptionPlanId', 'subscription_plan_1'],
+            'subscription_plan.unarchived' => ['subscription_plan.unarchived', 'subscription_plan', SubscriptionPlanUnarchived::class, 'subscriptionPlanId', 'subscription_plan_1'],
         ];
     }
 
