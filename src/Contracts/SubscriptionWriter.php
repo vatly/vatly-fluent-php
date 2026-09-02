@@ -28,6 +28,12 @@ interface SubscriptionWriter
 
     /**
      * Update an existing subscription from Vatly.
+     *
+     * When a cancellation webhook ends the subscription, `$data` may carry a
+     * raw {@see UpdateSubscriptionData::$cancellationReason} ("payment_failure",
+     * "merchant_request", "customer_request") alongside `endsAt`; persist it if
+     * your host tracks why a subscription ended. As with `status`, `null` means
+     * "no change" — don't overwrite a stored reason with null.
      */
     public function update(SubscriptionInterface $subscription, UpdateSubscriptionData $data): SubscriptionInterface;
 }
