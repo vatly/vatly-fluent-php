@@ -172,7 +172,7 @@ For incoming Vatly webhooks, fluent dispatches a typed event and runs a built-in
 | `subscription.updated`   | `SubscriptionUpdated`                                            | `SyncSubscriptionOnUpdated`    | `SubscriptionWriter::update` (immediate plan/price/quantity change) |
 | `subscription.update_scheduled` | `SubscriptionUpdateScheduled`                           | - (dispatched only)            | none - change applies next cycle; target values in `scheduledUpdate` |
 | `subscription.resumed`   | `SubscriptionResumed`                                             | `ResumeSubscriptionOnResumed`  | `SubscriptionWriter::update` (clears end date)       |
-| `subscription.canceled`  | `SubscriptionCanceledImmediately` / `SubscriptionCanceledWithGracePeriod` | `CancelSubscriptionOnCanceled` | `SubscriptionWriter::update`                         |
+| `subscription.canceled`  | `SubscriptionCanceledImmediately` / `SubscriptionCanceledWithGracePeriod` | `CancelSubscriptionOnCanceled` | `SubscriptionWriter::update` (passes `cancellationReason`: `merchant_request` / `customer_request`) |
 | `subscription.canceled_for_nonpayment` | `SubscriptionCanceledForNonpayment` | `CancelSubscriptionOnCanceled` | `SubscriptionWriter::update` (hard cancel after recovery exhausted; passes `cancellationReason: payment_failure` for the host to persist) |
 | `subscription.cancellation_grace_period_completed` | `SubscriptionCancellationGracePeriodCompleted` | `EndSubscriptionOnGracePeriodCompleted` | `SubscriptionWriter::update` (stamps actual end date) |
 | `checkout.paid` / `checkout.failed` / `checkout.canceled` / `checkout.expired` | `CheckoutPaid` / `CheckoutFailed` / `CheckoutCanceled` / `CheckoutExpired` | - (dispatched only) | none - driver-handled |

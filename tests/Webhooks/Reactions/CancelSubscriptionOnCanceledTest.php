@@ -80,12 +80,11 @@ class CancelSubscriptionOnCanceledTest extends TestCase
         $repo = Mockery::mock(SubscriptionRepositoryInterface::class);
         $repo->shouldReceive('findByVatlyId')->with('sub_1')->once()->andReturn($existing);
         $repo->shouldReceive('update')->once()->with($existing, Mockery::on(function (UpdateSubscriptionData $data) use ($endsAt) {
-            // Immediate cancellation carries no reason in api-php today.
-            return $data->endsAt === $endsAt && $data->cancellationReason === null;
+            return $data->endsAt === $endsAt && $data->cancellationReason === 'merchant_request';
         }))->andReturn($existing);
 
         $reaction = new CancelSubscriptionOnCanceled($repo);
-        $reaction->handle(new SubscriptionCanceledImmediately('cus_1', 'sub_1', $endsAt, true));
+        $reaction->handle(new SubscriptionCanceledImmediately('cus_1', 'sub_1', $endsAt, true, 'merchant_request'));
     }
 
     public function test_it_persists_the_event_ends_at_for_grace_period_cancellation(): void
@@ -95,12 +94,11 @@ class CancelSubscriptionOnCanceledTest extends TestCase
         $repo = Mockery::mock(SubscriptionRepositoryInterface::class);
         $repo->shouldReceive('findByVatlyId')->with('sub_1')->once()->andReturn($existing);
         $repo->shouldReceive('update')->once()->with($existing, Mockery::on(function (UpdateSubscriptionData $data) use ($endsAt) {
-            // Grace-period cancellation carries no reason in api-php today.
-            return $data->endsAt === $endsAt && $data->cancellationReason === null;
+            return $data->endsAt === $endsAt && $data->cancellationReason === 'customer_request';
         }))->andReturn($existing);
 
         $reaction = new CancelSubscriptionOnCanceled($repo);
-        $reaction->handle(new SubscriptionCanceledWithGracePeriod('cus_1', 'sub_1', $endsAt, true));
+        $reaction->handle(new SubscriptionCanceledWithGracePeriod('cus_1', 'sub_1', $endsAt, true, 'customer_request'));
     }
 
     public function test_it_does_nothing_if_subscription_not_found(): void

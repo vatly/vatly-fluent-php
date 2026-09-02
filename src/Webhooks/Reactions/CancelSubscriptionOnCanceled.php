@@ -12,11 +12,13 @@ use Vatly\API\Webhooks\Events\SubscriptionCanceledImmediately;
 use Vatly\API\Webhooks\Events\SubscriptionCanceledWithGracePeriod;
 
 /**
- * Ends the local subscription (persisting the event's `endsAt`) on any hard or
- * grace-period cancellation: merchant-initiated ({@see SubscriptionCanceledImmediately},
+ * Ends the local subscription (persisting the event's `endsAt` and
+ * `cancellationReason`) on any hard or grace-period cancellation:
+ * merchant-initiated ({@see SubscriptionCanceledImmediately},
  * {@see SubscriptionCanceledWithGracePeriod}) and nonpayment-initiated
  * ({@see SubscriptionCanceledForNonpayment}, a hard cancellation after payment
- * recovery is exhausted).
+ * recovery is exhausted). All three events expose a `cancellationReason`
+ * (`merchant_request` / `customer_request` / `payment_failure`).
  *
  * @immutable
  */
@@ -47,17 +49,11 @@ class CancelSubscriptionOnCanceled implements WebhookReactionInterface
             return;
         }
 
-        // Only the nonpayment event carries a cancellation reason in api-php
-        // today (`payment_failure`); the immediate/grace-period events don't
-        // expose one, so their reason stays null (no change) until api-php
-        // surfaces it on those DTOs.
-        $cancellationReason = $event instanceof SubscriptionCanceledForNonpayment
-            ? $event->cancellationReason
-            : null;
-
+        // All three cancel events expose `cancellationReason` (merchant_request /
+        // customer_request / payment_failure), so read it uniformly.
         $this->subscriptions->update($subscription, new UpdateSubscriptionData(
             endsAt: $event->endsAt,
-            cancellationReason: $cancellationReason,
+            cancellationReason: $event->cancellationReason,
         ));
     }
 }
