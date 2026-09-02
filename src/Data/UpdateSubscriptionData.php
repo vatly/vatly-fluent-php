@@ -27,6 +27,16 @@ class UpdateSubscriptionData
          */
         public ?string $status = null,
         /**
+         * Raw Vatly cancellation reason ("payment_failure", "merchant_request",
+         * "customer_request"). Passed through verbatim — drivers are responsible
+         * for mapping to their host's vocabulary, and may persist it alongside
+         * the end date when a cancellation webhook ends the subscription. Null
+         * means "no change".
+         *
+         * @see \Vatly\API\Types\CancellationReason
+         */
+        public ?string $cancellationReason = null,
+        /**
          * Atomic mandate replacement. Non-null = the driver writes the whole
          * Mandate object (both method and maskedIdentifier, the latter may
          * be null for mandate types without an identifier like PayPal).

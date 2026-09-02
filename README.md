@@ -173,7 +173,7 @@ For incoming Vatly webhooks, fluent dispatches a typed event and runs a built-in
 | `subscription.update_scheduled` | `SubscriptionUpdateScheduled`                           | - (dispatched only)            | none - change applies next cycle; target values in `scheduledUpdate` |
 | `subscription.resumed`   | `SubscriptionResumed`                                             | `ResumeSubscriptionOnResumed`  | `SubscriptionWriter::update` (clears end date)       |
 | `subscription.canceled`  | `SubscriptionCanceledImmediately` / `SubscriptionCanceledWithGracePeriod` | `CancelSubscriptionOnCanceled` | `SubscriptionWriter::update`                         |
-| `subscription.canceled_for_nonpayment` | `SubscriptionCanceledForNonpayment` | `CancelSubscriptionOnCanceled` | `SubscriptionWriter::update` (hard cancel after recovery exhausted) |
+| `subscription.canceled_for_nonpayment` | `SubscriptionCanceledForNonpayment` | `CancelSubscriptionOnCanceled` | `SubscriptionWriter::update` (hard cancel after recovery exhausted; passes `cancellationReason: payment_failure` for the host to persist) |
 | `subscription.cancellation_grace_period_completed` | `SubscriptionCancellationGracePeriodCompleted` | `EndSubscriptionOnGracePeriodCompleted` | `SubscriptionWriter::update` (stamps actual end date) |
 | `checkout.paid` / `checkout.failed` / `checkout.canceled` / `checkout.expired` | `CheckoutPaid` / `CheckoutFailed` / `CheckoutCanceled` / `CheckoutExpired` | - (dispatched only) | none - driver-handled |
 | `webhook.setup`          | `WebhookSetupReceived`                                            | - (dispatched only)            | none - endpoint verification ping; acknowledge with `2xx` |
@@ -792,7 +792,7 @@ Dispatched by webhook reactions through your `EventDispatcherInterface`. Subscri
 - `SubscriptionResumed`
 - `SubscriptionCanceledImmediately`
 - `SubscriptionCanceledWithGracePeriod`
-- `SubscriptionCanceledForNonpayment` - a hard cancellation after payment recovery is exhausted; carries `subscriptionId`, `endsAt`, and `cancellationReason` (`payment_failure`). Ends the local subscription via `CancelSubscriptionOnCanceled`, like the other hard cancellations.
+- `SubscriptionCanceledForNonpayment` - a hard cancellation after payment recovery is exhausted; carries `subscriptionId`, `endsAt`, and `cancellationReason` (`payment_failure`). Ends the local subscription via `CancelSubscriptionOnCanceled`, like the other hard cancellations, and passes the reason on `UpdateSubscriptionData` so a host can persist *why* it ended (see the `cancellationReason` field).
 - `SubscriptionCancellationGracePeriodCompleted`
 - `CheckoutPaid` / `CheckoutFailed` / `CheckoutCanceled` / `CheckoutExpired`
 - **Product events** (api-php ≥ 0.1.0-alpha.25) - each carries the hydrated api-php resource, built straight from the signed payload (no follow-up GET):

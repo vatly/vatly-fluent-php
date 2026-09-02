@@ -47,8 +47,17 @@ class CancelSubscriptionOnCanceled implements WebhookReactionInterface
             return;
         }
 
+        // Only the nonpayment event carries a cancellation reason in api-php
+        // today (`payment_failure`); the immediate/grace-period events don't
+        // expose one, so their reason stays null (no change) until api-php
+        // surfaces it on those DTOs.
+        $cancellationReason = $event instanceof SubscriptionCanceledForNonpayment
+            ? $event->cancellationReason
+            : null;
+
         $this->subscriptions->update($subscription, new UpdateSubscriptionData(
             endsAt: $event->endsAt,
+            cancellationReason: $cancellationReason,
         ));
     }
 }

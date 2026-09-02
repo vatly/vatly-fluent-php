@@ -57,7 +57,8 @@ class CancelSubscriptionOnCanceledTest extends TestCase
         $repo = Mockery::mock(SubscriptionRepositoryInterface::class);
         $repo->shouldReceive('findByVatlyId')->with('sub_1')->once()->andReturn($existing);
         $repo->shouldReceive('update')->once()->with($existing, Mockery::on(function (UpdateSubscriptionData $data) use ($endsAt) {
-            return $data->endsAt === $endsAt;
+            // Nonpayment cancellation persists its reason (`payment_failure`).
+            return $data->endsAt === $endsAt && $data->cancellationReason === 'payment_failure';
         }))->andReturn($existing);
 
         $reaction = new CancelSubscriptionOnCanceled($repo);
@@ -79,7 +80,8 @@ class CancelSubscriptionOnCanceledTest extends TestCase
         $repo = Mockery::mock(SubscriptionRepositoryInterface::class);
         $repo->shouldReceive('findByVatlyId')->with('sub_1')->once()->andReturn($existing);
         $repo->shouldReceive('update')->once()->with($existing, Mockery::on(function (UpdateSubscriptionData $data) use ($endsAt) {
-            return $data->endsAt === $endsAt;
+            // Immediate cancellation carries no reason in api-php today.
+            return $data->endsAt === $endsAt && $data->cancellationReason === null;
         }))->andReturn($existing);
 
         $reaction = new CancelSubscriptionOnCanceled($repo);
@@ -93,7 +95,8 @@ class CancelSubscriptionOnCanceledTest extends TestCase
         $repo = Mockery::mock(SubscriptionRepositoryInterface::class);
         $repo->shouldReceive('findByVatlyId')->with('sub_1')->once()->andReturn($existing);
         $repo->shouldReceive('update')->once()->with($existing, Mockery::on(function (UpdateSubscriptionData $data) use ($endsAt) {
-            return $data->endsAt === $endsAt;
+            // Grace-period cancellation carries no reason in api-php today.
+            return $data->endsAt === $endsAt && $data->cancellationReason === null;
         }))->andReturn($existing);
 
         $reaction = new CancelSubscriptionOnCanceled($repo);
