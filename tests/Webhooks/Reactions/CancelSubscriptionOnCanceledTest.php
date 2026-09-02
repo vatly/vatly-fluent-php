@@ -10,6 +10,7 @@ use Vatly\Fluent\Contracts\SubscriptionInterface;
 use Vatly\Fluent\Contracts\SubscriptionRepositoryInterface;
 use Vatly\Fluent\Data\UpdateSubscriptionData;
 use Vatly\API\Webhooks\Events\OrderPaid;
+use Vatly\API\Webhooks\Events\SubscriptionCanceledForNonpayment;
 use Vatly\API\Webhooks\Events\SubscriptionCanceledImmediately;
 use Vatly\API\Webhooks\Events\SubscriptionCanceledWithGracePeriod;
 use Vatly\Fluent\Tests\TestCase;
@@ -37,6 +38,30 @@ class CancelSubscriptionOnCanceledTest extends TestCase
         $event = new SubscriptionCanceledWithGracePeriod('cus_1', 'sub_1', new DateTimeImmutable('+30 days'), true);
 
         $this->assertTrue($reaction->supports($event));
+    }
+
+    public function test_it_supports_subscription_canceled_for_nonpayment_events(): void
+    {
+        $repo = Mockery::mock(SubscriptionRepositoryInterface::class);
+        $reaction = new CancelSubscriptionOnCanceled($repo);
+
+        $event = new SubscriptionCanceledForNonpayment('cus_1', 'sub_1', new DateTimeImmutable(), true);
+
+        $this->assertTrue($reaction->supports($event));
+    }
+
+    public function test_it_persists_the_event_ends_at_for_nonpayment_cancellation(): void
+    {
+        $endsAt = new DateTimeImmutable('2026-06-01T00:00:00Z');
+        $existing = Mockery::mock(SubscriptionInterface::class);
+        $repo = Mockery::mock(SubscriptionRepositoryInterface::class);
+        $repo->shouldReceive('findByVatlyId')->with('sub_1')->once()->andReturn($existing);
+        $repo->shouldReceive('update')->once()->with($existing, Mockery::on(function (UpdateSubscriptionData $data) use ($endsAt) {
+            return $data->endsAt === $endsAt;
+        }))->andReturn($existing);
+
+        $reaction = new CancelSubscriptionOnCanceled($repo);
+        $reaction->handle(new SubscriptionCanceledForNonpayment('cus_1', 'sub_1', $endsAt, true));
     }
 
     public function test_it_does_not_support_other_events(): void

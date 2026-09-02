@@ -276,6 +276,20 @@ class SubscriptionHandle
     }
 
     /**
+     * Why the subscription was canceled, read live from Vatly, or `null` unless a
+     * cancellation has been requested. One of
+     * {@see \Vatly\API\Types\CancellationReason} — `payment_failure` (recovery
+     * exhausted after failed renewals), `merchant_request`, or `customer_request`
+     * (from the self-service portal). Performs a live `GET` on the subscription.
+     */
+    public function cancellationReason(): ?string
+    {
+        return $this->getSubscriptionAction
+            ->execute($this->subscription->getVatlyId())
+            ->cancellationReason;
+    }
+
+    /**
      * Refresh the local subscription record from Vatly.
      */
     public function sync(): self

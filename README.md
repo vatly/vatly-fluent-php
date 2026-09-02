@@ -173,6 +173,7 @@ For incoming Vatly webhooks, fluent dispatches a typed event and runs a built-in
 | `subscription.update_scheduled` | `SubscriptionUpdateScheduled`                           | - (dispatched only)            | none - change applies next cycle; target values in `scheduledUpdate` |
 | `subscription.resumed`   | `SubscriptionResumed`                                             | `ResumeSubscriptionOnResumed`  | `SubscriptionWriter::update` (clears end date)       |
 | `subscription.canceled`  | `SubscriptionCanceledImmediately` / `SubscriptionCanceledWithGracePeriod` | `CancelSubscriptionOnCanceled` | `SubscriptionWriter::update`                         |
+| `subscription.canceled_for_nonpayment` | `SubscriptionCanceledForNonpayment` | `CancelSubscriptionOnCanceled` | `SubscriptionWriter::update` (hard cancel after recovery exhausted) |
 | `subscription.cancellation_grace_period_completed` | `SubscriptionCancellationGracePeriodCompleted` | `EndSubscriptionOnGracePeriodCompleted` | `SubscriptionWriter::update` (stamps actual end date) |
 | `checkout.paid` / `checkout.failed` / `checkout.canceled` / `checkout.expired` | `CheckoutPaid` / `CheckoutFailed` / `CheckoutCanceled` / `CheckoutExpired` | - (dispatched only) | none - driver-handled |
 | `webhook.setup`          | `WebhookSetupReceived`                                            | - (dispatched only)            | none - endpoint verification ping; acknowledge with `2xx` |
@@ -568,6 +569,22 @@ $vatly->customers()->update('customer_abc', new UpdateCustomerData(
     email: 'new@example.com',
 ));
 
+// Per-customer operations via a CustomerHandle (like subscription()/order()).
+// Identity read/update, plus a hosted customer-portal session. The handle
+// lazily fetches the customer only when an accessor needs it.
+$customer = $vatly->customer('customer_abc');
+$customer->name();                                 // read-back (lazy GET, memoized)
+$customer->identity();                             // ['name' => ..., 'email' => ...]
+$customer->update(new UpdateCustomerData(name: 'New Name'));
+
+// Open a short-lived, single-use hosted customer portal session and redirect
+// the customer to it. The link expires in ~15 min and is single-use - do not
+// cache or log it. Pass returnUrl to render a return link in the portal.
+$session = $vatly->customer('customer_abc')->portalSession([
+    'returnUrl' => 'https://app.example.com/account',
+]);
+return redirect()->away($session->url); // $session->expiresAt, $session->returnUrl
+
 // Operate on a stored Subscription / Order
 $vatly->subscription($localSubscription)->cancel();
 $vatly->order($localOrder)->invoiceUrl();
@@ -579,6 +596,10 @@ if ($vatly->subscription($localSubscription)->hasScheduledUpdate()) {
     $pending = $vatly->subscription($localSubscription)->scheduledUpdate();
     // e.g. $pending->subscriptionPlanId, $pending->quantity, $pending->effectiveAt
 }
+
+// Why a subscription was canceled, read live from Vatly (null unless canceled):
+// payment_failure, merchant_request, or customer_request.
+$reason = $vatly->subscription($localSubscription)->cancellationReason();
 
 // Billing address / VAT / company name changes go through a hosted Vatly
 // flow. Returns a fresh redirect URL per call - don't cache.
@@ -695,7 +716,7 @@ $vatly->getWebhookEventFactory();                  // api-php Vatly\API\Webhooks
 
 // Actions (lazy, cached)
 $vatly->createCustomer();    $vatly->getCustomer();    $vatly->updateCustomer();
-$vatly->listCustomersByEmail();
+$vatly->listCustomersByEmail(); $vatly->createCustomerPortalSession();
 $vatly->getOrder();          $vatly->createCheckout();
 $vatly->getSubscription();   $vatly->cancelSubscription();
 $vatly->resumeSubscription(); $vatly->swapSubscriptionPlan();
@@ -705,6 +726,7 @@ $vatly->updateSubscriptionBilling();
 $vatly->oneOffProducts();                          // OneOffProductService (create/find/update/archive/unarchive/list)
 $vatly->subscriptionPlans();                       // SubscriptionPlanService (same surface)
 $vatly->testHelpers();                             // TestHelpers (fast-forward subscription renewals, test mode)
+$vatly->customer('customer_abc');                  // CustomerHandle (identity read/update, portalSession(); api-only)
 
 // Composed services - require repos in Wiring
 $vatly->customers();                               // CustomerService (lazy, cached; incl. findByEmail / findOneByEmail, identity(), update())
@@ -770,6 +792,7 @@ Dispatched by webhook reactions through your `EventDispatcherInterface`. Subscri
 - `SubscriptionResumed`
 - `SubscriptionCanceledImmediately`
 - `SubscriptionCanceledWithGracePeriod`
+- `SubscriptionCanceledForNonpayment` - a hard cancellation after payment recovery is exhausted; carries `subscriptionId`, `endsAt`, and `cancellationReason` (`payment_failure`). Ends the local subscription via `CancelSubscriptionOnCanceled`, like the other hard cancellations.
 - `SubscriptionCancellationGracePeriodCompleted`
 - `CheckoutPaid` / `CheckoutFailed` / `CheckoutCanceled` / `CheckoutExpired`
 - **Product events** (api-php ≥ 0.1.0-alpha.25) - each carries the hydrated api-php resource, built straight from the signed payload (no follow-up GET):

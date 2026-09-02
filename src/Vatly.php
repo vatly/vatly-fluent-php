@@ -11,6 +11,7 @@ use Vatly\API\Webhooks\WebhookEventFactory;
 use Vatly\Fluent\Actions\CancelSubscription;
 use Vatly\Fluent\Actions\CreateCheckout;
 use Vatly\Fluent\Actions\CreateCustomer;
+use Vatly\Fluent\Actions\CreateCustomerPortalSession;
 use Vatly\Fluent\Actions\GetChargeback;
 use Vatly\Fluent\Actions\GetCheckout;
 use Vatly\Fluent\Actions\GetCustomer;
@@ -55,6 +56,7 @@ class Vatly
     private ?GetCustomer $getCustomer = null;
     private ?UpdateCustomer $updateCustomer = null;
     private ?ListCustomersByEmail $listCustomersByEmail = null;
+    private ?CreateCustomerPortalSession $createCustomerPortalSession = null;
     private ?GetOrder $getOrder = null;
     private ?GetRefund $getRefund = null;
     private ?GetChargeback $getChargeback = null;
@@ -296,6 +298,24 @@ class Vatly
         );
     }
 
+    /**
+     * Build a {@see CustomerHandle} for per-customer operations (identity
+     * read/update, hosted-portal session) on a Vatly customer id.
+     *
+     * API-only: no driver wiring is required. The handle lazily fetches the
+     * customer resource when an accessor needs it; operations that don't
+     * (`portalSession()`) never fetch it.
+     */
+    public function customer(string $vatlyCustomerId): CustomerHandle
+    {
+        return new CustomerHandle(
+            customerId: $vatlyCustomerId,
+            getAction: $this->getCustomer(),
+            updateAction: $this->updateCustomer(),
+            portalSessionAction: $this->createCustomerPortalSession(),
+        );
+    }
+
     // --- Action accessors ---
 
     public function createCustomer(): CreateCustomer
@@ -316,6 +336,11 @@ class Vatly
     public function listCustomersByEmail(): ListCustomersByEmail
     {
         return $this->listCustomersByEmail ??= new ListCustomersByEmail($this->apiClient);
+    }
+
+    public function createCustomerPortalSession(): CreateCustomerPortalSession
+    {
+        return $this->createCustomerPortalSession ??= new CreateCustomerPortalSession($this->apiClient);
     }
 
     public function getOrder(): GetOrder
