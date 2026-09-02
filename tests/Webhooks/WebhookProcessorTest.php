@@ -21,6 +21,7 @@ use Vatly\API\Webhooks\Events\SubscriptionPlanUnarchived;
 use Vatly\API\Webhooks\Events\SubscriptionPlanUpdateApproved;
 use Vatly\API\Webhooks\Events\SubscriptionPlanUpdateRejected;
 use Vatly\API\Webhooks\Events\SubscriptionPlanUpdateSubmitted;
+use Vatly\API\Webhooks\Events\SubscriptionCanceledForNonpayment;
 use Vatly\API\Webhooks\Events\SubscriptionStarted;
 use Vatly\API\Webhooks\Events\UnsupportedWebhookReceived;
 use Vatly\Fluent\Exceptions\InvalidWebhookSignatureException;
@@ -324,6 +325,33 @@ class WebhookProcessorTest extends TestCase
             ->withArgs(function (object $event) {
                 return $event instanceof UnsupportedWebhookReceived
                     && $event->eventName === 'unknown.event';
+            });
+
+        $this->processor->handle($payload, $signature);
+    }
+
+    public function test_it_dispatches_subscription_canceled_for_nonpayment_typed(): void
+    {
+        $payload = $this->makePayload(
+            id: 'webhook_event_np',
+            eventName: 'subscription.canceled_for_nonpayment',
+            entityType: 'subscription',
+            entityId: 'sub_123',
+            object: ['customerId' => 'cus_456', 'cancellationReason' => 'payment_failure'],
+        );
+
+        $signature = $this->makeSignatureHeader($payload, $this->secret);
+
+        $this->repository->shouldReceive('record')->once();
+
+        $this->dispatcher
+            ->shouldReceive('dispatch')
+            ->once()
+            ->withArgs(function (object $event) {
+                return $event instanceof SubscriptionCanceledForNonpayment
+                    && $event->subscriptionId === 'sub_123'
+                    && $event->customerId === 'cus_456'
+                    && $event->cancellationReason === 'payment_failure';
             });
 
         $this->processor->handle($payload, $signature);

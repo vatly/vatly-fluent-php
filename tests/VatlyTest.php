@@ -19,6 +19,7 @@ use Vatly\Fluent\Contracts\WebhookCallRepositoryInterface;
 use Vatly\Fluent\CustomerService;
 use Vatly\Fluent\CustomerProfile;
 use Vatly\Fluent\Exceptions\IncompleteWiringException;
+use Vatly\Fluent\CustomerHandle;
 use Vatly\Fluent\OrderHandle;
 use Vatly\Fluent\SubscriptionHandle;
 use Vatly\Fluent\Vatly;
@@ -60,6 +61,17 @@ class VatlyTest extends TestCase
         $this->assertSame($vatly->createCustomer(), $vatly->createCustomer());
         $this->assertSame($vatly->updateCustomer(), $vatly->updateCustomer());
         $this->assertSame($vatly->getOrder(), $vatly->getOrder());
+        $this->assertSame($vatly->createCustomerPortalSession(), $vatly->createCustomerPortalSession());
+    }
+
+    public function test_customer_returns_a_customer_handle_without_wiring(): void
+    {
+        $vatly = Vatly::apiOnly('test_abcdefghijklmnopqrstuvwxyz');
+
+        $handle = $vatly->customer('customer_abc');
+
+        $this->assertInstanceOf(CustomerHandle::class, $handle);
+        $this->assertSame('customer_abc', $handle->id());
     }
 
     public function test_customers_helper_is_cached(): void

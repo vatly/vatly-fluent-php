@@ -514,6 +514,41 @@ class SubscriptionHandleTest extends TestCase
         $this->assertTrue($handle->hasScheduledUpdate());
     }
 
+    public function test_cancellation_reason_reads_live_from_the_api(): void
+    {
+        $subscription = $this->stubSubscription('subscription_abc');
+
+        $getSubscriptionAction = Mockery::mock(GetSubscription::class);
+        $getSubscriptionAction->shouldReceive('execute')
+            ->once()
+            ->with('subscription_abc')
+            ->andReturn($this->makeApiSubscription(['cancellationReason' => 'payment_failure']));
+
+        $handle = $this->buildHandle(
+            subscription: $subscription,
+            getSubscriptionAction: $getSubscriptionAction,
+        );
+
+        $this->assertSame('payment_failure', $handle->cancellationReason());
+    }
+
+    public function test_cancellation_reason_is_null_when_not_canceled(): void
+    {
+        $subscription = $this->stubSubscription('subscription_abc');
+
+        $getSubscriptionAction = Mockery::mock(GetSubscription::class);
+        $getSubscriptionAction->shouldReceive('execute')
+            ->with('subscription_abc')
+            ->andReturn($this->makeApiSubscription(['cancellationReason' => null]));
+
+        $handle = $this->buildHandle(
+            subscription: $subscription,
+            getSubscriptionAction: $getSubscriptionAction,
+        );
+
+        $this->assertNull($handle->cancellationReason());
+    }
+
     private function stubSubscription(string $vatlyId): SubscriptionInterface
     {
         $subscription = Mockery::mock(SubscriptionInterface::class);
