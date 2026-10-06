@@ -95,4 +95,51 @@ class TestHelpersTest extends TestCase
 
         $this->helpers->advanceRenewal('subscription_1');
     }
+
+    public function test_force_order_payment_paid_sends_paid_status(): void
+    {
+        $this->endpoint->shouldReceive('simulateOrderPayment')
+            ->once()
+            ->with('order_1', ['paymentStatus' => 'paid'])
+            ->andReturn(null);
+
+        $this->helpers->forceOrderPaymentPaid('order_1');
+    }
+
+    public function test_force_order_payment_failed_sends_failed_status_without_reason(): void
+    {
+        $this->endpoint->shouldReceive('simulateOrderPayment')
+            ->once()
+            ->with('order_1', ['paymentStatus' => 'failed'])
+            ->andReturn(null);
+
+        $this->helpers->forceOrderPaymentFailed('order_1');
+    }
+
+    public function test_force_order_payment_failed_forwards_the_failure_reason(): void
+    {
+        $this->endpoint->shouldReceive('simulateOrderPayment')
+            ->once()
+            ->with('order_1', ['paymentStatus' => 'failed', 'failureReason' => 'card_expired'])
+            ->andReturn(null);
+
+        $this->helpers->forceOrderPaymentFailed('order_1', 'card_expired');
+    }
+
+    public function test_simulate_order_payment_passes_an_arbitrary_body_through(): void
+    {
+        $response = (object) ['ok' => true];
+
+        $this->endpoint->shouldReceive('simulateOrderPayment')
+            ->once()
+            ->with('order_1', ['paymentStatus' => 'failed', 'failureReason' => 'insufficient_funds'])
+            ->andReturn($response);
+
+        $result = $this->helpers->simulateOrderPayment('order_1', [
+            'paymentStatus' => 'failed',
+            'failureReason' => 'insufficient_funds',
+        ]);
+
+        $this->assertSame($response, $result);
+    }
 }

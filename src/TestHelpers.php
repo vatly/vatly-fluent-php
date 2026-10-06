@@ -80,4 +80,50 @@ class TestHelpers
 
         return $this->fastForwardRenewal($subscriptionId, $body);
     }
+
+    /**
+     * Simulate the outcome of a test order's pending payment.
+     *
+     * Settles or declines a payment that is already awaiting an outcome — for
+     * example a subscription renewal, or a subscription update made with
+     * `invoiceImmediately: true`. Unlike {@see fastForwardRenewal()}, this does
+     * not advance the billing cycle. Prefer the intent-named helpers below over
+     * hand-building the body.
+     *
+     * @param array<string, mixed> $body  e.g. `['paymentStatus' => 'paid']` or
+     *                                     `['paymentStatus' => 'failed', 'failureReason' => 'card_expired']`.
+     */
+    public function simulateOrderPayment(string $orderId, array $body): ?object
+    {
+        return $this->guardApiCall(fn () => $this->apiClient->testHelpers->simulateOrderPayment($orderId, $body));
+    }
+
+    /**
+     * Settle an order's pending payment, so `order.paid` is delivered to your
+     * webhook endpoint.
+     */
+    public function forceOrderPaymentPaid(string $orderId): ?object
+    {
+        return $this->simulateOrderPayment($orderId, ['paymentStatus' => 'paid']);
+    }
+
+    /**
+     * Decline an order's pending payment, starting a payment recovery so
+     * `order.payment_failed` is delivered to your webhook endpoint.
+     *
+     * The optional `$failureReason` picks which decline to simulate. A soft
+     * decline (`insufficient_funds`, `temporary_decline`, `general_failure`)
+     * retries over weeks; any other value (e.g. `card_expired`) is a hard decline
+     * that drives the customer to supply a new payment method.
+     */
+    public function forceOrderPaymentFailed(string $orderId, ?string $failureReason = null): ?object
+    {
+        $body = ['paymentStatus' => 'failed'];
+
+        if ($failureReason !== null) {
+            $body['failureReason'] = $failureReason;
+        }
+
+        return $this->simulateOrderPayment($orderId, $body);
+    }
 }
