@@ -23,5 +23,14 @@ class UpdateOrderData
         public ?TaxSummaryCollection $taxSummary = null,
         /** @var array<string, mixed>|null */
         public ?array $metadata = null,
+        /**
+         * Raw Vatly cancellation reason ("payment_failure"). Passed through
+         * verbatim, so drivers map it to their host's vocabulary and may persist
+         * it alongside the status when an order is canceled. Null means "no
+         * change".
+         *
+         * @see \Vatly\API\Types\CancellationReason
+         */
+        public ?string $cancellationReason = null,
     ) {}
 }

@@ -163,7 +163,7 @@ For incoming Vatly webhooks, fluent dispatches a typed event and runs a built-in
 |--------------------------|-------------------------------------------------------------------|--------------------------------|------------------------------------------------------|
 | `order.paid`             | `OrderPaid`                                                       | `StoreOrderOnPaid`             | `OrderWriter::store` (new, then dispatches `OrderWasCreatedFromWebhook`) / `OrderWriter::update` (existing) |
 | `order.payment_failed`   | `OrderPaymentFailed`                                              | `StoreOrderOnPaymentFailed`    | `OrderWriter::store` (new) / `OrderWriter::update` (existing); mirrors upstream status (typically `pending` during dunning) |
-| `order.canceled`         | `OrderCanceled`                                                   | `CancelOrderOnCanceled`        | `OrderWriter::update` (mirrors `canceled` status)    |
+| `order.canceled`         | `OrderCanceled`                                                   | `CancelOrderOnCanceled`        | `OrderWriter::update` (mirrors `canceled` status; passes `cancellationReason`, `payment_failure` or null, for the host to persist) |
 | `order.chargeback_received` | `OrderChargebackReceived`                                   | `SyncChargebackOnStatusChange` *(opt-in, persistence)* | `ChargebackWriter::store` (new) |
 | `order.chargeback_reversed` | `OrderChargebackReversed`                                   | `SyncChargebackOnStatusChange` *(opt-in, persistence)* | `ChargebackWriter::update` (existing) |
 | `refund.completed` / `refund.failed` / `refund.canceled` | `RefundCompleted` / `RefundFailed` / `RefundCanceled` | `SyncRefundOnStatusChange` *(opt-in)* | `RefundWriter::store` (new) / `::update` (existing) |
@@ -782,7 +782,7 @@ Dispatched by webhook reactions through your `EventDispatcherInterface`. Subscri
 - `WebhookReceived` - raw webhook envelope (typed shape; `object` is the resource payload)
 - `OrderPaid` - order with full `taxSummary` breakdown, ready to materialize local invoices
 - `OrderPaymentFailed` - failed payment attempt (typically the start of dunning); carries the full order shape, mirroring `OrderPaid`
-- `OrderCanceled`
+- `OrderCanceled` - carries `orderId`, `status`, and `cancellationReason` (`payment_failure` when payment recovery for the unpaid order was exhausted, otherwise null). `CancelOrderOnCanceled` passes the reason on `UpdateOrderData` so a host can persist *why* the order was canceled.
 - `OrderChargebackReceived` / `OrderChargebackReversed` - dispute signals carrying the affected `orderId`
 - `RefundCompleted` / `RefundFailed` / `RefundCanceled` - each with full `taxSummary` breakdown
 - `SubscriptionStarted`

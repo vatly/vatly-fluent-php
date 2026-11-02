@@ -37,11 +37,24 @@ class CancelOrderOnCanceledTest extends TestCase
         $repo = Mockery::mock(OrderRepositoryInterface::class);
         $repo->shouldReceive('findByVatlyId')->with('ord_1')->once()->andReturn($existing);
         $repo->shouldReceive('update')->once()->with($existing, Mockery::on(function (UpdateOrderData $data) {
-            return $data->status === 'canceled';
+            return $data->status === 'canceled' && $data->cancellationReason === null;
         }))->andReturn($existing);
 
         $reaction = new CancelOrderOnCanceled($repo);
         $reaction->handle(new OrderCanceled('cus_1', 'ord_1', 'canceled', true));
+    }
+
+    public function test_it_passes_the_cancellation_reason_to_the_writer(): void
+    {
+        $existing = Mockery::mock(OrderInterface::class);
+        $repo = Mockery::mock(OrderRepositoryInterface::class);
+        $repo->shouldReceive('findByVatlyId')->with('ord_1')->once()->andReturn($existing);
+        $repo->shouldReceive('update')->once()->with($existing, Mockery::on(function (UpdateOrderData $data) {
+            return $data->status === 'canceled' && $data->cancellationReason === 'payment_failure';
+        }))->andReturn($existing);
+
+        $reaction = new CancelOrderOnCanceled($repo);
+        $reaction->handle(new OrderCanceled('cus_1', 'ord_1', 'canceled', true, 'payment_failure'));
     }
 
     public function test_it_does_nothing_if_order_not_found(): void
