@@ -15,7 +15,8 @@ use Vatly\API\Webhooks\Events\OrderCanceled;
  * Find-or-skip: a cancellation for an order we never recorded is a no-op
  * (we don't fabricate a canceled row from nothing). The status is taken
  * verbatim from the event — fluent mirrors Vatly's status vocabulary rather
- * than synthesizing its own.
+ * than synthesizing its own. The event's `cancellationReason`
+ * (`payment_failure`, or null) is passed along for the host to persist.
  *
  * @immutable
  */
@@ -44,6 +45,7 @@ class CancelOrderOnCanceled implements WebhookReactionInterface
 
         $this->orders->update($order, new UpdateOrderData(
             status: $event->status,
+            cancellationReason: $event->cancellationReason,
         ));
     }
 }

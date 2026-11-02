@@ -26,6 +26,12 @@ interface OrderWriter
 
     /**
      * Update an existing order from Vatly.
+     *
+     * When a cancellation webhook cancels the order, `$data` may carry a raw
+     * {@see UpdateOrderData::$cancellationReason} ("payment_failure") alongside
+     * `status`; persist it if your host tracks why an order was canceled. As
+     * with `status`, `null` means "no change", so don't overwrite a stored
+     * reason with null.
      */
     public function update(OrderInterface $order, UpdateOrderData $data): OrderInterface;
 }
