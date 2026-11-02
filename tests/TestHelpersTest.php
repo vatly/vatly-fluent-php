@@ -7,6 +7,8 @@ namespace Vatly\Fluent\Tests;
 use Mockery;
 use Vatly\API\Endpoints\TestHelpersEndpoint;
 use Vatly\API\Exceptions\ApiException;
+use Vatly\API\Resources\Order;
+use Vatly\API\Resources\Subscription;
 use Vatly\API\VatlyApiClient;
 use Vatly\Fluent\Exceptions\ApiCallFailedException;
 use Vatly\Fluent\TestHelpers;
@@ -32,9 +34,9 @@ class TestHelpersTest extends TestCase
         $this->endpoint->shouldReceive('fastForwardSubscriptionRenewal')
             ->once()
             ->with('subscription_1', [])
-            ->andReturn(null);
+            ->andReturn(new Subscription($this->apiClient));
 
-        $this->assertNull($this->helpers->advanceRenewal('subscription_1'));
+        $this->assertInstanceOf(Subscription::class, $this->helpers->advanceRenewal('subscription_1'));
     }
 
     public function test_force_renewal_paid_sends_paid_status(): void
@@ -42,7 +44,7 @@ class TestHelpersTest extends TestCase
         $this->endpoint->shouldReceive('fastForwardSubscriptionRenewal')
             ->once()
             ->with('subscription_1', ['paymentStatus' => 'paid'])
-            ->andReturn(null);
+            ->andReturn(new Subscription($this->apiClient));
 
         $this->helpers->forceRenewalPaid('subscription_1');
     }
@@ -52,7 +54,7 @@ class TestHelpersTest extends TestCase
         $this->endpoint->shouldReceive('fastForwardSubscriptionRenewal')
             ->once()
             ->with('subscription_1', ['paymentStatus' => 'failed'])
-            ->andReturn(null);
+            ->andReturn(new Subscription($this->apiClient));
 
         $this->helpers->forceRenewalFailed('subscription_1');
     }
@@ -62,14 +64,14 @@ class TestHelpersTest extends TestCase
         $this->endpoint->shouldReceive('fastForwardSubscriptionRenewal')
             ->once()
             ->with('subscription_1', ['paymentStatus' => 'failed', 'failureReason' => 'card_expired'])
-            ->andReturn(null);
+            ->andReturn(new Subscription($this->apiClient));
 
         $this->helpers->forceRenewalFailed('subscription_1', 'card_expired');
     }
 
     public function test_fast_forward_renewal_passes_an_arbitrary_body_through(): void
     {
-        $response = (object) ['ok' => true];
+        $response = new Subscription($this->apiClient);
 
         $this->endpoint->shouldReceive('fastForwardSubscriptionRenewal')
             ->once()
@@ -101,7 +103,7 @@ class TestHelpersTest extends TestCase
         $this->endpoint->shouldReceive('simulateOrderPayment')
             ->once()
             ->with('order_1', ['paymentStatus' => 'paid'])
-            ->andReturn(null);
+            ->andReturn(new Order($this->apiClient));
 
         $this->helpers->forceOrderPaymentPaid('order_1');
     }
@@ -111,7 +113,7 @@ class TestHelpersTest extends TestCase
         $this->endpoint->shouldReceive('simulateOrderPayment')
             ->once()
             ->with('order_1', ['paymentStatus' => 'failed'])
-            ->andReturn(null);
+            ->andReturn(new Order($this->apiClient));
 
         $this->helpers->forceOrderPaymentFailed('order_1');
     }
@@ -121,14 +123,14 @@ class TestHelpersTest extends TestCase
         $this->endpoint->shouldReceive('simulateOrderPayment')
             ->once()
             ->with('order_1', ['paymentStatus' => 'failed', 'failureReason' => 'card_expired'])
-            ->andReturn(null);
+            ->andReturn(new Order($this->apiClient));
 
         $this->helpers->forceOrderPaymentFailed('order_1', 'card_expired');
     }
 
     public function test_simulate_order_payment_passes_an_arbitrary_body_through(): void
     {
-        $response = (object) ['ok' => true];
+        $response = new Order($this->apiClient);
 
         $this->endpoint->shouldReceive('simulateOrderPayment')
             ->once()
