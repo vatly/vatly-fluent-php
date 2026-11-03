@@ -27,6 +27,9 @@ class SubscriptionBuilder
 
     protected ?string $locale = null;
 
+    /** @var array<string, string|null>|null */
+    protected ?array $billingAddress = null;
+
     public function __construct(
         /** @readonly */
         protected ConfigurationInterface $config,
@@ -77,6 +80,20 @@ class SubscriptionBuilder
     public function withLocale(?string $locale): static
     {
         $this->locale = $locale;
+
+        return $this;
+    }
+
+    /**
+     * Prefill the billing address fields on the hosted checkout.
+     *
+     * See {@see CheckoutBuilder::withBillingAddress()} for the accepted fields.
+     *
+     * @param array{fullName?: ?string, companyName?: ?string, streetAndNumber?: ?string, streetAdditional?: ?string, postalCode?: ?string, city?: ?string, region?: ?string, country?: ?string, taxId?: ?string}|null $billingAddress
+     */
+    public function withBillingAddress(?array $billingAddress): static
+    {
+        $this->billingAddress = $billingAddress;
 
         return $this;
     }
@@ -135,6 +152,10 @@ class SubscriptionBuilder
     {
         if ($this->locale !== null) {
             $this->checkoutBuilder->withLocale($this->locale);
+        }
+
+        if ($this->billingAddress !== null) {
+            $this->checkoutBuilder->withBillingAddress($this->billingAddress);
         }
 
         return $this

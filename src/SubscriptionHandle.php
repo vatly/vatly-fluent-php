@@ -143,7 +143,8 @@ class SubscriptionHandle
      * Swap the subscription to a different plan.
      *
      * @param array<string, mixed> $options Extra parameters passed to the Vatly API
-     *                                      (e.g. applyImmediately, invoiceImmediately).
+     *                                      (e.g. applyImmediately, invoiceImmediately,
+     *                                      prorationCharge).
      */
     public function swap(string $planId, array $options = []): self
     {
@@ -177,6 +178,23 @@ class SubscriptionHandle
     {
         $options['applyImmediately'] = true;
         $options['invoiceImmediately'] = true;
+
+        return $this->swap($planId, $options);
+    }
+
+    /**
+     * Swap to a new plan right away without charging for the change.
+     *
+     * The customer gets the new plan now, nothing is prorated or invoiced, and
+     * the next renewal bills the new price. Vatly only reads `prorationCharge`
+     * on an immediate change, so this always sets `applyImmediately` too.
+     *
+     * @param array<string, mixed> $options
+     */
+    public function swapWithoutCharge(string $planId, array $options = []): self
+    {
+        $options['applyImmediately'] = true;
+        $options['prorationCharge'] = false;
 
         return $this->swap($planId, $options);
     }

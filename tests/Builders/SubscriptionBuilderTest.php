@@ -84,6 +84,34 @@ class SubscriptionBuilderTest extends TestCase
         $this->assertArrayNotHasKey('locale', $createCheckout->captured);
     }
 
+    public function test_create_threads_the_billing_address_into_the_checkout_payload(): void
+    {
+        $createCheckout = $this->capturingCreateCheckout();
+
+        $checkoutBuilder = new CheckoutBuilder($this->customer, $createCheckout);
+        $builder = new SubscriptionBuilder($this->config, $this->customer, $checkoutBuilder);
+
+        $address = ['companyName' => 'Acme BV', 'country' => 'NL'];
+
+        $builder->toPlan('plan_pro')->withBillingAddress($address)->create();
+
+        $this->assertIsArray($createCheckout->captured);
+        $this->assertSame($address, $createCheckout->captured['billingAddress']);
+    }
+
+    public function test_create_omits_billing_address_when_not_set(): void
+    {
+        $createCheckout = $this->capturingCreateCheckout();
+
+        $checkoutBuilder = new CheckoutBuilder($this->customer, $createCheckout);
+        $builder = new SubscriptionBuilder($this->config, $this->customer, $checkoutBuilder);
+
+        $builder->toPlan('plan_pro')->create();
+
+        $this->assertIsArray($createCheckout->captured);
+        $this->assertArrayNotHasKey('billingAddress', $createCheckout->captured);
+    }
+
     /**
      * A {@see CreateCheckout} double that records the payload it was handed.
      */
