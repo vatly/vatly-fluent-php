@@ -8,7 +8,7 @@
 
 > **Alpha - under active development. Expect breaking changes between minor versions.**
 
-Framework-agnostic SDK for [Vatly](https://vatly.com). Sits between `vatly/vatly-api-php` (the raw HTTP client) and a framework driver (e.g. `vatly/vatly-laravel`).
+Framework-agnostic SDK for [Vatly](https://vatly.com), the Merchant of Record for European software and digital products. Sits between `vatly/vatly-api-php` (the raw HTTP client) and a framework driver (e.g. `vatly/vatly-laravel`).
 
 ## Pick the right package
 
