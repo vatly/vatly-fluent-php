@@ -23,6 +23,9 @@ class CheckoutBuilder
 
     protected ?string $locale = null;
 
+    /** @var array<string, string|null>|null */
+    protected ?array $billingAddress = null;
+
     /** @var array<int, array<string, mixed>> */
     protected array $items = [];
 
@@ -51,6 +54,7 @@ class CheckoutBuilder
             'testmode' => $this->testmode,
             'metadata' => $this->metadata,
             'locale' => $this->locale,
+            'billingAddress' => $this->billingAddress,
         ], $overrides);
 
         return $filtered ? array_filter($payload, fn ($value) => $value !== null) : $payload;
@@ -120,6 +124,23 @@ class CheckoutBuilder
     public function withLocale(?string $locale): static
     {
         $this->locale = $locale;
+
+        return $this;
+    }
+
+    /**
+     * Prefill the billing address fields on the hosted checkout.
+     *
+     * The customer can still edit every field. A supplied `country` takes
+     * precedence over the shopper's IP address for determining their country,
+     * and a `taxId` is only registered once the customer submits the checkout.
+     * Pass `null` (the default) to leave the fields empty.
+     *
+     * @param array{fullName?: ?string, companyName?: ?string, streetAndNumber?: ?string, streetAdditional?: ?string, postalCode?: ?string, city?: ?string, region?: ?string, country?: ?string, taxId?: ?string}|null $billingAddress
+     */
+    public function withBillingAddress(?array $billingAddress): static
+    {
+        $this->billingAddress = $billingAddress;
 
         return $this;
     }

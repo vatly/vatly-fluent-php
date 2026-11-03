@@ -548,6 +548,22 @@ $checkout = $vatly
     ->withLocale('de')
     ->create();
 
+// Prefill the billing address on the hosted checkout. withBillingAddress() is on
+// both builders; the customer can still edit every field. A supplied country
+// takes precedence over the shopper's IP address, and a taxId is only
+// registered once the customer submits the checkout.
+$checkout = $vatly
+    ->subscriptionBuilder(new CustomerProfile(vatlyId: $user->vatly_id))
+    ->toPlan('subscription_plan_7Hd9Kf2Lm')
+    ->withBillingAddress([
+        'companyName'     => 'Acme BV',
+        'streetAndNumber' => 'Damrak 1',
+        'postalCode'      => '1012 LG',
+        'city'            => 'Amsterdam',
+        'country'         => 'NL',
+    ])
+    ->create();
+
 // Recover a customer id you no longer have, by email. The address is
 // canonicalized before matching and may be held by more than one customer, so
 // this returns a (possibly empty) collection; findOneByEmail() returns the
@@ -588,6 +604,16 @@ return redirect()->away($session->url); // $session->expiresAt, $session->return
 // Operate on a stored Subscription / Order
 $vatly->subscription($localSubscription)->cancel();
 $vatly->order($localOrder)->invoiceUrl();
+
+// Swap plans. swap() takes the API's update options and, without
+// applyImmediately: true, schedules the change for the next billing cycle
+// (prorationCharge is only read on an immediate change). swapAndInvoice() applies
+// the change now and invoices the prorated difference; swapWithoutCharge()
+// applies it now without charging for the change, so the next renewal bills
+// the new price.
+$vatly->subscription($localSubscription)->swap('subscription_plan_pro');
+$vatly->subscription($localSubscription)->swapAndInvoice('subscription_plan_pro');
+$vatly->subscription($localSubscription)->swapWithoutCharge('subscription_plan_pro');
 
 // Read a change scheduled for the next billing cycle (created by an update sent
 // with applyImmediately: false), read live from Vatly. Returns the typed

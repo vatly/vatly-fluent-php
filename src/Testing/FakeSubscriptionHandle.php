@@ -48,6 +48,11 @@ final class FakeSubscriptionHandle extends SubscriptionHandle
         return $this->swap($planId, $options);
     }
 
+    public function swapWithoutCharge(string $planId, array $options = []): SubscriptionHandle
+    {
+        return $this->swap($planId, $options);
+    }
+
     public function cancel(): void
     {
         $this->vatly->recordCancellation($this->fakeSubscription->getVatlyId());

@@ -84,6 +84,30 @@ class CheckoutBuilderTest extends TestCase
         $this->assertArrayNotHasKey('locale', $payload);
     }
 
+    public function test_it_includes_billing_address_in_payload(): void
+    {
+        $address = ['fullName' => 'Jane Doe', 'country' => 'NL', 'taxId' => 'NL123456789B01'];
+
+        $result = $this->builder->withBillingAddress($address);
+
+        $this->assertSame($this->builder, $result);
+        $this->assertSame($address, $this->builder->payload()['billingAddress']);
+    }
+
+    public function test_it_omits_billing_address_from_payload_by_default(): void
+    {
+        $this->assertArrayNotHasKey('billingAddress', $this->builder->payload());
+    }
+
+    public function test_billing_address_override_wins_over_builder_value(): void
+    {
+        $this->builder->withBillingAddress(['country' => 'NL']);
+
+        $payload = $this->builder->payload(['billingAddress' => ['country' => 'DE']]);
+
+        $this->assertSame(['country' => 'DE'], $payload['billingAddress']);
+    }
+
     public function test_with_locale_returns_builder_instance(): void
     {
         $result = $this->builder->withLocale('nl');

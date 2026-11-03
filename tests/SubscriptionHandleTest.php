@@ -149,6 +149,40 @@ class SubscriptionHandleTest extends TestCase
         $this->assertSame($handle, $handle->swapAndInvoice('plan_premium'));
     }
 
+    public function test_swap_without_charge_applies_immediately_without_proration_charge(): void
+    {
+        $subscription = $this->stubSubscription('subscription_abc');
+
+        $apiResponse = $this->makeApiSubscription([
+            'subscriptionPlanId' => 'plan_premium',
+            'quantity' => 2,
+        ]);
+
+        $swapAction = Mockery::mock(SwapSubscriptionPlan::class);
+        $swapAction->shouldReceive('execute')
+            ->once()
+            ->with('subscription_abc', 'plan_premium', [
+                'quantity' => 2,
+                'applyImmediately' => true,
+                'prorationCharge' => false,
+            ])
+            ->andReturn($apiResponse);
+
+        $subscriptions = Mockery::mock(SubscriptionRepositoryInterface::class);
+        $subscriptions->shouldReceive('update')->andReturn(Mockery::mock(SubscriptionInterface::class));
+
+        $handle = $this->buildHandle(
+            subscription: $subscription,
+            subscriptions: $subscriptions,
+            swapAction: $swapAction,
+        );
+
+        $this->assertSame($handle, $handle->swapWithoutCharge('plan_premium', [
+            'quantity' => 2,
+            'applyImmediately' => false,
+        ]));
+    }
+
     public function test_cancel_calls_the_api_only(): void
     {
         $subscription = $this->stubSubscription('subscription_abc');
