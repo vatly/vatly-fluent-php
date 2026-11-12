@@ -1,4 +1,4 @@
-# Webhook flow: event → reaction → repo method → fields
+# Webhook event flow
 
 This guide and the recipes in `docs/` sync to [Vatly Docs](https://docs.vatly.com/packages/fluent-php/webhook-flow) on pushes to `main`. The notifier uses the Actions secret `VATLY_DOCS_DISPATCH_TOKEN` with Contents: write access to `vatly/vatly-docs`.
 

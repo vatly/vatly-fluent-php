@@ -1,4 +1,4 @@
-# Recipe: adapting fluent contracts to a host that already owns its tables
+# Adapting to your framework
 
 The README's driver guide implicitly assumes you're modeling subscriptions/orders from scratch in your own schema. The other common case is the inverse: you're bolting onto an ecosystem plugin - **FluentCart, PMPro, MemberPress, Easy Digital Downloads, WooCommerce**, a Cashier-style Spark app - that **already owns** its `subscriptions`, `orders`, and `customers` tables. You don't want a parallel set of tables; you want fluent's contracts to read and write the host's existing ones.
 
