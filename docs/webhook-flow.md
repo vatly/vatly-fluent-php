@@ -1,52 +1,63 @@
-# Webhook event flow
+# Event flow
 
-This guide and the recipes in `docs/` sync to [Vatly Docs](https://docs.vatly.com/packages/fluent-php/webhook-flow) on pushes to `main`. The notifier uses the Actions secret `VATLY_DOCS_DISPATCH_TOKEN` with Contents: write access to `vatly/vatly-docs`.
+Choose the event that matches your task. To listen for a paid order, implement your event dispatcher and register it in `Wiring`. This small adapter forwards typed events to an application callback:
 
-A driver author shouldn't have to read several directories (the event DTOs and the `WebhookEventFactory` in `vatly-api-php`'s `Vatly\API\Webhooks\*`, plus fluent's `src/Webhooks/Reactions/` and `src/Contracts/`) to answer *"if I implement `OrderWriter::store`, which webhooks flow into it and with what data?"* This page is that single reference.
+```php
+use Vatly\Fluent\Contracts\EventDispatcherInterface;
 
-> **Where the event DTOs live:** the typed webhook events (`OrderPaid`, `OrderPaymentFailed`, `SubscriptionStarted`, …) are owned by **`vatly-api-php`** under `Vatly\API\Webhooks\Events\*` and consumed by fluent - fluent no longer ships its own `src/Events/` copies (only the driver-side `SubscriptionWasCreatedFromWebhook` / `OrderWasCreatedFromWebhook` / `NullEventDispatcher` remain in `Vatly\Fluent\Events\`). Their `taxSummary` field is a `Vatly\API\Types\TaxSummaryCollection` whose items expose `taxRate` (a `TaxSummaryRate`) + `amount` (a `Money`); call `$item->amount->toCents()` for integer cents. Order lines are `Vatly\API\Types\OrderLineData[]` (note: `Vatly\API\Types\`, not the old `Vatly\API\Data\`), and each line's `basePrice` / `total` / `subtotal` are likewise `Money`. The event construction - verify → parse → map - is owned by **`vatly-api-php`**: `Vatly\API\Webhooks\WebhookEventFactory` builds the typed events from the signed payload. Fluent owns the downstream orchestration (the reactions and `WebhookProcessor`, which records → reacts → dispatches) and consumes that factory.
+final class BillingEvents implements EventDispatcherInterface
+{
+    public function __construct(private Closure $listener) {}
 
-> **Event money is `Money`, not int cents (api-php ≥ `0.1.0-alpha.18`):** the `total` / `subtotal` fields on the money-bearing events are `Vatly\API\Types\Money` value objects (decimal-string `value` + `currency`), not raw integer cents. Read the currency off the Money (`$event->total->currency`) and flatten to integer cents with `$event->total->toCents()`. The **standalone `currency` field was removed** from `OrderPaid`, `OrderPaymentFailed`, `RefundCompleted`, `RefundFailed`, and `RefundCanceled` (their `total` / `subtotal` are non-null `Money`). The chargeback events `OrderChargebackReceived` / `OrderChargebackReversed` are the exception: their `total` / `subtotal` are typed **nullable** (`?Money`) at the api-php contract level and they **keep** a standalone `currency` string - though the fat chargeback payload populates the amounts in practice. Fluent's built-in reactions flatten `Money → int` at the persistence edge, so the driver-facing `Store*Data` / `Update*Data` DTOs still carry integer-cents `total` / `subtotal` and a `currency` string - drivers are unaffected.
+    public function dispatch(object $event): void
+    {
+        ($this->listener)($event);
+    }
+}
+```
 
-The [README's "Webhook pipeline at a glance"](../README.md#webhook-pipeline-at-a-glance) table is the quick version; this one adds the **fields drivers care about** column so you know exactly what each `Store*Data` / event carries.
+In production, let that callback write outbox jobs on the same transaction as your repositories. It receives the typed event after the built-in reactions have run. Follow [Webhooks](Webhooks.md) for verification, deduplication, and the transaction boundary.
 
-## How events are built (no API round-trip)
+## Events that save records
 
-Vatly sends **fat, HMAC-signed** webhook deliveries: the payload's `object` is the full resource - byte-identical to the corresponding `GET /…/{id}` body (subtotal, the complete tax summary, lines, mandate). The HMAC signature (verified in `WebhookProcessor`) is the trust boundary, so the payload is the authoritative snapshot and there is **no follow-up API GET to "enrich"**. The mapping below is performed by api-php's `Vatly\API\Webhooks\WebhookEventFactory`:
+| Event | Built-in persistence |
+| --- | --- |
+| `order.paid` | Find by Vatly ID; store a new order or update the existing one. New store data includes lines. |
+| `order.payment_failed` | Store or update the order with the payload's status, usually `pending` during recovery. It does not invent a `failed` order status. |
+| `order.canceled` | Update an existing order's status and cancellation reason; skip if missing. |
+| `subscription.started` | Store a new subscription or update an existing one. |
+| `subscription.updated` | Update an existing subscription's plan, name, and quantity for an immediate change. |
+| `subscription.billing_updated` | Update an existing subscription's mandate summary. |
+| `subscription.resumed` | Clear the end date on an existing subscription. |
+| `subscription.canceled_immediately`, `subscription.canceled_with_grace_period` | Update the existing subscription's confirmed end date and reason. |
+| `subscription.canceled_for_nonpayment` | End the existing subscription after recovery is exhausted, with reason `payment_failure`. |
+| `subscription.cancellation_grace_period_completed` | Stamp the actual end date on an existing subscription. |
+| `refund.completed`, `refund.failed`, `refund.canceled` | Store or update only when a refund repository is wired. |
+| `order.chargeback_received`, `order.chargeback_reversed` | Store or update only when a chargeback repository is wired. The order stays `paid`. |
 
-- **`order.paid`, `order.payment_failed`, `refund.*`, `order.chargeback_*`, `subscription.started`, `subscription.billing_updated`, `subscription.updated`** - the matching api-php Resource (`Order` / `Refund` / `Chargeback` / `Subscription`) is hydrated in memory from `$webhook->object` (via `ResourceFactory::createResourceFromApiResult()`, the same path the API client uses to build a resource from a `GET` response), then mapped through the event's `fromApi*` constructor. Same enriched event - full tax breakdown, lines, mandate, dispute status - with zero network call.
-- **`order.canceled`, `checkout.*`, `subscription.cancellation_grace_period_completed`, `subscription.canceled_for_nonpayment`, `subscription.update_scheduled`, `webhook.setup`** - built straight from the payload envelope; they carry no money/tax resource to hydrate. (`subscription.update_scheduled` exposes the envelope's `object.scheduledUpdate` as a typed `ScheduledSubscriptionUpdate`; `subscription.canceled_for_nonpayment` exposes `cancellationReason`.)
+Order and subscription creation resolve `hostCustomerId` through your binding repository. It can be `null`. The store DTOs carry `testmode`; persist it. Order, refund, and chargeback store DTOs also carry totals, currency, and tax details.
 
-Because nothing depends on a live API call, a transient API error can never block a delivery, and all events (including `refund.*` and `order.chargeback_*`) are always supported regardless of which optional repositories are wired.
+All entity stores can return `null` for an unroutable record. Successful new paid-order and subscription stores dispatch `OrderWasCreatedFromWebhook` and `SubscriptionWasCreatedFromWebhook`. Updates do not dispatch those local-created events. This distinction is not a concurrency lock: enforce unique IDs and transactions in storage.
 
-## Full matrix
+Partial updates use `null` for no change. Persist cancellation reasons if your host needs them. Subscription resume uses `clearEndsAt: true`; honor it in your writer.
 
-| Vatly event | Typed event | Built-in reaction | Repo method called | Fields drivers care about |
-| --- | --- | --- | --- | --- |
-| `order.paid` | `OrderPaid` | `StoreOrderOnPaid` | `OrderWriter::store(StoreOrderData)` if `findByVatlyId` is null (then dispatches `OrderWasCreatedFromWebhook`, skipped if store returns null), else `OrderWriter::update(…, UpdateOrderData)` | `hostCustomerId` (pre-resolved via binding repo), `customerId`, `total`, `subtotal`, `currency`, `invoiceNumber`, `paymentMethod`, `taxSummary`, `metadata`, `lines`, `testmode` |
-| `order.payment_failed` | `OrderPaymentFailed` | `StoreOrderOnPaymentFailed` | `OrderWriter::store(StoreOrderData)` if new, else `OrderWriter::update(…, UpdateOrderData)` | same as `order.paid` (sans `lines`); persists whatever status the order in the signed payload carries (typically `pending` during dunning) - mirrors, never synthesises a `failed` status |
-| `order.canceled` | `OrderCanceled` | `CancelOrderOnCanceled` | `OrderWriter::update(…, UpdateOrderData{status, cancellationReason})` | `status` (== `canceled`), plus `cancellationReason` (`payment_failure` or null) - find-or-skip, never creates |
-| `refund.completed` / `refund.failed` / `refund.canceled` | `RefundCompleted` / `RefundFailed` / `RefundCanceled` | `SyncRefundOnStatusChange` *(opt-in: needs `RefundRepositoryInterface`)* | `RefundWriter::store(StoreRefundData)` if new, else `RefundWriter::update(…, UpdateRefundData)` | `refundId`, `originalOrderId`, `customerId`, `hostCustomerId`, `status`, `total`, `subtotal`, `currency`, `taxSummary`, `testmode` |
-| `subscription.started` | `SubscriptionStarted` | `SyncSubscriptionOnStarted` | `SubscriptionWriter::store(StoreSubscriptionData)` then dispatches `SubscriptionWasCreatedFromWebhook` (skipped if store returns null) | `hostCustomerId`, `customerId`, `planId`, `name`, `quantity`, `type`, `mandate`, `testmode` |
-| `subscription.billing_updated` | `SubscriptionBillingUpdated` | `SyncSubscriptionOnBillingUpdated` | `SubscriptionWriter::update(…, UpdateSubscriptionData{mandate})` | `mandate` (card last-4 / masked IBAN) - find-or-skip |
-| `subscription.updated` | `SubscriptionUpdated` | `SyncSubscriptionOnUpdated` | `SubscriptionWriter::update(…, UpdateSubscriptionData{planId, name, quantity})` | immediate plan/price/interval/quantity change - `planId`, `name`, `quantity` (price is not persisted locally) - find-or-skip |
-| `subscription.update_scheduled` | `SubscriptionUpdateScheduled` | - *(dispatched only)* | none - change applies at the next cycle, current state unchanged | typed `scheduledUpdate` (`ScheduledSubscriptionUpdate`: `subscriptionPlanId`, `name`, `description`, `basePrice`, `quantity`, `interval`, `intervalCount`, `effectiveAt`) |
-| `subscription.resumed` | `SubscriptionResumed` | `ResumeSubscriptionOnResumed` | `SubscriptionWriter::update(…, UpdateSubscriptionData{endsAt: null})` | clears `endsAt` - find-or-skip |
-| `subscription.canceled_immediately` | `SubscriptionCanceledImmediately` | `CancelSubscriptionOnCanceled` | `SubscriptionWriter::update(…, UpdateSubscriptionData{endsAt, cancellationReason})` | `endsAt` (== now), plus `cancellationReason` (`merchant_request`) |
-| `subscription.canceled_with_grace_period` | `SubscriptionCanceledWithGracePeriod` | `CancelSubscriptionOnCanceled` | `SubscriptionWriter::update(…, UpdateSubscriptionData{endsAt, cancellationReason})` | `endsAt` (future grace end), plus `cancellationReason` (`customer_request` / `merchant_request`) |
-| `subscription.canceled_for_nonpayment` | `SubscriptionCanceledForNonpayment` | `CancelSubscriptionOnCanceled` | `SubscriptionWriter::update(…, UpdateSubscriptionData{endsAt, cancellationReason})` | hard cancel after payment recovery is exhausted - `endsAt` (== now), plus `cancellationReason` (`payment_failure`), persistable by the host |
-| `subscription.cancellation_grace_period_completed` | `SubscriptionCancellationGracePeriodCompleted` | `EndSubscriptionOnGracePeriodCompleted` | `SubscriptionWriter::update(…, UpdateSubscriptionData{endsAt})` | `endsAt` (actual end; self-heals a missed/out-of-order cancel webhook) |
-| `order.chargeback_received` / `order.chargeback_reversed` | `OrderChargebackReceived` / `OrderChargebackReversed` | `SyncChargebackOnStatusChange` *(opt-in: needs `ChargebackRepositoryInterface`)* | `ChargebackWriter::store(StoreChargebackData)` if new, else `ChargebackWriter::update(…, UpdateChargebackData)` | `chargebackId`, `originalOrderId`, `customerId`, `hostCustomerId`, `status`, `total`, `subtotal`, `currency`, `taxSummary`, `reason`, `testmode` |
-| `checkout.paid` / `checkout.failed` / `checkout.canceled` / `checkout.expired` | `CheckoutPaid` / `CheckoutFailed` / `CheckoutCanceled` / `CheckoutExpired` | - *(dispatched only)* | none - driver-handled | `checkoutId`, `customerId` (nullable for anonymous), `orderId`, `status`, `metadata` |
-| `webhook.setup` | `WebhookSetupReceived` | - *(dispatched only)* | none - endpoint verification ping; acknowledge with `2xx` | raw `WebhookReceived` envelope (`object` is the secret-free endpoint config) |
-| *(any unmapped event)* | `UnsupportedWebhookReceived` | - | none | raw `WebhookReceived` envelope |
+## Events your app handles
 
-## Reading the matrix
+| Event | Useful for |
+| --- | --- |
+| `subscription.update_scheduled` | Showing a pending next-cycle change from the typed `scheduledUpdate`. No current local plan change. |
+| `checkout.paid` | Checkout analytics or handoff. Use `order.paid` for full order persistence. |
+| `checkout.failed`, `checkout.canceled`, `checkout.expired` | Retry and abandoned-cart flows. |
+| `webhook.setup` | Endpoint setup verification; acknowledge with 2xx. |
+| Product update, approval, rejection, archive, and unarchive events | Catalog notifications; no built-in storage. |
+| Unknown event names | `UnsupportedWebhookReceived`, so you can observe new events without inventing a handler. |
 
-- **"store if new, else update"** - every entity reaction first calls `findByVatlyId()`. A null return routes to `store()`; a hit routes to `update()`. This is the idempotency hinge: once `store()` writes the Vatly id back, webhook re-deliveries safely hit `update()`. See the [host-owns-its-tables recipe](recipes/host-owns-its-tables.md).
-- **"find-or-skip"** - the reaction only `update()`s an existing local record and never creates one (`order.canceled`, `subscription.billing_updated`, `subscription.updated`, `subscription.resumed`).
-- **`hostCustomerId`** - resolved from your `CustomerBindingRepository` *before* the reaction calls your writer, so `store()` can fill the owner column directly. It's `null` for unattributed / anonymous-checkout rows; accept that.
-- **`cancellationReason` is persistable** - when a cancellation ends the subscription, `CancelSubscriptionOnCanceled` passes the raw Vatly reason on `UpdateSubscriptionData` alongside `endsAt`; persist it if your host tracks *why* a subscription ended. All three cancel events carry one: `merchant_request` (`subscription.canceled_immediately`), `customer_request` / `merchant_request` (`subscription.canceled_with_grace_period`), and `payment_failure` (`subscription.canceled_for_nonpayment`). `null` means "no change" (don't overwrite a stored reason). `CancelOrderOnCanceled` does the same for orders on `UpdateOrderData`: `payment_failure` when payment recovery for the unpaid order was exhausted, otherwise `null`.
-- **store may return `null`** - `OrderWriter`, `SubscriptionWriter`, `RefundWriter`, and `ChargebackWriter` `store()` may return `null` when the driver can't route the data. Built-in reactions tolerate it.
-- **opt-in reactions** register only when their repository is wired into `Wiring`. Without it, the typed events still dispatch for you to handle yourself.
-- **order reversal progress is not a webhook reaction.** Whether - and how much of - an order was returned to the customer (by refund *or* chargeback) is read from the live API Order via `OrderHandle::reversedSubtotal()` / `refundableSubtotal()` / `isReversed()` / `isPartiallyReversed()` / `isFullyReversed()`. The order's own `status` stays terminal `paid`; fluent never synthesizes a local refunded/chargeback status.
+Refund and chargeback events still dispatch when their optional repositories are absent. Checkout events do not create local orders or bindings on their own. Anonymous checkout events may have no customer ID yet.
+
+## Money and snapshots
+
+Typed event classes are owned by `vatly-api-php` in `Vatly\API\Webhooks\Events`. Money-bearing events use `Money`, not integer amounts. For paid orders and refunds, read currency from `total->currency`; use `total->toCents()` for local integer cents. Chargeback amounts are nullable at the event contract level and retain a separate currency field.
+
+Fluent builds events from the signed resource snapshot without a follow-up GET. Its reactions flatten money to integer cents in persistence DTOs. They do not save subscription prices or build entitlement policy for you. Reversal totals are read live through the [order handle](Orders.md), not synthesized into order statuses.
+
+See [Host tables](host-owns-its-tables.md) for routing initial payments and renewals, and the [API reference](https://docs.vatly.com/api-reference) for complete payload fields.
