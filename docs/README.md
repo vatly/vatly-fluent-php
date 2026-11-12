@@ -1,7 +1,7 @@
 # Getting started
 
 Sell a download, start a subscription, and keep your app's billing records in step with Vatly.
-Vatly is the European merchant of record for AI, software and digital products.
+Vatly is the European Merchant of Record for AI, software and digital products.
 
 > **Alpha — under active development. Every alpha release may include breaking changes. Pin exact versions during alpha.**
 
