@@ -5,7 +5,7 @@
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/vatly/vatly-fluent-php.svg?style=flat-square)](https://packagist.org/packages/vatly/vatly-fluent-php)
 [![Tests](https://github.com/Vatly/vatly-fluent-php/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Vatly/vatly-fluent-php/actions/workflows/tests.yml)
 
-Fluent billing flows for PHP, powered by [Vatly](https://vatly.com), the European merchant of record for AI, software and digital products.
+Fluent billing flows for PHP, powered by [Vatly](https://vatly.com), the European Merchant of Record for AI, software and digital products.
 
 > **Alpha — under active development. Every alpha release may include breaking changes. Pin exact versions during alpha.**
 
