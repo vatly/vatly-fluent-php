@@ -21,6 +21,11 @@ interface OrderLineWriter
     /**
      * Store a new order line from Vatly.
      *
+     * Persist `$data->relatedResources?->subscriptionId` alongside the line so
+     * {@see OrderLineInterface::getSubscriptionId()} and
+     * {@see OrderLineReader::listForSubscription()} can find the initial
+     * signup order, not only renewals.
+     *
      * Returns `null` when the driver legitimately cannot route the store
      * (e.g. it can't locate the parent order locally). Built-in reactions
      * tolerate null.

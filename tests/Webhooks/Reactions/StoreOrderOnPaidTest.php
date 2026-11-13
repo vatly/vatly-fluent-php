@@ -11,6 +11,7 @@ use Vatly\Fluent\Contracts\OrderInterface;
 use Vatly\Fluent\Contracts\OrderRepositoryInterface;
 use Vatly\API\Types\Money;
 use Vatly\API\Types\OrderLineData;
+use Vatly\API\Types\OrderLineRelatedResources;
 use Vatly\API\Types\TaxSummaryCollection;
 use Vatly\API\Webhooks\Events\OrderPaid;
 use Vatly\API\Webhooks\Events\SubscriptionStarted;
@@ -206,6 +207,8 @@ class StoreOrderOnPaidTest extends TestCase
 
     public function test_it_forwards_order_lines_into_store_order_data(): void
     {
+        // An initial signup line: it references the plan, and only its
+        // relatedResources links it to the subscription.
         $lines = [
             new OrderLineData(
                 vatlyId: 'order_item_sub',
@@ -215,8 +218,9 @@ class StoreOrderOnPaidTest extends TestCase
                 total: self::money(2420),
                 subtotal: self::money(2000),
                 taxSummary: new TaxSummaryCollection([]),
-                productType: 'subscription',
-                productId: 'subscription_abc',
+                productType: 'subscription_plan',
+                productId: 'subscription_plan_pro',
+                relatedResources: new OrderLineRelatedResources('subscription_abc'),
             ),
         ];
 
@@ -236,7 +240,8 @@ class StoreOrderOnPaidTest extends TestCase
         $repo = Mockery::mock(OrderRepositoryInterface::class);
         $repo->shouldReceive('findByVatlyId')->with('ord_1')->once()->andReturnNull();
         $repo->shouldReceive('store')->once()->with(Mockery::on(
-            fn (StoreOrderData $data) => $data->lines === $lines,
+            fn (StoreOrderData $data) => $data->lines === $lines
+                && $data->lines[0]->relatedResources?->subscriptionId === 'subscription_abc',
         ))->andReturn(Mockery::mock(OrderInterface::class));
 
         $bindings = Mockery::mock(CustomerBindingRepository::class);
