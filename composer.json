@@ -1,7 +1,7 @@
 {
     "name": "vatly/vatly-fluent-php",
     "description": "Framework-agnostic fluent PHP SDK for Vatly, the European Merchant of Record for AI, software and digital products",
-    "keywords": ["vatly", "billing", "subscriptions", "payments"],
+    "keywords": ["vatly", "billing", "subscriptions", "payments", "merchant-of-record", "vat", "ai"],
     "license": "MIT",
     "authors": [
         {
