@@ -21,13 +21,23 @@ interface OrderLineReader
     public function listForOrder(string $vatlyOrderId): array;
 
     /**
-     * List every line that links to a given subscription — i.e. lines whose
-     * `productType === 'subscription'` and `productId === $subscriptionId`.
+     * List every line that belongs to a given subscription, including the
+     * initial signup line, so consumers reach the orders a subscription
+     * generated (initial + renewals) from local state.
      *
-     * Keeps the join/query concern in the driver's repository (mirroring
-     * {@see RefundReader::listForOrder()}); drivers index `(product_type,
-     * product_id)` to back this. Lets consumers reach the orders a
-     * subscription generated (initial + renewals) from local state.
+     * A line matches when either holds:
+     *
+     * - `getSubscriptionId() === $subscriptionId` — covers the initial signup
+     *   line (whose `productType` is `subscription_plan`) and renewals;
+     * - `getProductType() === 'subscription'` and
+     *   `getProductId() === $subscriptionId` — covers renewal lines stored
+     *   before Vatly carried the subscription link, which have no
+     *   subscription id.
+     *
+     * Return each matching line once. Keeps the join/query concern in the
+     * driver's repository (mirroring {@see RefundReader::listForOrder()});
+     * drivers index `subscription_id` and `(product_type, product_id)` to
+     * back this.
      *
      * @return OrderLineInterface[]
      */

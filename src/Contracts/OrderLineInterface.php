@@ -10,11 +10,15 @@ namespace Vatly\Fluent\Contracts;
  * Mirrors {@see RefundInterface}: a thin read surface over the driver's own
  * persisted order-line row, populated from Vatly's `order.paid` webhook.
  *
- * The order↔subscription link lives here, at the line level, as a generic
- * (`productType`, `productId`) pair — a line links to a subscription when
- * `getProductType() === 'subscription'` → `getProductId()` is the
- * `subscription_…` id. `productType` is the raw API string (no fluent enum)
- * so new backend product types stay queryable without a fluent release.
+ * The order↔subscription link lives here, at the line level, as
+ * {@see self::getSubscriptionId()} (Vatly's `relatedResources.subscriptionId`).
+ * It names the subscription a line belongs to whatever the line's product:
+ * an initial signup line references the plan (`productType` is
+ * `subscription_plan`, `productId` the `subscription_plan_…` id), while a
+ * renewal or immediate-update line references the subscription itself
+ * (`productType` is `subscription`). `productType` is the raw API string (no
+ * fluent enum) so new backend product types stay queryable without a fluent
+ * release.
  */
 interface OrderLineInterface
 {
@@ -64,4 +68,16 @@ interface OrderLineInterface
      * subscription line), or null when unattributed.
      */
     public function getProductId(): ?string;
+
+    /**
+     * Get the id of the subscription this line belongs to (a `subscription_…`
+     * id), whatever its product type, so initial signup lines link to their
+     * subscription as well as renewals.
+     *
+     * Persist it from {@see \Vatly\API\Types\OrderLineData::$relatedResources}
+     * as `$data->relatedResources?->subscriptionId`. Null for lines unrelated
+     * to a subscription, for lines Vatly created before it carried the link,
+     * and for a signup line whose subscription was not yet available.
+     */
+    public function getSubscriptionId(): ?string;
 }

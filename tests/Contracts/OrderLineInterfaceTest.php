@@ -22,6 +22,7 @@ class OrderLineInterfaceTest extends TestCase
         $this->assertSame(2000, $line->getSubtotal());
         $this->assertSame('subscription', $line->getProductType());
         $this->assertSame('subscription_abc', $line->getProductId());
+        $this->assertSame('subscription_abc', $line->getSubscriptionId());
     }
 
     public function test_product_fields_may_be_null(): void
@@ -71,10 +72,16 @@ class OrderLineInterfaceTest extends TestCase
             {
                 return null;
             }
+
+            public function getSubscriptionId(): ?string
+            {
+                return null;
+            }
         };
 
         $this->assertNull($line->getProductType());
         $this->assertNull($line->getProductId());
+        $this->assertNull($line->getSubscriptionId());
     }
 
     private function createMockLine(): OrderLineInterface
@@ -121,6 +128,11 @@ class OrderLineInterfaceTest extends TestCase
             }
 
             public function getProductId(): ?string
+            {
+                return 'subscription_abc';
+            }
+
+            public function getSubscriptionId(): ?string
             {
                 return 'subscription_abc';
             }
