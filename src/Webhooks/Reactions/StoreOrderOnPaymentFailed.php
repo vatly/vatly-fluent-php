@@ -77,6 +77,10 @@ class StoreOrderOnPaymentFailed implements WebhookReactionInterface
             testmode: $event->testmode,
             hostCustomerId: $hostCustomerId,
             metadata: $event->metadata,
+            // A renewal can fail before it is paid. This store is then the
+            // order's only one: StoreOrderOnPaid's later update leaves lines
+            // as-is, so the lines (and their subscription link) land here.
+            lines: $event->lines,
         ));
     }
 }
