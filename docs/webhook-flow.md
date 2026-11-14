@@ -23,7 +23,7 @@ In production, let that callback write outbox jobs on the same transaction as yo
 | Event | Built-in persistence |
 | --- | --- |
 | `order.paid` | Find by Vatly ID; store a new order or update the existing one. New store data includes lines. |
-| `order.payment_failed` | Store or update the order with the payload's status, usually `pending` during recovery. It does not invent a `failed` order status. |
+| `order.payment_failed` | Store or update the order with the payload's status, usually `pending` during recovery. It does not invent a `failed` order status. New store data includes lines, so a renewal paid on retry keeps its lines. |
 | `order.canceled` | Update an existing order's status and cancellation reason; skip if missing. |
 | `subscription.started` | Store a new subscription or update an existing one. |
 | `subscription.updated` | Update an existing subscription's plan, name, and quantity for an immediate change. |
