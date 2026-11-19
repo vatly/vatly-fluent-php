@@ -3,7 +3,7 @@
 Sell a download, start a subscription, and keep your app's billing records in step with Vatly.
 Vatly is the European Merchant of Record for AI, software and digital products.
 
-> **Alpha — under active development. Every alpha release may include breaking changes. Pin exact versions during alpha.**
+> **Alpha — under active development. Every alpha release may include breaking changes. Lock the version you install and review the release notes before upgrading.**
 
 Fluent adds checkout builders, subscription operations, customer bindings, and a webhook processing pipeline to `vatly/vatly-api-php`. You keep your database and framework. Fluent calls your storage contracts to save orders and subscriptions.
 

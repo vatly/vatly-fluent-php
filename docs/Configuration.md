@@ -3,12 +3,14 @@
 Install Fluent on your server with PHP 8.1 or newer and Composer. Keep API keys out of browser code and source control.
 
 ```sh
-composer require vatly/vatly-fluent-php:0.8.0-alpha.29 vatly/vatly-api-php:0.1.0-alpha.32
+composer config minimum-stability alpha
+composer config prefer-stable true
+composer require vatly/vatly-fluent-php
 ```
 
-> **Alpha — under active development. Every alpha release may include breaking changes. Pin exact versions during alpha.**
+> **Alpha — under active development. Every alpha release may include breaking changes. Lock the version you install and review the release notes before upgrading.**
 
-Install both pins: Composer's default stable-only policy otherwise rejects the SDK's transitive alpha dependency. These examples use this released pair.
+Fluent and the underlying `vatly/vatly-api-php` SDK are alpha, and Composer's default stable-only policy rejects them. The two `config` commands allow alpha releases while `prefer-stable` keeps your other dependencies on stable releases. Composer installs the latest alpha and records it in `composer.lock`.
 
 ## Set keys and return URLs
 

@@ -7,7 +7,7 @@
 
 Fluent billing flows for PHP, powered by [Vatly](https://vatly.com), the European Merchant of Record for AI, software and digital products.
 
-> **Alpha — under active development. Every alpha release may include breaking changes. Pin exact versions during alpha.**
+> **Alpha — under active development. Every alpha release may include breaking changes. Lock the version you install and review the release notes before upgrading.**
 
 Create hosted checkouts, change subscriptions, and sync orders through verified webhooks. Fluent builds on `vatly/vatly-api-php` and lets you keep your framework and database.
 
@@ -16,10 +16,12 @@ Create hosted checkouts, change subscriptions, and sync orders through verified 
 Requires PHP 8.1+ and Composer. Keep your API key on the server.
 
 ```sh
-composer require vatly/vatly-fluent-php:0.8.0-alpha.29 vatly/vatly-api-php:0.1.0-alpha.32
+composer config minimum-stability alpha
+composer config prefer-stable true
+composer require vatly/vatly-fluent-php
 ```
 
-Both pins are needed because the underlying SDK is also alpha.
+Fluent and the underlying `vatly/vatly-api-php` SDK are alpha, so allow alpha releases first. `prefer-stable` keeps your other dependencies on stable releases. Composer installs the latest alpha and records it in `composer.lock`.
 
 ## Start a subscription checkout
 
