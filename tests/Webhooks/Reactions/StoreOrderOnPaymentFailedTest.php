@@ -9,6 +9,8 @@ use Vatly\Fluent\Contracts\CustomerBindingRepository;
 use Vatly\Fluent\Contracts\OrderInterface;
 use Vatly\Fluent\Contracts\OrderRepositoryInterface;
 use Vatly\API\Types\Money;
+use Vatly\API\Types\OrderLineData;
+use Vatly\API\Types\OrderLineRelatedResources;
 use Vatly\API\Types\TaxSummaryCollection;
 use Vatly\API\Webhooks\Events\OrderPaid;
 use Vatly\API\Webhooks\Events\OrderPaymentFailed;
@@ -188,7 +190,43 @@ class StoreOrderOnPaymentFailedTest extends TestCase
         (new StoreOrderOnPaymentFailed($updateRepo, Mockery::mock(CustomerBindingRepository::class)))->handle($event);
     }
 
-    private function makeEvent(?TaxSummaryCollection $taxSummary = null, string $status = 'pending'): OrderPaymentFailed
+    public function test_it_forwards_order_lines_into_store_order_data(): void
+    {
+        // A failed renewal: when it's paid on retry, StoreOrderOnPaid only
+        // updates this row, so the lines must be stored now.
+        $lines = [
+            new OrderLineData(
+                vatlyId: 'order_item_renewal',
+                description: 'Pro plan',
+                quantity: 1,
+                basePrice: self::money(4050),
+                total: self::money(4900),
+                subtotal: self::money(4050),
+                taxSummary: new TaxSummaryCollection([]),
+                productType: 'subscription',
+                productId: 'subscription_abc',
+                relatedResources: new OrderLineRelatedResources('subscription_abc'),
+            ),
+        ];
+
+        $repo = Mockery::mock(OrderRepositoryInterface::class);
+        $repo->shouldReceive('findByVatlyId')->with('ord_1')->once()->andReturnNull();
+        $repo->shouldReceive('store')->once()->with(Mockery::on(
+            fn (StoreOrderData $data) => $data->lines === $lines
+                && $data->lines[0]->relatedResources?->subscriptionId === 'subscription_abc',
+        ))->andReturn(Mockery::mock(OrderInterface::class));
+
+        $bindings = Mockery::mock(CustomerBindingRepository::class);
+        $bindings->shouldReceive('hostCustomerIdFor')->andReturn(null);
+        $bindings->shouldReceive('record')->once();
+
+        (new StoreOrderOnPaymentFailed($repo, $bindings))->handle($this->makeEvent(lines: $lines));
+    }
+
+    /**
+     * @param OrderLineData[] $lines
+     */
+    private function makeEvent(?TaxSummaryCollection $taxSummary = null, string $status = 'pending', array $lines = []): OrderPaymentFailed
     {
         return new OrderPaymentFailed(
             customerId: 'cus_1',
@@ -200,6 +238,7 @@ class StoreOrderOnPaymentFailedTest extends TestCase
             invoiceNumber: null,
             paymentMethod: 'sepa_direct_debit',
             testmode: true,
+            lines: $lines,
         );
     }
 
