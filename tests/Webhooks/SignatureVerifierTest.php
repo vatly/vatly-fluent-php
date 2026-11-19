@@ -120,6 +120,20 @@ class SignatureVerifierTest extends TestCase
         $this->assertTrue(true);
     }
 
+    public function test_it_refuses_a_blank_secret(): void
+    {
+        $header = $this->makeSignatureHeader($this->payload, '');
+
+        $this->assertFalse($this->verifier->isValid($header, $this->payload, ''));
+
+        try {
+            $this->verifier->verify($header, $this->payload, '');
+            $this->fail('A signature was accepted without a configured secret.');
+        } catch (InvalidWebhookSignatureException $exception) {
+            $this->assertTrue($exception->isSecretNotConfigured());
+        }
+    }
+
     private function makeSignatureHeader(string $payload, string $secret, ?int $timestamp = null): string
     {
         $timestamp ??= time();

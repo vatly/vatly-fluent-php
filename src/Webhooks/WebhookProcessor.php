@@ -43,13 +43,19 @@ class WebhookProcessor
      * (storing orders, syncing subscriptions). The dispatcher fires the
      * event for framework-specific listeners (emails, etc).
      *
-     * @throws InvalidWebhookSignatureException When the signature is missing, the
+     * @throws InvalidWebhookSignatureException When no webhook secret is configured
+     *                                          (see {@see InvalidWebhookSignatureException::isSecretNotConfigured()}),
+     *                                          the signature is missing, the
      *                                          timestamp is outside the replay
      *                                          window, the HMAC does not match,
      *                                          or the payload structure is invalid.
      */
     public function handle(string $payload, string $signature): void
     {
+        if (trim($this->webhookSecret) === '') {
+            throw InvalidWebhookSignatureException::secretNotConfigured();
+        }
+
         if ($signature === '') {
             throw InvalidWebhookSignatureException::missingSignature();
         }

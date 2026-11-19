@@ -177,6 +177,33 @@ class WebhookProcessorFactoryTest extends TestCase
         $this->assertInstanceOf(WebhookProcessor::class, $processor);
     }
 
+    public function test_a_processor_built_without_a_secret_refuses_webhooks(): void
+    {
+        $webhookCalls = Mockery::mock(WebhookCallRepositoryInterface::class);
+        $webhookCalls->shouldNotReceive('record');
+
+        $processor = WebhookProcessorFactory::create(
+            config: $this->config(null),
+            subscriptions: Mockery::mock(SubscriptionRepositoryInterface::class),
+            orders: Mockery::mock(OrderRepositoryInterface::class),
+            webhookCalls: $webhookCalls,
+            dispatcher: Mockery::mock(EventDispatcherInterface::class),
+            bindings: Mockery::mock(CustomerBindingRepository::class),
+            apiClient: new VatlyApiClient(),
+        );
+
+        $payload = '{"id":"webhook_event_abc","resource":"webhook_event","eventName":"order.paid","entityType":"order","entityId":"order_1","createdAt":"2026-01-01T00:00:00+00:00","testmode":true}';
+        $timestamp = time();
+        $header = "t={$timestamp},v1=".hash_hmac('sha256', $timestamp.'.'.$payload, '');
+
+        try {
+            $processor->handle($payload, $header);
+            $this->fail('A webhook was processed without a configured secret.');
+        } catch (\Vatly\Fluent\Exceptions\InvalidWebhookSignatureException $exception) {
+            $this->assertTrue($exception->isSecretNotConfigured());
+        }
+    }
+
     private function config(?string $secret): ConfigurationInterface
     {
         $config = Mockery::mock(ConfigurationInterface::class);

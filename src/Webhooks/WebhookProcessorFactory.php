@@ -91,6 +91,9 @@ class WebhookProcessorFactory
             eventFactory: new WebhookEventFactory($apiClient),
             repository: $webhookCalls,
             dispatcher: $dispatcher,
+            // A missing secret becomes '', which the processor refuses with
+            // InvalidWebhookSignatureException::secretNotConfigured() on
+            // every delivery, so nothing is processed until it is set.
             webhookSecret: $config->getWebhookSecret() ?? '',
             reactions: [
                 ...$reactions,

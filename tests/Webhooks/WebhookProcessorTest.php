@@ -275,6 +275,57 @@ class WebhookProcessorTest extends TestCase
         $this->processor->handle($payload, 't='.time().',v1=deadbeef');
     }
 
+    /**
+     * @dataProvider blankSecrets
+     */
+    public function test_it_refuses_every_webhook_while_no_secret_is_configured(string $blankSecret): void
+    {
+        $payload = $this->makePayload(
+            id: 'webhook_event_abc',
+            eventName: 'subscription.started',
+            entityType: 'subscription',
+            entityId: 'sub_123',
+        );
+
+        $processor = new WebhookProcessor($this->eventFactory, $this->repository, $this->dispatcher, $blankSecret);
+
+        $this->repository->shouldNotReceive('record');
+        $this->dispatcher->shouldNotReceive('dispatch');
+
+        try {
+            // Signed with the same blank key, so only the secret check can refuse it.
+            $processor->handle($payload, $this->makeSignatureHeader($payload, $blankSecret));
+            $this->fail('A webhook was processed without a configured secret.');
+        } catch (InvalidWebhookSignatureException $exception) {
+            $this->assertTrue($exception->isSecretNotConfigured());
+        }
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function blankSecrets(): array
+    {
+        return ['empty' => [''], 'whitespace' => [" \n"]];
+    }
+
+    public function test_an_invalid_signature_is_not_reported_as_a_missing_secret(): void
+    {
+        $payload = $this->makePayload(
+            id: 'webhook_event_abc',
+            eventName: 'subscription.started',
+            entityType: 'subscription',
+            entityId: 'sub_123',
+        );
+
+        try {
+            $this->processor->handle($payload, 't='.time().',v1=deadbeef');
+            $this->fail('An invalid signature was accepted.');
+        } catch (InvalidWebhookSignatureException $exception) {
+            $this->assertFalse($exception->isSecretNotConfigured());
+        }
+    }
+
     public function test_it_throws_exception_for_missing_signature(): void
     {
         $payload = $this->makePayload(

@@ -22,15 +22,15 @@ use Vatly\Fluent\Vatly;
 use Vatly\Fluent\Wiring;
 
 $config = new ArrayConfiguration([
-    'api_key' => getenv('VATLY_API_KEY'),
-    'webhook_secret' => getenv('VATLY_WEBHOOK_SECRET'),
+    'api_key' => (string) getenv('VATLY_API_KEY'),
+    'webhook_secret' => getenv('VATLY_WEBHOOK_SECRET') ?: null,
     'redirect_url_success' => 'https://app.example.com/billing/return',
     'redirect_url_canceled' => 'https://app.example.com/billing/canceled',
 ]);
 $vatly = new Vatly(new Wiring(config: $config));
 ```
 
-`test_` keys use test mode; `live_` keys can charge real money. Keep products, customers, and local records separated by mode. Missing environment variables are configuration errors: validate them at application startup.
+`test_` keys use test mode; `live_` keys can charge real money. Keep products, customers, and local records separated by mode. Missing environment variables are configuration errors: validate them at application startup. `getenv()` returns `false` for an unset variable, so the example maps it to `null`. Webhooks are refused until a secret is configured.
 
 The default API URL is `https://api.vatly.com` and the version is `v1`. `ArrayConfiguration` also accepts `api_url` and `api_version`. Implement `ConfigurationInterface` instead if your framework already owns configuration.
 

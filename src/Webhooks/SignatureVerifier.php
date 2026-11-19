@@ -36,10 +36,16 @@ class SignatureVerifier
      * @param  string  $payload          Raw request body bytes, exactly as received.
      * @param  string  $secret           Webhook signing secret.
      *
-     * @throws InvalidWebhookSignatureException
+     * @throws InvalidWebhookSignatureException Also when `$secret` is empty or
+     *                                          blank: every webhook is refused
+     *                                          until a secret is configured.
      */
     public function verify(string $signatureHeader, string $payload, string $secret): void
     {
+        if (trim($secret) === '') {
+            throw InvalidWebhookSignatureException::secretNotConfigured();
+        }
+
         if ($signatureHeader === '') {
             throw InvalidWebhookSignatureException::missingSignature();
         }
