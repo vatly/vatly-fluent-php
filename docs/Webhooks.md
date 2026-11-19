@@ -11,13 +11,14 @@ function receiveWebhook(Vatly $vatly, string $rawBody, string $signature): int
     try {
         $vatly->webhookProcessor()->handle($rawBody, $signature);
         return 201;
-    } catch (InvalidWebhookSignatureException) {
-        return 403;
+    } catch (InvalidWebhookSignatureException $e) {
+        // 503 while no secret is configured, so Vatly retries once it is set.
+        return $e->isSecretNotConfigured() ? 503 : 403;
     }
 }
 ```
 
-Use the returned integer as your HTTP response status. Other failures must produce a non-2xx response so Vatly can retry. Register your public HTTPS receiver in Vatly, set its signing secret in your configuration, and exempt only that route from browser CSRF checks. Never disable signature verification.
+Use the returned integer as your HTTP response status. Other failures must produce a non-2xx response so Vatly can retry. Register your public HTTPS receiver in Vatly, set its signing secret in your configuration, and exempt only that route from browser CSRF checks. Never disable signature verification. Webhooks are refused until a secret is configured: with an empty or missing secret, `handle()` throws an `InvalidWebhookSignatureException` whose `isSecretNotConfigured()` returns `true`.
 
 ## Verify the exact bytes
 
@@ -41,6 +42,7 @@ Use a PDO connection in exception mode. Every repository and your outbox dispatc
 
 ```php
 use Vatly\API\Exceptions\InvalidSignatureException;
+use Vatly\API\Exceptions\WebhookSecretNotConfiguredException;
 use Vatly\API\Webhooks\Webhook;
 use Vatly\Fluent\Vatly;
 
@@ -48,6 +50,8 @@ function receiveOnce(PDO $db, Vatly $vatly, string $body, string $signature, str
 {
     try {
         $verified = Webhook::parse($body, $signature, $secret);
+    } catch (WebhookSecretNotConfiguredException) {
+        return 503;
     } catch (InvalidSignatureException | InvalidArgumentException) {
         return 403;
     }
