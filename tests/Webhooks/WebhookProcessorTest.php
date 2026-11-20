@@ -118,6 +118,70 @@ class WebhookProcessorTest extends TestCase
         $this->processor->handle($payload, $signature);
     }
 
+    public function test_the_log_gets_the_customers_personal_data_redacted_and_keeps_its_shape(): void
+    {
+        $object = $this->fatSubscription([
+            'id' => 'sub_123',
+            'customerId' => 'cus_456',
+            'subscriptionPlanId' => 'plan_789',
+            'name' => 'Premium Plan',
+            'quantity' => 1,
+            'mandate' => ['method' => 'creditcard', 'maskedIdentifier' => '**** 4242'],
+        ]);
+        $object['billingAddress'] = [
+            'fullName' => 'Erin Tester',
+            'email' => 'erin@example.com',
+            'streetAndNumber' => 'Keizersgracht 1',
+            'region' => null,
+            'country' => 'NL',
+            'isBusiness' => false,
+            'taxId' => 'NL123456789B01',
+        ];
+        $payload = $this->makePayload(
+            id: 'webhook_event_pii',
+            eventName: 'subscription.started',
+            entityType: 'subscription',
+            entityId: 'sub_123',
+            object: $object,
+        );
+
+        $recorded = null;
+        $this->repository->shouldReceive('record')->once()->withArgs(
+            function (string $id, string $resource, string $eventName, string $entityType, string $entityId, bool $testmode, \DateTimeInterface $createdAt, array $object) use (&$recorded) {
+                $recorded = $object;
+
+                return true;
+            }
+        );
+        // Listeners still get the event built from the unredacted payload.
+        $this->dispatcher->shouldReceive('dispatch')->once()->withArgs(
+            fn (object $event) => $event instanceof SubscriptionStarted && $event->customerId === 'cus_456'
+        );
+
+        $this->processor->handle($payload, $this->makeSignatureHeader($payload, $this->secret));
+
+        self::assertSame([
+            'fullName' => '[redacted]',
+            'email' => '[redacted]',
+            'streetAndNumber' => '[redacted]',
+            'region' => null,
+            'country' => '[redacted]',
+            'isBusiness' => false,
+            'taxId' => '[redacted]',
+        ], $recorded['billingAddress']);
+        self::assertSame(['method' => '[redacted]', 'maskedIdentifier' => '[redacted]'], $recorded['mandate']);
+        // Everything outside the personal fields is recorded as Vatly sent it.
+        self::assertSame('cus_456', $recorded['customerId']);
+        self::assertSame('Premium Plan', $recorded['name']);
+        self::assertSame(array_keys($object), array_keys($recorded));
+
+        // Nested structures keep their shape too.
+        self::assertSame(
+            ['customerDetails' => ['address' => ['city' => '[redacted]', 'lines' => ['[redacted]']]]],
+            \Vatly\Fluent\Webhooks\WebhookCallRedactor::redact(['customerDetails' => ['address' => ['city' => 'Amsterdam', 'lines' => ['Keizersgracht 1']]]]),
+        );
+    }
+
     public function test_it_runs_matching_reactions_before_dispatching(): void
     {
         $payload = $this->makePayload(

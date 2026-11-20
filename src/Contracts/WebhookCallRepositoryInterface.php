@@ -14,7 +14,9 @@ interface WebhookCallRepositoryInterface
     /**
      * Record a webhook call.
      *
-     * @param array<string, mixed> $object Raw `object` field from the webhook payload.
+     * @param array<string, mixed> $object The webhook payload's `object` field, with the string values
+     *                                    of its personal fields redacted
+     *                                    ({@see \Vatly\Fluent\Webhooks\WebhookCallRedactor}).
      */
     public function record(
         string $id,
