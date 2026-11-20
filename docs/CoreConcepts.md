@@ -46,7 +46,7 @@ A profile is input, not a stored customer. Supplying only its email to a checkou
 | `CustomerBindingRepository` | Maps host IDs to Vatly customer IDs in both directions; records unattributed customers. |
 | `SubscriptionRepositoryInterface` | Finds by Vatly ID, stores a subscription, updates it. |
 | `OrderRepositoryInterface` | Finds by Vatly ID, stores an order, updates it. |
-| `WebhookCallRepositoryInterface` | Records received deliveries and cleans up old audit rows. It does not skip duplicate processing. |
+| `WebhookCallRepositoryInterface` | Records received deliveries and cleans up old audit rows. It does not skip duplicate processing. The recorded `object` has the customer's personal data (`customerDetails`, `billingAddress`, `shippingAddress`, `mandate`) redacted to `[redacted]`; keys and nesting are kept. |
 | `EventDispatcherInterface` | Dispatches typed events to your listeners. `NullEventDispatcher` is available if you need no listeners. |
 
 Repositories return your objects implementing `SubscriptionInterface` or `OrderInterface`. Wrap existing host records rather than copying them; see [Host tables](host-owns-its-tables.md). Reader and writer contracts are also available separately when a component needs only one role.

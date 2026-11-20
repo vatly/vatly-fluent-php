@@ -76,7 +76,8 @@ class WebhookProcessor
             entityId: $webhook->entityId,
             testmode: $webhook->testmode,
             createdAt: new DateTimeImmutable($webhook->createdAt),
-            object: $webhook->object,
+            // The log never keeps the customer's personal data.
+            object: WebhookCallRedactor::redact($webhook->object),
             vatlyCustomerId: $webhook->getCustomerId(),
         );
 
