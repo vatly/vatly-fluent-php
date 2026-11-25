@@ -13,6 +13,7 @@ use Vatly\Fluent\Contracts\EventDispatcherInterface;
 use Vatly\Fluent\Contracts\WebhookCallRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
 use Vatly\Fluent\Exceptions\InvalidWebhookSignatureException;
+use Vatly\Fluent\Exceptions\WebhookModeMismatchException;
 
 /**
  * @immutable
@@ -21,6 +22,11 @@ class WebhookProcessor
 {
     /**
      * @param  WebhookReactionInterface[]  $reactions
+     * @param  bool|null  $testmode  Whether the configured API key is a test key
+     *                               (starts with `test_`). A webhook for the
+     *                               other mode is refused. Null skips the check
+     *                               and is kept only for existing callers;
+     *                               {@see WebhookProcessorFactory} always passes it.
      */
     public function __construct(
         private WebhookEventFactory $eventFactory,
@@ -28,6 +34,7 @@ class WebhookProcessor
         private EventDispatcherInterface $dispatcher,
         private string $webhookSecret,
         private array $reactions = [],
+        private ?bool $testmode = null,
     ) {
         //
     }
@@ -49,6 +56,9 @@ class WebhookProcessor
      *                                          timestamp is outside the replay
      *                                          window, the HMAC does not match,
      *                                          or the payload structure is invalid.
+     * @throws WebhookModeMismatchException When the webhook is for the other
+     *                                      mode than the configured API key.
+     *                                      It extends InvalidWebhookSignatureException.
      */
     public function handle(string $payload, string $signature): void
     {
@@ -67,6 +77,10 @@ class WebhookProcessor
         }
 
         $webhook = $this->eventFactory->fromPayload($parsed);
+
+        if ($this->testmode !== null && $webhook->testmode !== $this->testmode) {
+            throw new WebhookModeMismatchException($webhook->testmode);
+        }
 
         $this->repository->record(
             id: $webhook->id,

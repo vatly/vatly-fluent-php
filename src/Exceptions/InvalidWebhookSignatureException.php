@@ -6,7 +6,7 @@ namespace Vatly\Fluent\Exceptions;
 
 use RuntimeException;
 
-final class InvalidWebhookSignatureException extends RuntimeException implements VatlyException
+class InvalidWebhookSignatureException extends RuntimeException implements VatlyException
 {
     private bool $secretNotConfigured = false;
 

@@ -18,7 +18,7 @@ function receiveWebhook(Vatly $vatly, string $rawBody, string $signature): int
 }
 ```
 
-Use the returned integer as your HTTP response status. Other failures must produce a non-2xx response so Vatly can retry. Register your public HTTPS receiver in Vatly, set its signing secret in your configuration, and exempt only that route from browser CSRF checks. Never disable signature verification. Webhooks are refused until a secret is configured: with an empty or missing secret, `handle()` throws an `InvalidWebhookSignatureException` whose `isSecretNotConfigured()` returns `true`.
+Use the returned integer as your HTTP response status. Other failures must produce a non-2xx response so Vatly can retry. Register your public HTTPS receiver in Vatly, set its signing secret in your configuration, and exempt only that route from browser CSRF checks. Never disable signature verification. Webhooks are refused until a secret is configured: with an empty or missing secret, `handle()` throws an `InvalidWebhookSignatureException` whose `isSecretNotConfigured()` returns `true`. A webhook for the other mode than your API key, such as a test-mode event while the key is live, is refused before anything is stored: `handle()` throws a `WebhookModeMismatchException`, which extends `InvalidWebhookSignatureException`. If you build a `WebhookProcessor` yourself instead of calling `webhookProcessor()`, pass `testmode: str_starts_with($apiKey, 'test_')` for the configured API key so it checks the mode.
 
 ## Verify the exact bytes
 

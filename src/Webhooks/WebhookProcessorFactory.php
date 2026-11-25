@@ -99,6 +99,9 @@ class WebhookProcessorFactory
                 ...$reactions,
                 ...$additionalReactions,
             ],
+            // A webhook for the other mode than the API key is refused. The
+            // key decides which mode the API sends, so read it from the key.
+            testmode: str_starts_with($config->getApiKey(), 'test_'),
         );
     }
 }

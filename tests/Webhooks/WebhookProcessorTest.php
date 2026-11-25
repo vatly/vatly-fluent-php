@@ -25,6 +25,7 @@ use Vatly\API\Webhooks\Events\SubscriptionCanceledForNonpayment;
 use Vatly\API\Webhooks\Events\SubscriptionStarted;
 use Vatly\API\Webhooks\Events\UnsupportedWebhookReceived;
 use Vatly\Fluent\Exceptions\InvalidWebhookSignatureException;
+use Vatly\Fluent\Exceptions\WebhookModeMismatchException;
 use Vatly\API\Webhooks\WebhookEventFactory;
 use Vatly\Fluent\Tests\TestCase;
 use Vatly\Fluent\Webhooks\WebhookProcessor;
@@ -388,6 +389,85 @@ class WebhookProcessorTest extends TestCase
         } catch (InvalidWebhookSignatureException $exception) {
             $this->assertFalse($exception->isSecretNotConfigured());
         }
+    }
+
+    /**
+     * @dataProvider mismatchedModes
+     */
+    public function test_it_refuses_a_webhook_for_the_other_mode_than_the_api_key(bool $keyTestmode, bool $webhookTestmode, string $message): void
+    {
+        $payload = $this->makePayload(
+            id: 'webhook_event_abc',
+            eventName: 'subscription.started',
+            entityType: 'subscription',
+            entityId: 'sub_123',
+            object: $this->fatSubscription(['id' => 'sub_123', 'customerId' => 'cus_456', 'subscriptionPlanId' => 'plan_789', 'name' => 'Premium Plan', 'quantity' => 1, 'mandate' => null]),
+            testmode: $webhookTestmode,
+        );
+
+        $reaction = Mockery::mock(WebhookReactionInterface::class);
+        $reaction->shouldNotReceive('supports');
+        $reaction->shouldNotReceive('handle');
+
+        $processor = new WebhookProcessor(
+            $this->eventFactory,
+            $this->repository,
+            $this->dispatcher,
+            $this->secret,
+            [$reaction],
+            testmode: $keyTestmode,
+        );
+
+        $this->repository->shouldNotReceive('record');
+        $this->dispatcher->shouldNotReceive('dispatch');
+
+        try {
+            $processor->handle($payload, $this->makeSignatureHeader($payload, $this->secret));
+            $this->fail('A webhook for the other mode was processed.');
+        } catch (WebhookModeMismatchException $exception) {
+            $this->assertInstanceOf(InvalidWebhookSignatureException::class, $exception);
+            $this->assertFalse($exception->isSecretNotConfigured());
+            $this->assertSame($webhookTestmode, $exception->webhookTestmode);
+            $this->assertSame($message, $exception->getMessage());
+        }
+    }
+
+    /**
+     * @return array<string, array{bool, bool, string}>
+     */
+    public static function mismatchedModes(): array
+    {
+        return [
+            'test webhook, live key' => [false, true, 'This Vatly webhook is for test mode, but the configured API key is for live mode.'],
+            'live webhook, test key' => [true, false, 'This Vatly webhook is for live mode, but the configured API key is for test mode.'],
+        ];
+    }
+
+    public function test_it_processes_a_webhook_for_the_same_mode_as_the_api_key(): void
+    {
+        $payload = $this->makePayload(
+            id: 'webhook_event_abc',
+            eventName: 'subscription.started',
+            entityType: 'subscription',
+            entityId: 'sub_123',
+            object: $this->fatSubscription(['id' => 'sub_123', 'customerId' => 'cus_456', 'subscriptionPlanId' => 'plan_789', 'name' => 'Premium Plan', 'quantity' => 1, 'mandate' => null]),
+            testmode: true,
+        );
+
+        $processor = new WebhookProcessor(
+            $this->eventFactory,
+            $this->repository,
+            $this->dispatcher,
+            $this->secret,
+            testmode: true,
+        );
+
+        $this->repository->shouldReceive('record')->once()
+            ->withArgs(fn (string $id, string $resource, string $eventName, string $entityType, string $entityId, bool $testmode) => $testmode === true);
+        $this->dispatcher->shouldReceive('dispatch')->once()
+            ->withArgs(fn (object $event) => $event instanceof SubscriptionStarted);
+
+        $processor->handle($payload, $this->makeSignatureHeader($payload, $this->secret));
     }
 
     public function test_it_throws_exception_for_missing_signature(): void
