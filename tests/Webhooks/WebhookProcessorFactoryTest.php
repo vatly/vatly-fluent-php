@@ -15,6 +15,7 @@ use Vatly\Fluent\Contracts\RefundRepositoryInterface;
 use Vatly\Fluent\Contracts\SubscriptionRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookCallRepositoryInterface;
 use Vatly\Fluent\Contracts\WebhookReactionInterface;
+use Vatly\Fluent\Exceptions\WebhookModeMismatchException;
 use Vatly\Fluent\Tests\TestCase;
 use Vatly\Fluent\Webhooks\Reactions\CancelOrderOnCanceled;
 use Vatly\Fluent\Webhooks\Reactions\CancelSubscriptionOnCanceled;
@@ -204,10 +205,35 @@ class WebhookProcessorFactoryTest extends TestCase
         }
     }
 
-    private function config(?string $secret): ConfigurationInterface
+    public function test_a_processor_refuses_a_webhook_for_the_other_mode_than_the_api_key(): void
+    {
+        $webhookCalls = Mockery::mock(WebhookCallRepositoryInterface::class);
+        $webhookCalls->shouldNotReceive('record');
+
+        $processor = WebhookProcessorFactory::create(
+            config: $this->config('secret', testmode: false),
+            subscriptions: Mockery::mock(SubscriptionRepositoryInterface::class),
+            orders: Mockery::mock(OrderRepositoryInterface::class),
+            webhookCalls: $webhookCalls,
+            dispatcher: Mockery::mock(EventDispatcherInterface::class),
+            bindings: Mockery::mock(CustomerBindingRepository::class),
+            apiClient: new VatlyApiClient(),
+        );
+
+        $payload = '{"id":"webhook_event_abc","resource":"webhook_event","eventName":"order.paid","entityType":"order","entityId":"order_1","createdAt":"2026-01-01T00:00:00+00:00","testmode":true,"object":{}}';
+        $timestamp = time();
+        $header = "t={$timestamp},v1=".hash_hmac('sha256', $timestamp.'.'.$payload, 'secret');
+
+        $this->expectException(WebhookModeMismatchException::class);
+
+        $processor->handle($payload, $header);
+    }
+
+    private function config(?string $secret, bool $testmode = false): ConfigurationInterface
     {
         $config = Mockery::mock(ConfigurationInterface::class);
         $config->shouldReceive('getWebhookSecret')->andReturn($secret);
+        $config->shouldReceive('getApiKey')->andReturn($testmode ? 'test_abcdefghijklmnop' : 'live_abcdefghijklmnop');
 
         return $config;
     }
