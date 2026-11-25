@@ -24,5 +24,12 @@ class StoreRefundData
         public ?int $subtotal = null,
         public ?TaxSummaryCollection $taxSummary = null,
         public ?string $hostCustomerId = null,
+        /**
+         * The `metadata` sent when the refund was created, or null when none was
+         * sent (including refunds created before Vatly stored refund metadata).
+         *
+         * @var array<string, mixed>|null
+         */
+        public ?array $metadata = null,
     ) {}
 }

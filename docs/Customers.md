@@ -10,13 +10,13 @@ if ($customer === null) {
     $customer = $vatly->customers()->createFor(
         hostCustomerId: 'user_42',
         profile: new CustomerProfile(email: 'buyer@example.com', name: 'Alex'),
-        additionalPayload: ['locale' => 'nl_NL'],
+        additionalPayload: ['metadata' => ['host_account_id' => 'user_42']],
     );
 }
 $profile = new CustomerProfile(vatlyId: $customer->id);
 ```
 
-Use `$profile` in a [checkout](Checkouts.md). `createFor()` always creates a new remote customer and then calls your binding repository. It throws if that host ID is already bound. Serialize concurrent creation for the same host account; a lookup followed by create is not an atomic lock. Remote creation and your database write are not one transaction. Reconcile the remote ID if binding fails rather than blindly creating again.
+Use `$profile` in a [checkout](Checkouts.md). `additionalPayload` takes the other create-customer fields; today that is only `metadata`, an object of string values. `createFor()` always creates a new remote customer and then calls your binding repository. It throws if that host ID is already bound. Serialize concurrent creation for the same host account; a lookup followed by create is not an atomic lock. Remote creation and your database write are not one transaction. Reconcile the remote ID if binding fails rather than blindly creating again.
 
 ## Link an existing customer
 

@@ -37,7 +37,7 @@ class OneOffProductService
      * Create a one-off product.
      *
      * @param array<string, mixed> $payload  Any of `name`, `description`, `basePrice`,
-     *                                        `productType`, `taxBehavior`, `testmode`.
+     *                                        `productType`, `taxBehavior`. Test mode follows the API key.
      * @param array<string, mixed> $filters
      */
     public function create(array $payload, array $filters = []): OneOffProduct

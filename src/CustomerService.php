@@ -41,9 +41,10 @@ class CustomerService
      * an existing Vatly customer to a host instead.
      *
      * `$additionalPayload` keys are merged on top of the profile-derived
-     * payload sent to the API — pass things like `locale`, `metadata`,
-     * or any other field the create-customer endpoint accepts. Keys in
-     * `$additionalPayload` take precedence over the profile defaults.
+     * payload sent to the API. Pass only fields the create-customer endpoint
+     * defines; besides `email` and `name` that is `metadata`, an object of
+     * string values. Keys in `$additionalPayload` take precedence over the
+     * profile defaults.
      *
      * @param  array<string, mixed>  $additionalPayload  Extra create-customer API keys.
      *

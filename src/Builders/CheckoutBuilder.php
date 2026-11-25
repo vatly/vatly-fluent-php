@@ -41,6 +41,12 @@ class CheckoutBuilder
     /**
      * Build the checkout payload.
      *
+     * Holds only fields the checkout API defines. Test mode is not one of them:
+     * Vatly takes it from the API key, so {@see self::withTestmode()} does not
+     * change the request. Empty `metadata` is omitted, and integer or float
+     * metadata values are sent as strings, since the API takes an object of
+     * string values.
+     *
      * @param array<string, mixed> $overrides
      * @return array<string, mixed>
      */
@@ -51,11 +57,20 @@ class CheckoutBuilder
             'customerId' => $this->customer->vatlyId,
             'redirectUrlSuccess' => $this->redirectUrlSuccess,
             'redirectUrlCanceled' => $this->redirectUrlCanceled,
-            'testmode' => $this->testmode,
             'metadata' => $this->metadata,
             'locale' => $this->locale,
             'billingAddress' => $this->billingAddress,
         ], $overrides);
+
+        if (($payload['metadata'] ?? null) === []) {
+            // PHP encodes an empty array as a JSON list, which the API rejects.
+            $payload['metadata'] = null;
+        } elseif (is_array($payload['metadata'] ?? null)) {
+            $payload['metadata'] = array_map(
+                fn ($value) => is_int($value) || is_float($value) ? (string) $value : $value,
+                $payload['metadata'],
+            );
+        }
 
         return $filtered ? array_filter($payload, fn ($value) => $value !== null) : $payload;
     }
@@ -102,6 +117,13 @@ class CheckoutBuilder
     }
 
     /**
+     * Attach metadata to the checkout; Vatly copies it onto the order and
+     * subscription it creates.
+     *
+     * The API takes an object of string values: at most 50 keys, keys up to 40
+     * characters, values up to 500 characters. Integer and float values are sent
+     * as strings; an empty array sends no metadata.
+     *
      * @param array<string, mixed> $metadata
      */
     public function withMetadata(array $metadata): static

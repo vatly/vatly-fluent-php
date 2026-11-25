@@ -19,5 +19,12 @@ class UpdateRefundData
         public ?string $currency = null,
         public ?int $subtotal = null,
         public ?TaxSummaryCollection $taxSummary = null,
+        /**
+         * The `metadata` sent when the refund was created. Null means "no
+         * change": none was sent, or the refund predates Vatly storing it.
+         *
+         * @var array<string, mixed>|null
+         */
+        public ?array $metadata = null,
     ) {}
 }

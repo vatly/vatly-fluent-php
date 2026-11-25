@@ -115,12 +115,33 @@ class CheckoutBuilderTest extends TestCase
         $this->assertSame($this->builder, $result);
     }
 
-    public function test_it_includes_testmode_in_payload(): void
+    public function test_it_never_sends_testmode_because_vatly_takes_it_from_the_api_key(): void
     {
-        $this->builder->withTestmode(true);
-        $payload = $this->builder->payload();
+        $this->assertArrayNotHasKey('testmode', $this->builder->inTestmode()->payload());
+        $this->assertArrayNotHasKey('testmode', $this->builder->inLiveMode()->payload(filtered: false));
+    }
 
-        $this->assertTrue($payload['testmode']);
+    public function test_it_sends_numeric_metadata_values_as_strings(): void
+    {
+        $this->builder->withMetadata(['level_id' => 7, 'ratio' => 1.5, 'order_code' => 'A1']);
+
+        $this->assertSame(
+            ['level_id' => '7', 'ratio' => '1.5', 'order_code' => 'A1'],
+            $this->builder->payload()['metadata'],
+        );
+        $this->assertSame(
+            ['wp_user_id' => '42'],
+            $this->builder->payload(['metadata' => ['wp_user_id' => 42]])['metadata'],
+        );
+    }
+
+    public function test_it_omits_empty_metadata_instead_of_sending_a_json_list(): void
+    {
+        $this->builder->withMetadata([]);
+
+        $this->assertArrayNotHasKey('metadata', $this->builder->payload());
+        $this->assertArrayNotHasKey('metadata', $this->builder->payload(['metadata' => []]));
+        $this->assertNull($this->builder->payload(filtered: false)['metadata']);
     }
 
     public function test_it_filters_null_values_by_default(): void
@@ -178,22 +199,6 @@ class CheckoutBuilderTest extends TestCase
         $result = $this->builder->withTestmode(true);
 
         $this->assertSame($this->builder, $result);
-    }
-
-    public function test_in_testmode_sets_testmode_to_true(): void
-    {
-        $this->builder->inTestmode();
-        $payload = $this->builder->payload();
-
-        $this->assertTrue($payload['testmode']);
-    }
-
-    public function test_in_live_mode_sets_testmode_to_false(): void
-    {
-        $this->builder->inTestmode()->inLiveMode();
-        $payload = $this->builder->payload();
-
-        $this->assertFalse($payload['testmode']);
     }
 
     public function test_it_throws_exception_when_no_items_provided(): void

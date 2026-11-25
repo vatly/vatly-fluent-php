@@ -49,14 +49,15 @@ class SyncRefundOnStatusChangeTest extends TestCase
         $repo = Mockery::mock(RefundRepositoryInterface::class);
         $repo->shouldReceive('findByVatlyId')->with('refund_1')->once()->andReturn($existing);
         $repo->shouldReceive('update')->once()->with($existing, Mockery::on(function (UpdateRefundData $data) {
-            return $data->status === 'refunded' && $data->total === 9900 && $data->currency === 'EUR';
+            return $data->status === 'refunded' && $data->total === 9900 && $data->currency === 'EUR'
+                && $data->metadata === ['ticketId' => 'SUPPORT-12345'];
         }))->andReturn($existing);
 
         $bindings = Mockery::mock(CustomerBindingRepository::class);
         $bindings->shouldNotReceive('record');
 
         $reaction = new SyncRefundOnStatusChange($repo, $bindings);
-        $reaction->handle($this->event(RefundCompleted::class, 'refunded'));
+        $reaction->handle($this->event(RefundCompleted::class, 'refunded', ['ticketId' => 'SUPPORT-12345']));
     }
 
     public function test_it_stores_a_new_refund_resolving_host_customer_from_bindings(): void
@@ -71,7 +72,8 @@ class SyncRefundOnStatusChangeTest extends TestCase
                 && $data->total === 9900
                 && $data->originalOrderId === 'ord_original_1'
                 && $data->testmode === true
-                && $data->hostCustomerId === 'host_42';
+                && $data->hostCustomerId === 'host_42'
+                && $data->metadata === ['ticketId' => 'SUPPORT-12345'];
         }))->andReturn($stored);
 
         $bindings = Mockery::mock(CustomerBindingRepository::class);
@@ -79,13 +81,30 @@ class SyncRefundOnStatusChangeTest extends TestCase
         $bindings->shouldReceive('record')->with('cus_1')->once();
 
         $reaction = new SyncRefundOnStatusChange($repo, $bindings);
-        $reaction->handle($this->event(RefundCompleted::class, 'refunded'));
+        $reaction->handle($this->event(RefundFailed::class, 'refunded', ['ticketId' => 'SUPPORT-12345']));
+    }
+
+    public function test_it_stores_a_refund_without_metadata_as_null(): void
+    {
+        $repo = Mockery::mock(RefundRepositoryInterface::class);
+        $repo->shouldReceive('findByVatlyId')->andReturnNull();
+        $repo->shouldReceive('store')->once()->with(Mockery::on(
+            fn (StoreRefundData $data) => $data->metadata === null,
+        ))->andReturnNull();
+
+        $bindings = Mockery::mock(CustomerBindingRepository::class);
+        $bindings->shouldReceive('hostCustomerIdFor')->andReturnNull();
+        $bindings->shouldReceive('record');
+
+        $reaction = new SyncRefundOnStatusChange($repo, $bindings);
+        $reaction->handle($this->event(RefundCanceled::class, 'canceled'));
     }
 
     /**
      * @param class-string $class
+     * @param array<string, mixed>|null $metadata
      */
-    private function event(string $class, string $status): object
+    private function event(string $class, string $status, ?array $metadata = null): object
     {
         return new $class(
             'cus_1',
@@ -96,6 +115,7 @@ class SyncRefundOnStatusChangeTest extends TestCase
             new TaxSummaryCollection([]),
             'ord_original_1',
             true,
+            metadata: $metadata,
         );
     }
 }

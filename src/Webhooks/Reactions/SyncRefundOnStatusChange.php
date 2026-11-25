@@ -59,6 +59,7 @@ class SyncRefundOnStatusChange implements WebhookReactionInterface
                 currency: $event->total->currency,
                 subtotal: $event->subtotal->toCents(),
                 taxSummary: $event->taxSummary,
+                metadata: $event->metadata,
             ));
 
             return;
@@ -81,6 +82,7 @@ class SyncRefundOnStatusChange implements WebhookReactionInterface
             subtotal: $event->subtotal->toCents(),
             taxSummary: $event->taxSummary,
             hostCustomerId: $hostCustomerId,
+            metadata: $event->metadata,
         ));
     }
 }

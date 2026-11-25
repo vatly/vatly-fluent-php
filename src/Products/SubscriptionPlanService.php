@@ -38,7 +38,7 @@ class SubscriptionPlanService
      *
      * @param array<string, mixed> $payload  Any of `name`, `description`, `basePrice`,
      *                                        `productType`, `interval`, `intervalCount`,
-     *                                        `taxBehavior`, `testmode`.
+     *                                        `taxBehavior`. Test mode follows the API key.
      * @param array<string, mixed> $filters
      */
     public function create(array $payload, array $filters = []): SubscriptionPlan

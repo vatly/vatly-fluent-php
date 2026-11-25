@@ -44,6 +44,8 @@ $url = $checkout->links->checkoutUrl->href;
 
 The result is a checkout, not a local subscription. `subscription.started` creates the local record through your repository. `withTrialDays()` requires a positive whole number. `withTrialEndsAt()` rounds a future end time up to whole days. If you omit the trial, the API applies any plan-level default.
 
+Metadata is an object of string values: at most 50 keys, keys up to 40 characters, values up to 500 characters. Integer and float values are sent as strings, and an empty array sends no metadata. Test mode follows the API key; the builders' `inTestmode()` and `withTestmode()` do not change the request.
+
 Both builders support `withLocale()` and `withBillingAddress()`. Address values prefill hosted fields; the customer can still edit them. A supplied country takes precedence over IP detection. A supplied tax ID is registered only when checkout is submitted.
 
 ## Override a price

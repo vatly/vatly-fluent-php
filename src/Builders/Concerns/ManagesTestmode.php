@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Builders\Concerns;
 
+/**
+ * Vatly takes test mode from the API key, so this flag is not sent with the
+ * checkout request. Use a `test_` key to create test-mode checkouts.
+ */
 trait ManagesTestmode
 {
     protected bool $testmode = false;
