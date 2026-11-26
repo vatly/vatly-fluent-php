@@ -38,7 +38,7 @@ Every request's `User-Agent` names each package involved, with its version: the 
 
 ```php
 $vatly->getApiClient()->addVersionString('acme/vatly-shop-plugin/1.4.0');
-// User-Agent: vatly/vatly-api-php/0.1.0-alpha.40 PHP/8.4.1 Curl/* vatly/vatly-fluent-php/0.8.0-alpha.37 acme/vatly-shop-plugin/1.4.0
+// User-Agent: vatly/vatly-api-php/0.1.0-alpha.40 PHP/8.4.1 curl/8.14.1 vatly/vatly-fluent-php/0.8.0-alpha.37 acme/vatly-shop-plugin/1.4.0
 ```
 
 ## Add storage only when you need it
