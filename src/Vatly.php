@@ -49,6 +49,15 @@ use Vatly\Fluent\Webhooks\WebhookProcessorFactory;
  */
 class Vatly
 {
+    /**
+     * This package's version, sent in the `User-Agent`. Bump it with every release.
+     *
+     * A constant rather than Composer's installed versions, because WordPress
+     * plugins bundle this package with php-scoper, which can break
+     * `Composer\InstalledVersions`.
+     */
+    public const VERSION = '0.8.0-alpha.37';
+
     private VatlyApiClient $apiClient;
 
     // Lazy-loaded actions
@@ -85,6 +94,7 @@ class Vatly
         $this->apiClient = new VatlyApiClient();
         $this->apiClient->setApiKey($config->getApiKey());
         $this->apiClient->setApiEndpoint($config->getApiUrl());
+        $this->apiClient->addVersionString('vatly/vatly-fluent-php/'.self::VERSION);
     }
 
     /**
