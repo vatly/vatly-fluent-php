@@ -36,12 +36,10 @@ class VatlyTest extends TestCase
             config: new ArrayConfiguration([
                 'api_key' => 'test_abcdefghijklmnopqrstuvwxyz',
                 'api_url' => 'https://api.example.test',
-                'api_version' => 'v2',
             ]),
         ));
 
         $this->assertSame('https://api.example.test', $vatly->getApiClient()->getApiEndpoint());
-        $this->assertSame('v2', $vatly->getApiClient()->getApiVersion());
     }
 
     public function test_api_only_factory_constructs_without_repositories(): void
