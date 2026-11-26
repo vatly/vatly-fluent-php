@@ -34,6 +34,13 @@ $vatly = new Vatly(new Wiring(config: $config));
 
 The default API URL is `https://api.vatly.com`. `ArrayConfiguration` also accepts `api_url`. The client always uses API `v1`; `api_version` is accepted but has no effect. Implement `ConfigurationInterface` instead if your framework already owns configuration.
 
+Every request's `User-Agent` names each package involved, with its version: the API client's tokens, then `vatly/vatly-fluent-php/<version>`. A package or plugin built on Fluent adds its own token after it, with its Composer package name and version:
+
+```php
+$vatly->getApiClient()->addVersionString('acme/vatly-shop-plugin/1.4.0');
+// User-Agent: vatly/vatly-api-php/0.1.0-alpha.40 PHP/8.4.1 Curl/* vatly/vatly-fluent-php/0.8.0-alpha.37 acme/vatly-shop-plugin/1.4.0
+```
+
 ## Add storage only when you need it
 
 The instance above can create checkouts, operate on products, and open customer portal sessions. `Vatly::apiOnly($apiKey)` is the shortcut when you do not need redirect defaults.
