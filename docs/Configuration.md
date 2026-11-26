@@ -32,7 +32,7 @@ $vatly = new Vatly(new Wiring(config: $config));
 
 `test_` keys use test mode; `live_` keys can charge real money. Keep products, customers, and local records separated by mode. Missing environment variables are configuration errors: validate them at application startup. `getenv()` returns `false` for an unset variable, so the example maps it to `null`. Webhooks are refused until a secret is configured.
 
-The default API URL is `https://api.vatly.com` and the version is `v1`. `ArrayConfiguration` also accepts `api_url` and `api_version`. Implement `ConfigurationInterface` instead if your framework already owns configuration.
+The default API URL is `https://api.vatly.com`. `ArrayConfiguration` also accepts `api_url`. The client always uses API `v1`; `api_version` is accepted but has no effect. Implement `ConfigurationInterface` instead if your framework already owns configuration.
 
 ## Add storage only when you need it
 

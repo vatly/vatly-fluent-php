@@ -21,6 +21,8 @@ interface ConfigurationInterface
 
     /**
      * Get the API version.
+     *
+     * Not passed to the API client: vatly-api-php always speaks API `v1`.
      */
     public function getApiVersion(): string;
 

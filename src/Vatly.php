@@ -85,7 +85,6 @@ class Vatly
         $this->apiClient = new VatlyApiClient();
         $this->apiClient->setApiKey($config->getApiKey());
         $this->apiClient->setApiEndpoint($config->getApiUrl());
-        $this->apiClient->setApiVersion($config->getApiVersion());
     }
 
     /**
