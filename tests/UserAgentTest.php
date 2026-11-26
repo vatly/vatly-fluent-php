@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent\Tests;
 
-use Composer\InstalledVersions;
 use PHPUnit\Framework\TestCase;
 use Vatly\Fluent\Configuration\ArrayConfiguration;
 use Vatly\Fluent\Vatly;
@@ -58,7 +57,7 @@ class UserAgentTest extends TestCase
         }
     }
 
-    public function test_the_user_agent_ends_with_this_packages_name_and_installed_version(): void
+    public function test_the_user_agent_ends_with_this_packages_name_and_version(): void
     {
         $vatly = new Vatly(new Wiring(
             config: new ArrayConfiguration([
@@ -69,8 +68,6 @@ class UserAgentTest extends TestCase
 
         $userAgent = $vatly->getApiClient()->performHttpCall('GET', 'user-agent')->userAgent;
 
-        $version = ltrim((string) InstalledVersions::getPrettyVersion('vatly/vatly-fluent-php'), 'v');
-        $this->assertNotSame('', $version);
-        $this->assertStringEndsWith(' PHP/'.phpversion().' Curl/* vatly/vatly-fluent-php/'.$version, $userAgent);
+        $this->assertStringEndsWith(' PHP/'.phpversion().' Curl/* vatly/vatly-fluent-php/'.Vatly::VERSION, $userAgent);
     }
 }

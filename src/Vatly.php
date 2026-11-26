@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Vatly\Fluent;
 
-use Composer\InstalledVersions;
 use Vatly\API\Exceptions\ApiException;
 use Vatly\API\VatlyApiClient;
 use Vatly\Fluent\Exceptions\ApiCallFailedException;
@@ -50,6 +49,15 @@ use Vatly\Fluent\Webhooks\WebhookProcessorFactory;
  */
 class Vatly
 {
+    /**
+     * This package's version, sent in the `User-Agent`. Bump it with every release.
+     *
+     * A constant rather than Composer's installed versions, because WordPress
+     * plugins bundle this package with php-scoper, which can break
+     * `Composer\InstalledVersions`.
+     */
+    public const VERSION = '0.8.0-alpha.37';
+
     private VatlyApiClient $apiClient;
 
     // Lazy-loaded actions
@@ -86,21 +94,7 @@ class Vatly
         $this->apiClient = new VatlyApiClient();
         $this->apiClient->setApiKey($config->getApiKey());
         $this->apiClient->setApiEndpoint($config->getApiUrl());
-        $this->apiClient->addVersionString('vatly/vatly-fluent-php/'.self::installedVersion());
-    }
-
-    /**
-     * This package's installed version, as Composer recorded it (`0.8.0-alpha.36`),
-     * for its `User-Agent` token. Composer knows the version of every install,
-     * including the copy bundled in a WordPress plugin zip.
-     */
-    private static function installedVersion(): string
-    {
-        if (! class_exists(InstalledVersions::class) || ! InstalledVersions::isInstalled('vatly/vatly-fluent-php')) {
-            return 'unknown';
-        }
-
-        return ltrim((string) InstalledVersions::getPrettyVersion('vatly/vatly-fluent-php'), 'v');
+        $this->apiClient->addVersionString('vatly/vatly-fluent-php/'.self::VERSION);
     }
 
     /**
