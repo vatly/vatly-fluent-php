@@ -66,8 +66,10 @@ class UserAgentTest extends TestCase
             ]),
         ));
 
-        $userAgent = $vatly->getApiClient()->performHttpCall('GET', 'user-agent')->userAgent;
+        $client = $vatly->getApiClient();
+        $userAgent = $client->performHttpCall('GET', 'user-agent')->userAgent;
 
-        $this->assertStringEndsWith(' PHP/'.phpversion().' Curl/* vatly/vatly-fluent-php/'.Vatly::VERSION, $userAgent);
+        $this->assertSame(implode(' ', $client->getVersionStrings()), $userAgent);
+        $this->assertStringEndsWith(' vatly/vatly-fluent-php/'.Vatly::VERSION, $userAgent);
     }
 }
