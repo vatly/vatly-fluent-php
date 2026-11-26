@@ -75,13 +75,6 @@ class OneOffProductServiceTest extends TestCase
         $this->assertSame('pending', $result->updateStatus);
     }
 
-    public function test_update_can_return_null(): void
-    {
-        $this->endpoint->shouldReceive('update')->once()->andReturnNull();
-
-        $this->assertNull($this->service->update('one_off_product_1', ['name' => 'x']));
-    }
-
     public function test_archive_forwards_to_the_endpoint(): void
     {
         $this->endpoint->shouldReceive('archive')

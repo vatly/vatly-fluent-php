@@ -19,8 +19,8 @@ class CreateCustomer extends BaseAction
     {
         try {
             $customer = $this->vatlyApiClient->customers->create(
-                payload: $payload,
-                filters: $filters,
+                $payload,
+                $filters,
             );
 
             assert($customer instanceof Customer);
