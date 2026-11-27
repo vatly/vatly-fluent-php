@@ -1,0 +1,21 @@
+name: Changelog
+
+# Posts merges to main and releases to the staff-only Discord changelog.
+# Needs the VATLY_SECRET_SANTA_WEBHOOK_URL secret; without it the run only warns.
+# Leave a commit out with [skip changelog] in its message.
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  changelog:
+    uses: vatly/vatly-docs/.github/workflows/staff-changelog.yml@main
+    secrets:
+      webhook_url: ${{ secrets.VATLY_SECRET_SANTA_WEBHOOK_URL }}
